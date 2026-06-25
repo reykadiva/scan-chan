@@ -14,9 +14,9 @@ type Props = { params: Promise<{ barcode: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { barcode } = await params;
   const product = await prisma.product.findUnique({ where: { barcodeNumber: barcode } });
-  if (!product) return { title: 'Product Not Found — Barcode Adventure' };
+  if (!product) return { title: 'Product Not Found — Barcode Hunter' };
   return {
-    title: `${product.productName} — Barcode Adventure`,
+    title: `${product.productName} — Barcode Hunter`,
     description: product.description ?? `${product.productName} by ${product.brand ?? 'Unknown brand'}. Barcode: ${barcode}`,
   };
 }

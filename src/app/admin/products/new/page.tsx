@@ -2,7 +2,7 @@ import { ProductForm } from '@/components/product/product-form';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Register Product — Barcode Adventure Admin',
+  title: 'Register Product — Barcode Hunter Admin',
 };
 
 type Props = { searchParams: Promise<{ barcode?: string }> };

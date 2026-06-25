@@ -62,7 +62,7 @@ export default function LoginPage() {
             <ScanLine className="w-9 h-9 text-white" />
           </motion.div>
           <h1 className="font-fredoka text-3xl font-bold text-white mb-1">Admin Login</h1>
-          <p className="font-nunito text-white/80 text-sm">Barcode Adventure Dashboard</p>
+          <p className="font-nunito text-white/80 text-sm">Barcode Hunter Dashboard</p>
         </div>
 
         {/* Form */}

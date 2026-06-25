@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await prisma.product.findUnique({ where: { id } });
   return {
     title: product
-      ? `Edit ${product.productName} — Barcode Adventure Admin`
-      : 'Edit Product — Barcode Adventure Admin',
+      ? `Edit ${product.productName} — Barcode Hunter Admin`
+      : 'Edit Product — Barcode Hunter Admin',
   };
 }
 

@@ -85,12 +85,12 @@ export function BarcodeScanner({ onClose, fullscreen = false }: BarcodeScannerPr
 
   return (
     <div
-      className={`relative overflow-hidden bg-gray-900 ${
-        fullscreen ? 'fixed inset-0 z-50' : 'w-full aspect-[4/3] rounded-3xl'
+      className={`relative overflow-hidden bg-slate-100 flex items-center justify-center ${
+        fullscreen ? 'fixed inset-0 z-50' : 'w-full h-full rounded-[2.5rem] card-bubbly'
       }`}
     >
       {/* Camera feed */}
-      <video ref={ref} className="w-full h-full object-cover" playsInline muted />
+      <video ref={ref} className="absolute inset-0 w-full h-full object-cover" playsInline muted />
 
       {/* Scan overlay */}
       {isScanning && !isLoading && <ScanOverlay />}
@@ -130,15 +130,15 @@ export function BarcodeScanner({ onClose, fullscreen = false }: BarcodeScannerPr
             exit={{ opacity: 0, y: 30 }}
             className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 p-6"
           >
-            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <X className="w-8 h-8 text-red-500" />
+            <div className="card-bubbly p-8 max-w-sm w-full text-center">
+              <div className="w-20 h-20 bg-brand-pink/20 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-brand-pink/30">
+                <X className="w-10 h-10 text-pink-500" />
               </div>
-              <h3 className="text-xl font-fredoka font-bold text-gray-800 mb-2">Oops!</h3>
-              <p className="text-gray-600 font-nunito mb-6 text-sm">{error}</p>
+              <h3 className="text-2xl font-fredoka font-bold text-slate-800 mb-2">Oops!</h3>
+              <p className="text-slate-600 font-nunito mb-6 font-medium">{error}</p>
               <button
                 onClick={handleReset}
-                className="px-6 py-3 bg-blue-500 text-white rounded-xl font-nunito font-semibold hover:bg-blue-600 transition-colors"
+                className="btn-bubbly px-8 py-4 bg-brand-cyan text-white text-lg w-full"
               >
                 Try Again
               </button>
@@ -152,26 +152,12 @@ export function BarcodeScanner({ onClose, fullscreen = false }: BarcodeScannerPr
         <button
           onClick={onClose}
           aria-label="Close scanner"
-          className="absolute top-4 right-4 z-30 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+          className="absolute top-6 right-6 z-30 w-12 h-12 card-bubbly flex items-center justify-center text-slate-700 hover:text-brand-pink hover:scale-110 transition-all"
         >
-          <X className="w-5 h-5" />
+          <X className="w-6 h-6" strokeWidth={3} />
         </button>
       )}
 
-      {/* Bottom tip */}
-      {isScanning && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="absolute bottom-6 left-0 right-0 flex justify-center z-10"
-        >
-          <div className="px-5 py-2.5 bg-black/50 backdrop-blur-sm rounded-full flex items-center gap-2">
-            <ScanLine className="w-4 h-4 text-yellow-400" />
-            <p className="text-white font-nunito text-sm">Point camera at a barcode</p>
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }
