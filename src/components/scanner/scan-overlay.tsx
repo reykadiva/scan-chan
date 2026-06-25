@@ -48,16 +48,19 @@ export function ScanOverlay() {
         />
 
         {/* Center hint text */}
-        <div className="absolute -bottom-16 left-0 right-0 flex justify-center">
+        <div className="absolute -bottom-20 left-0 right-0 flex flex-col items-center gap-2">
           <motion.div
             animate={{ y: [0, 5, 0] }}
             transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-            className="px-5 py-2 bg-slate-900/60 backdrop-blur-md rounded-full border border-white/20 shadow-xl"
+            className="px-5 py-2 bg-slate-900/60 backdrop-blur-md rounded-full border border-white/20 shadow-xl flex flex-col items-center"
           >
             <p className="text-white text-sm font-fredoka font-medium tracking-wide">
               Aim at a barcode
             </p>
           </motion.div>
+          <span className="text-white/70 font-nunito text-[11px] drop-shadow-md">
+            (Blurry? Move camera back slightly)
+          </span>
         </div>
       </div>
     </div>

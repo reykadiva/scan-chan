@@ -64,9 +64,6 @@ export function BarcodeScanner({ onClose, fullscreen = false }: BarcodeScannerPr
     constraints: {
       video: {
         facingMode: 'environment',
-        width: { ideal: 1280, min: 640 }, 
-        height: { ideal: 720, min: 480 },
-        // Removed 'advanced: focusMode' because it causes Safari on iOS to fall back to the wrong/blurry camera!
       }
     },
     onDecodeResult(decodedResult) {
