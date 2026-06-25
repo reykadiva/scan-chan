@@ -153,12 +153,12 @@ export default function LandingPage() {
       </section>
 
       {/* GAMEPLAY BENTO GRID */}
-      <section ref={bentoRef} className="relative z-10 max-w-6xl mx-auto px-6 mt-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 auto-rows-[280px]">
+      <section ref={bentoRef} className="relative z-10 max-w-6xl mx-auto px-4 md:px-6 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 md:auto-rows-[280px]">
           
           {/* Card 1: Large Feature */}
-          <div className="bento-cell card-bubbly md:col-span-2 bg-white flex flex-col md:flex-row items-center overflow-hidden">
-            <div className="p-10 flex-1 flex flex-col justify-center h-full">
+          <div className="bento-cell card-bubbly md:col-span-2 bg-white flex flex-col md:flex-row items-center overflow-hidden min-h-[280px]">
+            <div className="p-8 md:p-10 flex-1 flex flex-col justify-center h-full">
               <div className="w-14 h-14 bg-brand-pink/20 rounded-2xl flex items-center justify-center mb-6">
                 <Package className="w-8 h-8 text-brand-pink" />
               </div>
@@ -182,14 +182,14 @@ export default function LandingPage() {
           </div>
 
           {/* Card 2: Stats */}
-          <div className="bento-cell card-bubbly bg-brand-yellow/10 flex flex-col items-center justify-center p-8 text-center border-none">
+          <div className="bento-cell card-bubbly bg-brand-yellow/10 flex flex-col items-center justify-center p-8 text-center border-none min-h-[280px]">
             <Trophy className="w-16 h-16 text-brand-yellow mb-4" />
             <h3 className="font-fredoka text-4xl font-bold text-slate-800 mb-2">High Scores</h3>
             <p className="font-nunito text-slate-600 font-medium">Track your personal scan records and compete with yourself.</p>
           </div>
 
           {/* Card 3: Magic Interaction */}
-          <div className="bento-cell card-bubbly bg-brand-mint/20 p-8 flex flex-col justify-between border-none">
+          <div className="bento-cell card-bubbly bg-brand-mint/20 p-8 flex flex-col justify-between border-none min-h-[280px]">
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
               <Zap className="w-6 h-6 text-emerald-500" />
             </div>
@@ -200,7 +200,7 @@ export default function LandingPage() {
           </div>
 
           {/* Card 4: Wide Banner */}
-          <div className="bento-cell card-bubbly md:col-span-2 bg-brand-cyan/10 p-10 flex flex-col justify-center relative overflow-hidden">
+          <div className="bento-cell card-bubbly md:col-span-2 bg-brand-cyan/10 p-8 md:p-10 flex flex-col justify-center relative overflow-hidden min-h-[280px]">
             <div className="absolute top-0 right-0 w-64 h-64 bg-brand-cyan rounded-full blur-3xl opacity-20 -translate-y-1/2 translate-x-1/4" />
             <div className="relative z-10 max-w-lg">
               <h2 className="font-fredoka text-3xl md:text-4xl font-bold mb-4 text-slate-800">Start your collection today</h2>

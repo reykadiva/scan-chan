@@ -58,6 +58,18 @@ export function BarcodeScanner({ onClose, fullscreen = false }: BarcodeScannerPr
 
   const { ref } = useZxing({
     paused: !isScanning,
+    timeBetweenDecodingAttempts: 100, // 🔥 Super fast scanning!
+    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'], // Restrict to retail barcodes for performance
+    trySkew: true, // Helps with slightly tilted barcodes
+    constraints: {
+      video: {
+        facingMode: 'environment',
+        width: { ideal: 1920 }, // Request higher res to help with blur
+        height: { ideal: 1080 },
+        // Force continuous auto-focus if the device supports it
+        advanced: [{ focusMode: 'continuous' } as any],
+      }
+    },
     onDecodeResult(decodedResult) {
       // react-zxing v3 uses Barcode Detection API — result has rawValue
       const text = typeof decodedResult === 'string'
