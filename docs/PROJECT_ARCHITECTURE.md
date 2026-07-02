@@ -792,6 +792,19 @@ Reusable composite patterns.
 └──────────────┴───────────────────────────┘
 ```
 
+Sprint 1.3 expands the foundation to eight independent Zustand stores:
+
+- `usePetStore`
+- `useGameStore`
+- `useUIStore`
+- `useScannerStore`
+- `useInventoryStore`
+- `useProfileStore`
+- `useSettingsStore`
+- `useSharedStore`
+
+Stores do not import each other, call repositories, call Prisma, or call APIs. Cross-store orchestration belongs in services in later sprints.
+
 ### 6.2 Store Definitions
 
 #### Pet Store (`stores/pet-store.ts`)
@@ -880,6 +893,34 @@ interface SettingsState {
 **Persistence**: `localStorage`  
 **Update frequency**: User changes settings
 
+#### Scanner Store (`stores/scanner-store.ts`)
+
+Manages scanner UI/session state only. It does not implement camera access, barcode parsing, scan pipeline behavior, product lookup, reward logic, or persistence.
+
+**Persistence**: None  
+**Update frequency**: Scanner screen interactions
+
+#### Inventory Store (`stores/inventory-store.ts`)
+
+Manages inventory selection and placeholder item state. It does not implement item generation, feeding, rewards, product conversion, or persistence.
+
+**Persistence**: None in Sprint 1.3  
+**Update frequency**: Inventory screen interactions
+
+#### Profile Store (`stores/profile-store.ts`)
+
+Manages current profile identity placeholders and selected mode. It does not authenticate, sync, or access Guest/Arashu repositories.
+
+**Persistence**: None in Sprint 1.3  
+**Update frequency**: Onboarding/profile interactions
+
+#### Shared Store (`stores/shared-store.ts`)
+
+Manages shared loading, error, and offline flags that are not owned by a narrower domain store.
+
+**Persistence**: None  
+**Update frequency**: App-level loading/error state changes
+
 ### 6.3 Persistence Strategy
 
 | Mode | Store | Storage | Sync |
@@ -887,11 +928,19 @@ interface SettingsState {
 | Guest | Pet | `localStorage` | None |
 | Guest | Game | `localStorage` | None |
 | Guest | UI | None | None |
+| Guest | Scanner | None | None |
+| Guest | Inventory | None in Sprint 1.3 | None |
+| Guest | Profile | None in Sprint 1.3 | None |
 | Guest | Settings | `localStorage` | None |
-| Arashu | Pet | `localStorage` + Supabase | Auto-sync on change |
-| Arashu | Game | `localStorage` + Supabase | Auto-sync on change |
+| Guest | Shared | None | None |
+| Arashu | Pet | `localStorage`; Supabase in Sprint 6 | Future sync |
+| Arashu | Game | `localStorage`; Supabase in Sprint 6 | Future sync |
 | Arashu | UI | None | None |
-| Arashu | Settings | `localStorage` + Supabase | Auto-sync on change |
+| Arashu | Scanner | None | None |
+| Arashu | Inventory | None in Sprint 1.3 | None |
+| Arashu | Profile | None in Sprint 1.3 | None |
+| Arashu | Settings | `localStorage`; Supabase in Sprint 6 | Future sync |
+| Arashu | Shared | None | None |
 
 ### 6.4 Migration Strategy
 
@@ -923,7 +972,7 @@ persist(
 ### 6.5 Hydration Rules
 
 1. **On app load**: All persisted stores hydrate from `localStorage` synchronously
-2. **On mode selection**: Arashu Mode triggers server fetch to sync state
+2. **On mode selection**: Sprint 1.3 switches store persistence keys for mode-specific persisted stores; server fetch and sync remain future work
 3. **On daily reset**: Game store checks date, resets missions, updates streak
 4. **On stat decay**: Pet store applies time-based decay since last timestamp
 5. **On conflict** (Arashu Mode): Server state takes precedence; client reconciles
