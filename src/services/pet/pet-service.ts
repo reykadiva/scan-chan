@@ -1,5 +1,6 @@
 import type { PetRepository } from '@/repositories';
 import {
+  applyPetInteraction,
   applyPassivePetDecay,
   applyPersonalitySignal,
   applyPetStatUpdate,
@@ -8,7 +9,7 @@ import {
   createPetMemory,
   normalizePetState,
 } from '@/lib/pet';
-import type { PetMemory, PetMemoryType, PetPersonalityTrait, PetStateModel, PetStatsState } from '@/types/pet';
+import type { PetInteractionType, PetMemory, PetMemoryType, PetPersonalityTrait, PetStateModel, PetStatsState } from '@/types/pet';
 import { deferred, type ServiceResult, type FutureOrchestrationPoint } from '../service-result';
 
 export interface PetService {
@@ -19,7 +20,9 @@ export interface PetService {
   calculateStatus: (pet: PetStateModel) => ServiceResult<Pick<PetStateModel, 'lifecycle'> & { status: ReturnType<typeof calculatePetStatus> }>;
   applyPersonalitySignal: (pet: PetStateModel, trait: PetPersonalityTrait, amount?: number) => ServiceResult<PetStateModel>;
   createMemory: (input: { id: string; type: PetMemoryType; title: string; createdAt: string; productBarcode?: string; reaction?: string }) => ServiceResult<PetMemory>;
+  interact: (pet: PetStateModel, input: { type: PetInteractionType; now: number; memoryId?: string }) => ServiceResult<ReturnType<typeof applyPetInteraction>>;
   preparePetState: () => ServiceResult;
+  preparePetInteraction: () => ServiceResult;
   prepareFeeding: () => ServiceResult<FutureOrchestrationPoint>;
   prepareEvolution: () => ServiceResult<FutureOrchestrationPoint>;
 }
@@ -84,8 +87,17 @@ export class DefaultPetService implements PetService {
     return { ok: true, data: createPetMemory(input) };
   }
 
+  interact(pet: PetStateModel, input: { type: PetInteractionType; now: number; memoryId?: string }) {
+    return { ok: true, data: applyPetInteraction(pet, input) };
+  }
+
   /** Sprint 2.1 orchestration hook for pet state updates; feature pipelines stay deferred. */
   preparePetState() {
+    return { ok: true };
+  }
+
+  /** Sprint 2.2 orchestration hook for direct player-to-pet interactions. */
+  preparePetInteraction() {
     return { ok: true };
   }
 

@@ -20,6 +20,7 @@ const pet = {
   memories: [],
   lifecycle: 'awake' as const,
   lastDecayTimestamp: null,
+  interactions: {},
 };
 
 export function createMockServices() {
@@ -35,7 +36,9 @@ export function createMockServices() {
         ok: true,
         data: { id: 'memory-1', type: 'first-feed' as const, title: 'First Feed', createdAt: '2026-07-03T00:00:00.000Z' },
       })),
+      interact: vi.fn(() => ({ ok: true, data: { pet, applied: true, cooldownRemainingMs: 0 } })),
       preparePetState: vi.fn(ok),
+      preparePetInteraction: vi.fn(ok),
       prepareFeeding: vi.fn(ok),
       prepareEvolution: vi.fn(ok),
     } satisfies PetService,

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import {
+  applyPetInteraction,
   applyPassivePetDecay,
   applyPetStatUpdate,
   calculatePetLifecycle,
@@ -8,7 +9,16 @@ import {
   initialPetPersonality,
   initialPetStats,
 } from '@/lib/pet';
-import type { PetLifecycleState, PetMemory, PetPersonalityState, PetStageName, PetStatsState, PetStatus } from '@/types/pet';
+import type {
+  PetInteractionHistory,
+  PetInteractionType,
+  PetLifecycleState,
+  PetMemory,
+  PetPersonalityState,
+  PetStageName,
+  PetStatsState,
+  PetStatus,
+} from '@/types/pet';
 
 export interface PetStoreState {
   isInitialized: boolean;
@@ -26,6 +36,7 @@ export interface PetStoreState {
   lifecycle: PetLifecycleState;
   status: PetStatus;
   lastDecayTimestamp: number | null;
+  interactions: PetInteractionHistory;
   accessories: string[];
   furniture: string[];
   currentAnimation: string | null;
@@ -37,6 +48,7 @@ export interface PetStoreState {
   updateStats: (stats: Partial<PetStatsState>) => void;
   applyDecay: (now: number) => void;
   recordMemory: (memory: PetMemory) => void;
+  interact: (type: PetInteractionType, now: number) => void;
   queueAnimation: (animation: string | null) => void;
   reset: () => void;
 }
@@ -53,6 +65,7 @@ export const initialPetState = {
   lifecycle: 'awake' as const,
   status: 'content' as const,
   lastDecayTimestamp: null as number | null,
+  interactions: {} as PetInteractionHistory,
   accessories: [] as string[],
   furniture: [] as string[],
   currentAnimation: null as string | null,
@@ -97,6 +110,20 @@ export const usePetStore = create<PetStoreState>()(
             };
           }),
         recordMemory: (memory) => set((state) => ({ memories: [...state.memories, memory] })),
+        interact: (type, now) =>
+          set((state) => {
+            const result = applyPetInteraction(toPetStateModel(state), { type, now });
+            const next = result.pet;
+
+            return {
+              ...next.stats,
+              personality: next.personality,
+              memories: [...next.memories],
+              lifecycle: next.lifecycle,
+              status: calculatePetStatus(next.stats),
+              interactions: next.interactions,
+            };
+          }),
         queueAnimation: (currentAnimation) => set({ currentAnimation }),
         reset: () =>
           set((state) => ({
@@ -109,7 +136,7 @@ export const usePetStore = create<PetStoreState>()(
         name: petStorageKey('guest'),
         version: 1,
         storage: createJSONStorage(() => localStorage),
-        partialize: ({ name, stage, hunger, mood, energy, affection, curiosity, personality, memories, lifecycle, status, lastDecayTimestamp, accessories, furniture, persistenceMode }) => ({
+        partialize: ({ name, stage, hunger, mood, energy, affection, curiosity, personality, memories, lifecycle, status, lastDecayTimestamp, interactions, accessories, furniture, persistenceMode }) => ({
           name,
           stage,
           hunger,
@@ -122,6 +149,7 @@ export const usePetStore = create<PetStoreState>()(
           lifecycle,
           status,
           lastDecayTimestamp,
+          interactions,
           accessories,
           furniture,
           persistenceMode,
@@ -144,4 +172,15 @@ export const selectPetIdentity = (state: PetStoreState) => ({
   name: state.name,
   stage: state.stage,
   personality: state.personality,
+});
+
+const toPetStateModel = (state: PetStoreState) => ({
+  name: state.name,
+  stage: state.stage,
+  stats: selectPetStats(state),
+  personality: state.personality,
+  memories: state.memories,
+  lifecycle: state.lifecycle,
+  lastDecayTimestamp: state.lastDecayTimestamp,
+  interactions: state.interactions,
 });

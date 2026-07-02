@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyPetInteraction,
   applyPassivePetDecay,
   applyPersonalitySignal,
   applyPetStatUpdate,
@@ -62,6 +63,31 @@ describe('pet domain', () => {
       lifecycle: 'awake',
     });
   });
+
+  it('applies interactions with cooldowns, memories, and personality influence', () => {
+    const pet = normalizePetState({});
+    const first = applyPetInteraction(pet, { type: 'comfort', now: 1_000, memoryId: 'comfort-1' });
+    const second = applyPetInteraction(first.pet, { type: 'comfort', now: 2_000 });
+
+    expect(first.applied).toBe(true);
+    expect(first.pet.stats.mood).toBe(100);
+    expect(first.pet.personality.dominantTrait).toBe('gentle');
+    expect(first.memory).toMatchObject({ id: 'comfort-1', type: 'special-moment' });
+    expect(second.applied).toBe(false);
+    expect(second.cooldownRemainingMs).toBeGreaterThan(0);
+  });
+
+  it('lets dominant personality traits amplify matching interactions', () => {
+    const pet = normalizePetState({
+      stats: { ...initialPetStats, mood: 50, curiosity: 50 },
+      personality: applyPersonalitySignal(initialPetPersonality, 'adventurous', 3),
+    });
+    const result = applyPetInteraction(pet, { type: 'play', now: 1_000 });
+
+    expect(result.pet.stats.mood).toBe(58);
+    expect(result.pet.stats.curiosity).toBe(58);
+    expect(result.pet.stats.energy).toBe(94);
+  });
 });
 
 describe('pet service', () => {
@@ -74,5 +100,6 @@ describe('pet service', () => {
       stats: { energy: 20 },
     });
     expect(service.createMemory({ id: 'memory-1', type: 'first-feed', title: 'First Feed', createdAt: '2026-07-03T00:00:00.000Z' }).data?.title).toBe('First Feed');
+    expect(service.interact(pet, { type: 'greet', now: 1_000 }).data?.pet.lifecycle).toBe('greeting');
   });
 });

@@ -529,6 +529,8 @@ public/
 
 Sprint 2.1 implements the pet foundation as pure domain logic under `src/lib/pet/`. The pet engine owns typed stat boundaries, direct stat updates, passive stat decay, lifecycle calculation, status calculation, personality signal weighting, memory normalization, and pet state normalization. Passive decay must remain non-punitive: it never drives stats to zero through absence, and affection keeps the documented permanent floor. Scanner, feeding, rewards, evolution, animation, synchronization, and UI behavior remain outside Sprint 2.1.
 
+Sprint 2.2 extends the same pure pet engine with direct player-to-pet interactions: `pet`, `greet`, `observe`, `comfort`, `praise`, and foundation-only `play`. The interaction engine owns cooldown checks, stat deltas, personality trait signals, meaningful interaction memories, and deterministic outcomes. Cooldowns exist only to prevent spam and must not create guilt, loss, or urgency. Scanner, product lookup, inventory UI, missions, achievements, rewards, synchronization, camera behavior, animation, evolution, and Home Hub UI remain outside Sprint 2.2.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -568,6 +570,8 @@ Sprint 1.5 establishes `createAppContainer(mode)` as the application composition
 Sprint 1.6 adds application flows to the composition root. Flows sequence service calls for lifecycle and future gameplay events, but they remain deterministic placeholders until later sprints define actual gameplay, scanner, reward, and sync behavior.
 
 Sprint 2.1 adds `PetService` methods for pet normalization, stat updates, passive decay, status calculation, personality signals, and memory creation. These methods wrap the pure pet domain engine and keep UI, stores, repositories, Prisma, scanner logic, feeding, rewards, evolution, and animations out of the pet foundation. `petUpdate` application flow now targets the pet state foundation only; future feeding and evolution sequences remain deferred.
+
+Sprint 2.2 adds `PetService.interact()` and `preparePetInteraction()`. `interact()` delegates to the pure pet interaction engine and returns applied/cooldown outcome data. The `petUpdate` application flow includes a `pet.interaction` preparation step without implementing UI, animation, scanner, feeding, rewards, missions, achievements, synchronization, or evolution behavior.
 
 ### 3.5 Persistence Layer
 
@@ -897,6 +901,7 @@ interface PetState {
   lifecycle: PetLifecycleState;    // awake | resting | sleeping | greeting
   status: PetStatus;              // Derived display state
   lastDecayTimestamp: number;     // When stats were last decayed
+  interactions: PetInteractionHistory; // Last direct interaction timestamps
   accessories: string[];          // Equipped accessories
   furniture: string[];            // Placed furniture items
 }
@@ -906,6 +911,8 @@ interface PetState {
 **Update frequency**: Every stat change, every 5 minutes for decay
 
 Sprint 2.1 store actions may call pure pet-domain functions to keep persisted state normalized, but the store must not access repositories, Prisma, APIs, or other stores. Cross-store orchestration and persistence synchronization remain future service/flow responsibilities.
+
+Sprint 2.2 adds a store-level `interact(type, now)` action that delegates to the pure pet interaction engine and persists the resulting pet stats, personality, memories, lifecycle, status, and interaction cooldown history. The store must continue to avoid repositories, Prisma, APIs, other stores, React UI, animations, and scanner logic.
 
 #### Game Store (`stores/game-store.ts`)
 

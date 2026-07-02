@@ -93,7 +93,10 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
       { name: 'scanner.result-handling', run: services.scanner.prepareScanResultHandling },
     ]),
     inventoryUpdate: flow('inventoryUpdate', [{ name: 'inventory.item-mutation', run: services.inventory.prepareItemMutation }]),
-    petUpdate: flow('petUpdate', [{ name: 'pet.state', run: services.pet.preparePetState }]),
+    petUpdate: flow('petUpdate', [
+      { name: 'pet.state', run: services.pet.preparePetState },
+      { name: 'pet.interaction', run: services.pet.preparePetInteraction },
+    ]),
     missionUpdate: flow('missionUpdate', [{ name: 'game.mission-pipeline', run: services.game.prepareMissionPipeline }]),
     achievementUpdate: flow('achievementUpdate', [
       { name: 'game.achievement-pipeline', run: services.game.prepareAchievementPipeline },

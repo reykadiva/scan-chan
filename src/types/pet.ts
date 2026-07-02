@@ -24,6 +24,15 @@ export type PetMemoryType = 'first-feed' | 'favorite' | 'milestone' | 'special-m
 
 export type PetStageName = 'kitten' | 'young' | 'adult' | 'wise' | 'legendary';
 
+export type PetInteractionType = 'pet' | 'greet' | 'observe' | 'comfort' | 'praise' | 'play';
+
+export interface PetInteractionRecord {
+  readonly type: PetInteractionType;
+  readonly lastAt: number;
+}
+
+export type PetInteractionHistory = Partial<Record<PetInteractionType, PetInteractionRecord>>;
+
 export interface PetStatsState {
   readonly hunger: number;
   readonly mood: number;
@@ -54,6 +63,7 @@ export interface PetStateModel {
   readonly memories: readonly PetMemory[];
   readonly lifecycle: PetLifecycleState;
   readonly lastDecayTimestamp: number | null;
+  readonly interactions: PetInteractionHistory;
 }
 
 export interface PetDomainBoundary {

@@ -243,6 +243,8 @@ Scan Chan's personality emerges from how the player cares for them:
 
 Personality is not binary. Scan Chan exists on a spectrum, showing dominant traits while retaining complexity.
 
+Direct interactions also shape personality. Petting and greeting strengthen social behavior, observing supports independence, comforting reinforces gentleness, praise supports routine-loving behavior, and play supports adventurous behavior. These signals should remain gentle and cumulative rather than forcing abrupt personality changes.
+
 ### 5.3 Memory System
 
 Every scan becomes a memory:
@@ -254,6 +256,8 @@ Every scan becomes a memory:
 - **Rare Finds**: Unusual or unique products
 
 Memories are visualized as a scrapbook or photo album the player can browse. Each memory includes the date, the product, and Scan Chan's reaction.
+
+Meaningful direct interactions can also create memories. Greet, comfort, praise, and play moments may become `Special Moments` when they represent a warm emotional beat. Routine petting and observation should usually affect state without creating memory clutter.
 
 ---
 
@@ -544,6 +548,21 @@ Evolution is never instant—it happens over a "growing" period where the cat lo
 ---
 
 ## 8. The Gameplay Loop
+
+### 8.0 Direct Pet Interactions
+
+Sprint 2.2 defines the foundation for direct pet interactions before any UI is built:
+
+| Interaction | Purpose | Primary Influence |
+|-------------|---------|-------------------|
+| `pet` | A small affectionate touch | Affection, Mood |
+| `greet` | A warm hello when the player returns | Affection, Mood, Greeting lifecycle |
+| `observe` | Quietly watching the pet live | Curiosity |
+| `comfort` | Reassuring the pet during low mood moments | Mood, Affection |
+| `praise` | Positive reinforcement after a good moment | Mood, Affection, Curiosity |
+| `play` | Foundation-only active engagement | Mood, Curiosity, Energy cost |
+
+Interactions use short cooldowns to prevent spam, not to pressure the player. Cooldowns must never become timers, chores, penalties, streak pressure, or loss mechanics. Visual feedback, animation, sound, and Home Hub interaction surfaces belong to later sprints.
 
 ### 8.1 Core Loop (Single Session)
 

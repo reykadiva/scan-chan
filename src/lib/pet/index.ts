@@ -1,5 +1,6 @@
 import type {
   PetLifecycleState,
+  PetInteractionType,
   PetMemory,
   PetMemoryType,
   PetPersonalityState,
@@ -53,6 +54,26 @@ export const initialPetStats: PetStatsState = {
   energy: 100,
   affection: 25,
   curiosity: 50,
+};
+
+const PET_INTERACTION_COOLDOWNS: Readonly<Record<PetInteractionType, number>> = {
+  pet: 10_000,
+  greet: 60_000,
+  observe: 15_000,
+  comfort: 45_000,
+  praise: 45_000,
+  play: 120_000,
+};
+
+const PET_INTERACTION_RULES: Readonly<
+  Record<PetInteractionType, { stats: Partial<PetStatsState>; trait: PetPersonalityTrait; memory?: string }>
+> = {
+  pet: { stats: { affection: 1, mood: 1 }, trait: 'social' },
+  greet: { stats: { affection: 2, mood: 1 }, trait: 'social', memory: 'A warm greeting' },
+  observe: { stats: { curiosity: 2 }, trait: 'independent' },
+  comfort: { stats: { mood: 5, affection: 3 }, trait: 'gentle', memory: 'A quiet comfort' },
+  praise: { stats: { mood: 3, affection: 2, curiosity: 1 }, trait: 'routine-loving', memory: 'A proud little moment' },
+  play: { stats: { mood: 4, curiosity: 4, energy: -3 }, trait: 'adventurous', memory: 'A playful moment' },
 };
 
 export function clampPetStat(stat: PetStatName, value: number): number {
@@ -140,6 +161,53 @@ export function createPetMemory(input: {
   };
 }
 
+export function applyPetInteraction(
+  pet: PetStateModel,
+  input: { type: PetInteractionType; now: number; memoryId?: string },
+): { pet: PetStateModel; applied: boolean; cooldownRemainingMs: number; memory?: PetMemory } {
+  const previous = pet.interactions[input.type]?.lastAt;
+  const cooldownRemainingMs = previous === undefined ? 0 : Math.max(0, PET_INTERACTION_COOLDOWNS[input.type] - (input.now - previous));
+
+  if (cooldownRemainingMs > 0) {
+    return { pet, applied: false, cooldownRemainingMs };
+  }
+
+  const rule = PET_INTERACTION_RULES[input.type];
+  const traitWeight = pet.personality.dominantTrait === rule.trait ? 2 : 1;
+  const nextStats = applyPetStatUpdate(
+    pet.stats,
+    Object.fromEntries(
+      Object.entries(rule.stats).map(([stat, value]) => [
+        stat,
+        pet.stats[stat as PetStatName] + (value ?? 0) * traitWeight,
+      ]),
+    ) as Partial<PetStatsState>,
+  );
+  const memory = rule.memory
+    ? createPetMemory({
+        id: input.memoryId ?? `${input.type}-${input.now}`,
+        type: 'special-moment',
+        title: rule.memory,
+        createdAt: new Date(input.now).toISOString(),
+        reaction: input.type,
+      })
+    : undefined;
+
+  return {
+    applied: true,
+    cooldownRemainingMs: 0,
+    memory,
+    pet: {
+      ...pet,
+      stats: nextStats,
+      personality: applyPersonalitySignal(pet.personality, rule.trait, 1),
+      memories: memory ? [...pet.memories, memory] : pet.memories,
+      lifecycle: input.type === 'greet' ? 'greeting' : calculatePetLifecycle(nextStats),
+      interactions: { ...pet.interactions, [input.type]: { type: input.type, lastAt: input.now } },
+    },
+  };
+}
+
 export function normalizePetState(pet: Partial<PetStateModel>): PetStateModel {
   const stats = normalizePetStats(pet.stats ?? {});
 
@@ -151,5 +219,6 @@ export function normalizePetState(pet: Partial<PetStateModel>): PetStateModel {
     memories: pet.memories ?? [],
     lifecycle: pet.lifecycle ?? calculatePetLifecycle(stats),
     lastDecayTimestamp: pet.lastDecayTimestamp ?? null,
+    interactions: pet.interactions ?? {},
   };
 }

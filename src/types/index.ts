@@ -22,6 +22,9 @@ export type { GameAchievement, MissionProgress } from './game';
 export type { InventoryDomainBoundary } from './inventory';
 export type {
   PetDomainBoundary,
+  PetInteractionHistory,
+  PetInteractionRecord,
+  PetInteractionType,
   PetLifecycleState,
   PetMemory,
   PetMemoryType,
