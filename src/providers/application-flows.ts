@@ -1,7 +1,25 @@
-import type { createServices } from '@/services';
-import type { ServiceResult } from '@/services';
+import type {
+  GameService,
+  InventoryService,
+  PetService,
+  ProfileService,
+  ScannerService,
+  ServiceResult,
+  SettingsService,
+  SharedService,
+  UIService,
+} from '@/services';
 
-export type ServiceBundle = ReturnType<typeof createServices>;
+export interface ServiceBundle {
+  readonly pet: PetService;
+  readonly game: GameService;
+  readonly scanner: ScannerService;
+  readonly ui: UIService;
+  readonly inventory: InventoryService;
+  readonly profile: ProfileService;
+  readonly settings: SettingsService;
+  readonly shared: SharedService;
+}
 
 export type ApplicationFlowName =
   | 'applicationStartup'

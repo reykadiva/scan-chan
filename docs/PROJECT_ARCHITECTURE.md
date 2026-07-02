@@ -417,6 +417,20 @@ The approved Sprint 1.6 flow foundation is:
 
 Application flows may coordinate services only. They must not import or access Prisma clients, repositories, Zustand stores, API routes, UI components, or game engines. Future business logic belongs in documented service, game, or pipeline layers, not in the flow controller.
 
+### 2.3.5 Sprint 1.7 Testing Foundation
+
+Sprint 1.7 introduces the testing foundation without implementing gameplay, scanner logic, feeding, evolution, rewards, synchronization, Home Hub, animations, UI snapshots, or business rules.
+
+The approved Sprint 1.7 testing foundation is:
+
+- Vitest configuration in `vitest.config.ts` for unit and integration tests
+- Playwright configuration in `playwright.config.ts` for future E2E tests
+- Test folders under `tests/unit/`, `tests/integration/`, `tests/e2e/`, `tests/mocks/`, `tests/fixtures/`, and `tests/helpers/`
+- Mock factories for Prisma, repositories, services, and store state
+- Test bootstrap utilities that compose app dependencies through the existing composition root
+
+Tests must preserve layer boundaries. Store, flow, service, and repository tests should use explicit mocks or injected dependencies instead of reaching across layers.
+
 ### 2.4 Public Assets Structure
 
 ```
@@ -2158,7 +2172,7 @@ Privacy-respecting gameplay metrics:
 
 **Scope**: Pure functions, game logic, validation schemas, utility functions
 
-**Location**: `src/__tests__/` or `*.test.ts` adjacent files
+**Location**: `tests/unit/` during Sprint 1 foundation; adjacent `*.test.ts` files may be introduced later when feature modules need local tests.
 
 **Coverage targets**:
 - `game-engine.ts` — 100% (mission evaluation, achievement checking, XP math)
@@ -2253,6 +2267,17 @@ Before every release:
 - [ ] Reduced motion mode disables animations
 - [ ] All touch targets are 44x44px minimum
 - [ ] Color contrast meets WCAG AA
+
+### 19.10 Sprint 1.7 Test Foundation
+
+Sprint 1.7 establishes these commands:
+
+- `npm run test`
+- `npm run test:unit`
+- `npm run test:integration`
+- `npm run test:e2e`
+
+The first foundation test verifies dependency-injected app containers and deterministic flow controllers only. Feature tests for gameplay, scanner behavior, feeding, evolution, rewards, synchronization, Home Hub, animations, and UI snapshots belong to later sprints.
 - [ ] No console errors in production
 - [ ] Offline mode works gracefully
 - [ ] All API endpoints return correct status codes
