@@ -403,6 +403,20 @@ The approved Sprint 1.5 composition foundation is:
 
 The composition root is the single approved place to wire database providers, repositories, and services together. Future stores, API routes, server actions, background jobs, and sync engine entry points should receive dependencies from this boundary instead of constructing repositories or services ad hoc.
 
+### 2.3.4 Sprint 1.6 Application Flow Layer
+
+Sprint 1.6 introduces deterministic application-flow orchestration without implementing gameplay, scanner logic, feeding, evolution, rewards, synchronization, UI, or business rules.
+
+The approved Sprint 1.6 flow foundation is:
+
+- One flow controller factory in `src/providers/application-flows.ts`
+- Typed flow contracts for startup, mode initialization, scanner, product, inventory, pet, mission, achievement, settings, and shutdown lifecycle flows
+- Future event sequence definitions for scan success, scan failure, feeding, evolution, rewards, and synchronization
+- Flow construction through `createApplicationFlows(services)`
+- Composition through `createAppContainer(mode)`
+
+Application flows may coordinate services only. They must not import or access Prisma clients, repositories, Zustand stores, API routes, UI components, or game engines. Future business logic belongs in documented service, game, or pipeline layers, not in the flow controller.
+
 ### 2.4 Public Assets Structure
 
 ```
@@ -535,6 +549,8 @@ Each service is constructed with its matching repository. `createServices(reposi
 
 Sprint 1.5 establishes `createAppContainer(mode)` as the application composition root. It selects the Guest or Arashu Prisma client, creates repositories, and creates services in one place. Tests may use `createAppContainerFromPrisma(mode, prisma)` to inject a replacement Prisma-compatible client. The container must remain a factory output, not a service locator; consumers receive the dependencies they need through explicit parameters or framework boundaries.
 
+Sprint 1.6 adds application flows to the composition root. Flows sequence service calls for lifecycle and future gameplay events, but they remain deterministic placeholders until later sprints define actual gameplay, scanner, reward, and sync behavior.
+
 ### 3.5 Persistence Layer
 
 **Location**: `src/lib/prisma.ts`, `src/lib/supabase/`, `prisma/schema.prisma`
@@ -583,7 +599,7 @@ Sprint 1.5 establishes `createAppContainer(mode)` as the application composition
 ### 3.8 Layer Communication Rules
 
 ```
-Presentation -> Zustand Stores -> Services -> Repositories -> Persistence Layer
+Presentation -> Zustand Stores -> Application Flow Layer -> Services -> Repositories -> Persistence Layer
 Presentation -> API Routes -> Services -> Repositories -> Persistence Layer
 Services -> Game Layer (for future pure gameplay calculations only)
 Game Layer -> Shared Layer (for types, constants)
@@ -596,6 +612,7 @@ Service And Business Layer -> Shared Layer (for validations, types)
 - Game Layer must never call Persistence Layer directly
 - Presentation Layer must never access Persistence Layer directly
 - Stores must never access repositories, Prisma, or APIs directly
+- Application flows must never access repositories, Prisma, stores, API routes, or UI components directly
 - Services must not mutate stores directly
 - Repositories must never import stores or services
 - No layer may import from a layer above it

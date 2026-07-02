@@ -4,6 +4,15 @@ export {
   type AppContainer,
   type AppDependencyMode,
 } from './composition-root';
+export {
+  createApplicationFlows,
+  futureEventSequences,
+  type ApplicationFlow,
+  type ApplicationFlowName,
+  type ApplicationFlows,
+  type FlowStep,
+  type FutureEventSequence,
+} from './application-flows';
 export type { AppProviderBoundary } from './app-provider';
 export type { PetProviderBoundary } from './pet-provider';
 export type { GameProviderBoundary } from './game-provider';
