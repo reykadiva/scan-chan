@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Product, ScanLog, Prisma } from '@prisma/client';
+import { Product, ScanHistory, Prisma } from '@prisma/client';
 import { serializeProduct } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-type ScanLogWithProduct = ScanLog & {
+type ScanHistoryWithProduct = ScanHistory & {
   product: Product | null;
 };
 
-function serializeScanLog(log: ScanLogWithProduct) {
+function serializeScanHistory(log: ScanHistoryWithProduct) {
   return {
     ...log,
     scannedAt: log.scannedAt.toISOString(),
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
     const search = searchParams.get('search') ?? '';
 
-    const where: Prisma.ScanLogWhereInput = {};
+    const where: Prisma.ScanHistoryWhereInput = {};
     if (search) {
       where.OR = [
         { barcodeNumber: { contains: search } },
@@ -34,19 +34,19 @@ export async function GET(request: NextRequest) {
     }
 
     const [logs, total] = await Promise.all([
-      prisma.scanLog.findMany({
+      prisma.scanHistory.findMany({
         where,
         include: { product: true },
         orderBy: { scannedAt: 'desc' },
         skip,
         take: limit,
-      }) as Promise<ScanLogWithProduct[]>,
-      prisma.scanLog.count({ where }),
+      }) as Promise<ScanHistoryWithProduct[]>,
+      prisma.scanHistory.count({ where }),
     ]);
 
     return NextResponse.json({
       success: true,
-      data: logs.map(serializeScanLog),
+      data: logs.map(serializeScanHistory),
       total,
       page,
       limit,

@@ -14,7 +14,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
     const product = await prisma.product.findUnique({
       where: { barcodeNumber: barcode },
       include: {
-        _count: { select: { scanLogs: true } },
+        _count: { select: { scanHistory: true } },
       },
     });
 
@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
       success: true,
       data: {
         ...serializeProduct(product),
-        scanCount: product._count.scanLogs,
+        scanCount: product._count.scanHistory,
       },
     });
   } catch (error) {

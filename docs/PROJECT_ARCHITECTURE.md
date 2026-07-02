@@ -372,6 +372,22 @@ The approved Sprint 1.1 domain set is:
 
 All Sprint 1.1 files in these folders must remain shells, interfaces, placeholders, or barrel exports. Implementations belong to later milestones.
 
+### 2.3.2 Sprint 1.2 Data Foundation
+
+Sprint 1.2 introduces the first concrete persistence boundary without implementing gameplay, scanner behavior, sync logic, UI state, or pet behavior.
+
+The approved Sprint 1.2 data foundation is:
+
+- One shared Prisma client factory in `src/lib/database/create-prisma-client.ts`
+- One isolated Guest Prisma client in `src/lib/database/guest-prisma.ts`
+- One isolated Arashu Prisma client in `src/lib/database/arashu-prisma.ts`
+- One database provider selector in `src/lib/database/database-provider.ts`
+- Constructor-injected Prisma repository classes under `src/repositories/`
+- Prisma-generated domain model exports in `src/types/database.ts`
+- Zod validation schemas in `src/lib/validations/`
+
+Sprint 1.2 repository implementations may hold a Prisma client and expose their domain boundary. They must not implement gameplay rules, scanner pipeline behavior, sync behavior, reward calculations, XP calculations, feeding, evolution, animation, or UI state logic.
+
 ### 2.4 Public Assets Structure
 
 ```
@@ -983,23 +999,24 @@ Guest Mode and Arashu Mode use **completely separate databases** that share a sc
 
 ### 7.4 Target Schema (v2.0)
 
-The current schema will be expanded for the virtual pet experience:
+The current schema is expanded for the virtual pet experience through the Sprint 1.2 data foundation:
 
 ```
-Product (existing)          → Extended with foodValue, rarity, petReaction
-ScanLog (existing)          → Extended with playerId, mode, xpAwarded
-Achievement (existing)      → Extended with category, threshold, xpReward
-
-New Tables:
-Player                      → id, mode, nickname, avatar, xp, level, streak, createdAt
-Pet                         → id, playerId, name, stage, personality, hunger, mood, energy, affection, curiosity
-PetMemory                   → id, petId, type, barcode, productName, emotion, timestamp
-DailyMission                → id, playerId, date, templateId, progress, completed, xpReward
-PlayerAchievement           → id, playerId, achievementId, unlockedAt
-Furniture                   → id, name, type, rarity, imageUrl, unlockLevel
-PlayerFurniture             → id, playerId, furnitureId, placed, position
-Setting                     → id, playerId, key, value
+User                        → id, mode, nickname, avatar, createdAt, updatedAt
+Pet                         → id, userId, name, stage, mood, createdAt, updatedAt
+PetStats                    → id, petId, hunger, mood, energy, affection, curiosity, updatedAt
+Inventory                   → id, userId, createdAt, updatedAt
+InventoryItem               → id, inventoryId, type, itemKey, quantity, metadata, createdAt, updatedAt
+Product                     → barcode catalog extended with foodValue, rarity, petReaction
+ScanHistory                 → scan record mapped to the legacy scan_logs table during migration
+Mission                     → id, userId, templateId, progress, target, status, xpReward, date
+Achievement                 → id, userId, title, category, threshold, xpReward, unlockedAt
+Progress                    → id, userId, xp, level, streak, lastActiveDate
+Settings                    → id, userId, sound, music, motion, theme
+SyncMetadata                → id, userId, lastSyncedAt, version, source
 ```
+
+Guest Mode and Arashu Mode use the same schema through separate Prisma clients and separate database URLs. No table, repository, service, or API may use a mode flag as a substitute for physical database separation.
 
 ### 7.5 Indexes
 
@@ -1008,13 +1025,15 @@ Setting                     → id, playerId, key, value
 | Product | `barcodeNumber` | Unique | Barcode lookup (primary query path) |
 | Product | `category` | B-tree | Category filtering |
 | Product | `createdAt` | B-tree | Chronological ordering |
-| ScanLog | `barcodeNumber` | B-tree | Scan history per product |
-| ScanLog | `scannedAt` | B-tree | Chronological ordering |
-| ScanLog | `playerId` | B-tree | Scan history per player (v2) |
-| Player | `mode + nickname` | Unique | Player lookup (v2) |
-| Pet | `playerId` | Unique | Pet per player (v2) |
-| PetMemory | `petId + timestamp` | B-tree | Memory timeline (v2) |
-| DailyMission | `playerId + date` | Unique | Daily mission lookup (v2) |
+| ScanHistory | `barcodeNumber` | B-tree | Scan history per product |
+| ScanHistory | `scannedAt` | B-tree | Chronological ordering |
+| ScanHistory | `userId` | B-tree | Scan history per user |
+| User | `mode + nickname` | Unique | User lookup |
+| Pet | `userId` | Unique | Pet per user |
+| PetStats | `petId` | Unique | One stat record per pet |
+| Inventory | `userId` | Unique | Inventory per user |
+| InventoryItem | `inventoryId + type + itemKey` | Unique | Item stack lookup |
+| Mission | `userId + templateId + date` | Unique | Daily mission lookup |
 
 ### 7.6 Future Migrations
 

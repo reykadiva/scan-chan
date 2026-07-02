@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Log the scan
-    const scanLog = await prisma.scanLog.create({
+    const scanHistory = await prisma.scanHistory.create({
       data: {
         barcodeNumber,
         productId: product?.id ?? null,
@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
               updatedAt: product.updatedAt.toISOString(),
             }
           : null,
-        scanLog: {
-          ...scanLog,
-          scannedAt: scanLog.scannedAt.toISOString(),
+        scanHistory: {
+          ...scanHistory,
+          scannedAt: scanHistory.scannedAt.toISOString(),
         },
       },
     });

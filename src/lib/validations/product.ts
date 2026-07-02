@@ -17,6 +17,9 @@ export const productCreateSchema = z.object({
   description: z.string().optional().nullable(),
   imageUrl: z.string().url('Invalid image URL').optional().nullable(),
   creatorId: z.string().max(255).optional().nullable(),
+  foodValue: z.number().int().min(0).optional().nullable(),
+  rarity: z.string().max(80).optional().nullable(),
+  petReaction: z.string().max(255).optional().nullable(),
 });
 
 export const productUpdateSchema = z.object({
@@ -25,6 +28,9 @@ export const productUpdateSchema = z.object({
   category: z.string().max(255).optional().nullable(),
   description: z.string().optional().nullable(),
   imageUrl: z.string().url('Invalid image URL').optional().nullable(),
+  foodValue: z.number().int().min(0).optional().nullable(),
+  rarity: z.string().max(80).optional().nullable(),
+  petReaction: z.string().max(255).optional().nullable(),
 });
 
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;

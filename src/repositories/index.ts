@@ -1,8 +1,10 @@
-export type { PetRepository } from './pet';
-export type { GameRepository } from './game';
-export type { ScannerRepository } from './scanner';
-export type { UIRepository } from './ui';
-export type { InventoryRepository } from './inventory';
-export type { ProfileRepository } from './profile';
-export type { SettingsRepository } from './settings';
-export type { SharedRepository } from './shared';
+export { createDatabaseRepositories } from './database-repositories';
+export { createRepositories } from './create-repositories';
+export { PrismaPetRepository, type PetRepository } from './pet';
+export { PrismaGameRepository, type GameRepository } from './game';
+export { PrismaScannerRepository, type ScannerRepository } from './scanner';
+export { PrismaUIRepository, type UIRepository } from './ui';
+export { PrismaInventoryRepository, type InventoryRepository } from './inventory';
+export { PrismaProfileRepository, type ProfileRepository } from './profile';
+export { PrismaSettingsRepository, type SettingsRepository } from './settings';
+export { PrismaSharedRepository, type SharedRepository } from './shared';

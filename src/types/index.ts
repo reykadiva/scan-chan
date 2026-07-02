@@ -1,4 +1,23 @@
 export type { ApiResponse, PaginatedResponse } from './api';
+export type {
+  Achievement,
+  AppMode,
+  Inventory,
+  InventoryItem,
+  InventoryItemType,
+  Mission,
+  MissionStatus,
+  Pet,
+  PetStage,
+  PetStats,
+  Prisma,
+  PrismaProduct,
+  Progress,
+  ScanHistory,
+  Settings,
+  SyncMetadata,
+  User,
+} from './database';
 export type { GameAchievement, MissionProgress } from './game';
 export type { InventoryDomainBoundary } from './inventory';
 export type { PetDomainBoundary } from './pet';

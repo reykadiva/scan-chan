@@ -13,7 +13,7 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🧼 Cleaning up database records...');
   
-  const scansResult = await prisma.scanLog.deleteMany({});
+  const scansResult = await prisma.scanHistory.deleteMany({});
   console.log(`Deleted ${scansResult.count} scan logs.`);
 
   const productsResult = await prisma.product.deleteMany({});

@@ -6,41 +6,223 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AppMode {
+  GUEST
+  ARASHU
+}
+
+enum PetStage {
+  KITTEN
+  YOUNG_CAT
+  ADULT_CAT
+  WISE_CAT
+  LEGENDARY_CAT
+}
+
+enum MissionStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
+}
+
+enum InventoryItemType {
+  PRODUCT
+  FOOD
+  MEMORY
+  FURNITURE
+  DECORATION
+}
+
+model User {
+  id           String         @id @default(uuid())
+  mode         AppMode        @default(GUEST)
+  nickname     String?        @db.VarChar(80)
+  avatar       String?        @db.VarChar(255)
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  pet          Pet?
+  inventory    Inventory?
+  scanHistory  ScanHistory[]
+  missions     Mission[]
+  achievements Achievement[]
+  progress     Progress?
+  settings     Settings?
+  syncMetadata SyncMetadata?
+
+  @@unique([mode, nickname])
+  @@index([mode])
+  @@map("users")
+}
+
+model Pet {
+  id        String    @id @default(uuid())
+  userId    String    @unique @map("user_id")
+  name      String    @db.VarChar(80)
+  stage     PetStage  @default(KITTEN)
+  mood      String?   @db.VarChar(80)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  stats     PetStats?
+
+  @@map("pets")
+}
+
+model PetStats {
+  id        String   @id @default(uuid())
+  petId     String   @unique @map("pet_id")
+  hunger    Int      @default(100)
+  mood      Int      @default(100)
+  energy    Int      @default(100)
+  affection Int      @default(25)
+  curiosity Int      @default(50)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("pet_stats")
+}
+
+model Inventory {
+  id        String          @id @default(uuid())
+  userId    String          @unique @map("user_id")
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     InventoryItem[]
+
+  @@map("inventories")
+}
+
+model InventoryItem {
+  id          String            @id @default(uuid())
+  inventoryId String            @map("inventory_id")
+  type        InventoryItemType
+  itemKey     String            @map("item_key") @db.VarChar(255)
+  quantity    Int               @default(1)
+  metadata    Json?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  inventory   Inventory         @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@unique([inventoryId, type, itemKey])
+  @@index([type])
+  @@map("inventory_items")
+}
+
 model Product {
-  id            String    @id @default(uuid())
-  barcodeNumber String    @unique @map("barcode_number") @db.VarChar(20)
-  productName   String    @map("product_name") @db.VarChar(255)
-  brand         String?   @db.VarChar(255)
-  category      String?   @db.VarChar(255)
-  description   String?   @db.Text
-  imageUrl      String?   @map("image_url") @db.Text
-  creatorId     String?   @map("creator_id") @db.VarChar(255)
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  scanLogs      ScanLog[]
+  id            String        @id @default(uuid())
+  barcodeNumber String        @unique @map("barcode_number") @db.VarChar(20)
+  productName   String        @map("product_name") @db.VarChar(255)
+  brand         String?       @db.VarChar(255)
+  category      String?       @db.VarChar(255)
+  description   String?       @db.Text
+  imageUrl      String?       @map("image_url") @db.Text
+  creatorId     String?       @map("creator_id") @db.VarChar(255)
+  foodValue     Int?          @map("food_value")
+  rarity        String?       @db.VarChar(80)
+  petReaction   String?       @map("pet_reaction") @db.VarChar(255)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  scanHistory   ScanHistory[]
 
   @@index([barcodeNumber])
+  @@index([category])
+  @@index([createdAt])
   @@map("products")
 }
 
-model ScanLog {
+model ScanHistory {
   id            String   @id @default(uuid())
+  userId        String?  @map("user_id")
   barcodeNumber String   @map("barcode_number") @db.VarChar(20)
   productId     String?  @map("product_id")
   deviceType    String?  @map("device_type") @db.VarChar(100)
+  xpAwarded     Int?     @map("xp_awarded")
   scannedAt     DateTime @default(now()) @map("scanned_at")
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([barcodeNumber])
   @@index([scannedAt])
+  @@index([userId])
   @@map("scan_logs")
 }
 
-model Achievement {
-  id          String  @id @default(uuid())
-  title       String  @db.VarChar(255)
-  description String? @db.Text
-  badgeImage  String? @map("badge_image") @db.Text
+model Mission {
+  id          String        @id @default(uuid())
+  userId      String        @map("user_id")
+  templateId  String        @map("template_id") @db.VarChar(255)
+  title       String        @db.VarChar(255)
+  description String?       @db.Text
+  progress    Int           @default(0)
+  target      Int           @default(1)
+  status      MissionStatus @default(ACTIVE)
+  xpReward    Int?          @map("xp_reward")
+  date        DateTime
+  completedAt DateTime?     @map("completed_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, templateId, date])
+  @@index([userId, date])
+  @@map("missions")
+}
+
+model Achievement {
+  id          String    @id @default(uuid())
+  userId      String?   @map("user_id")
+  title       String    @db.VarChar(255)
+  description String?   @db.Text
+  category    String?   @db.VarChar(120)
+  threshold   Int?
+  xpReward    Int?      @map("xp_reward")
+  badgeImage  String?   @map("badge_image") @db.Text
+  unlockedAt  DateTime? @map("unlocked_at")
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
   @@map("achievements")
+}
+
+model Progress {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  streak         Int      @default(0)
+  lastActiveDate DateTime? @map("last_active_date")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("progress")
+}
+
+model Settings {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  sound     Boolean  @default(true)
+  music     Boolean  @default(true)
+  motion    Boolean  @default(true)
+  theme     String   @default("warm") @db.VarChar(80)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+model SyncMetadata {
+  id           String    @id @default(uuid())
+  userId       String    @unique @map("user_id")
+  lastSyncedAt DateTime? @map("last_synced_at")
+  version      Int       @default(1)
+  source       String?   @db.VarChar(120)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sync_metadata")
 }

@@ -25,7 +25,7 @@ export default async function ProductPage({ params }: Props) {
 
   const [product, scanCount] = await Promise.all([
     prisma.product.findUnique({ where: { barcodeNumber: barcode } }),
-    prisma.scanLog.count({ where: { barcodeNumber: barcode } }),
+    prisma.scanHistory.count({ where: { barcodeNumber: barcode } }),
   ]);
 
   if (!product) {

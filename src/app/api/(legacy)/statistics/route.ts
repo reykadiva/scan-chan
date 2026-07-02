@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Product, ScanLog } from '@prisma/client';
+import { Product, ScanHistory } from '@prisma/client';
 import { serializeProduct } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
-type ScanLogWithProduct = ScanLog & {
+type ScanHistoryWithProduct = ScanHistory & {
   product: Product | null;
 };
 
-function serializeScanLog(log: ScanLogWithProduct) {
+function serializeScanHistory(log: ScanHistoryWithProduct) {
   return {
     ...log,
     scannedAt: log.scannedAt.toISOString(),
@@ -25,21 +25,21 @@ export async function GET() {
     const [totalProducts, totalScans, recentScans, scansByBarcode, allRecentLogs] =
       await Promise.all([
         prisma.product.count(),
-        prisma.scanLog.count(),
-        prisma.scanLog.findMany({
+        prisma.scanHistory.count(),
+        prisma.scanHistory.findMany({
           take: 10,
           orderBy: { scannedAt: 'desc' },
           include: { product: true },
-        }) as Promise<ScanLogWithProduct[]>,
+        }) as Promise<ScanHistoryWithProduct[]>,
         // Group by barcode to find most scanned
-        prisma.scanLog.groupBy({
+        prisma.scanHistory.groupBy({
           by: ['barcodeNumber'],
           _count: { barcodeNumber: true },
           orderBy: { _count: { barcodeNumber: 'desc' } },
           take: 1,
         }),
         // Last 7 days for trend
-        prisma.scanLog.findMany({
+        prisma.scanHistory.findMany({
           where: { scannedAt: { gte: sevenDaysAgo } },
           select: { scannedAt: true },
           orderBy: { scannedAt: 'asc' },
@@ -84,7 +84,7 @@ export async function GET() {
         totalProducts,
         totalScans,
         mostScannedProduct,
-        recentScans: recentScans.map(serializeScanLog),
+        recentScans: recentScans.map(serializeScanHistory),
         dailyScanTrend,
       },
     });
