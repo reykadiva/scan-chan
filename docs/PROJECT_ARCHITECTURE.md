@@ -346,6 +346,32 @@ src/
 | `styles/` | CSS utilities and animation keyframes | Component styles (use Tailwind) |
 | `prisma/` | Database schema, migrations, seeds | Application logic, validation schemas |
 
+### 2.3.1 Sprint 1.1 Boundary Folders
+
+Sprint 1.1 introduces explicit architecture boundary folders without implementing gameplay, scanner flow, pet behavior, persistence sync, or final UI. These folders exist to make future placement decisions unambiguous.
+
+| Folder | Responsibility | Never Place Here |
+|--------|----------------|------------------|
+| `domains/` | Domain-level exports and pure boundary modules for pet, game, scanner, UI, inventory, profile, settings, and shared concerns | React components, database clients, API handlers |
+| `services/` | Service interfaces that describe domain operations before implementations exist | Prisma queries, React state, route handlers |
+| `repositories/` | Repository interfaces that describe persistence boundaries before implementations exist | UI code, business workflows, concrete sync logic |
+| `providers/` | Provider boundary types and future provider placement | Gameplay logic, database access, concrete app shell behavior before Sprint 1.2 |
+| `assets/` | Source-side asset organization boundaries for generated or imported asset modules | Public URL assets that belong in `public/` |
+| `shared/` | Cross-domain shared boundary exports that are not UI components | Feature-specific domain logic |
+
+The approved Sprint 1.1 domain set is:
+
+- `pet`
+- `game`
+- `scanner`
+- `ui`
+- `inventory`
+- `profile`
+- `settings`
+- `shared`
+
+All Sprint 1.1 files in these folders must remain shells, interfaces, placeholders, or barrel exports. Implementations belong to later milestones.
+
 ### 2.4 Public Assets Structure
 
 ```

@@ -38,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 ### Changed
 
 - **Sprint 0 foundation cleanup** - Quarantined legacy v1 routes, APIs, components, state, product UI, mascot prototype, and reward utilities under legacy namespaces while preserving current public URLs and app behavior. Added architecture-aligned component category folders, route-group skeleton folders, domain type files, minimal Zustand store boundaries, `public/audio/` asset placement, `.env.example`, and explicit Guest/Arashu Prisma client boundaries to prepare the repository for the Scan Chan v2 foundation rebuild.
+- **Sprint 1.1 architecture boundaries** - Added v2 domain boundary folders, empty Zustand store shells, provider boundaries, service interfaces, repository interfaces, asset placeholders, API placeholders, and barrel exports for pet, game, scanner, UI, inventory, profile, settings, and shared domains without implementing gameplay or final UI.
 
 ---
 
