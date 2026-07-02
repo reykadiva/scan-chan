@@ -1,0 +1,7 @@
+interface:
+  display_name: "Scan Chan Development Workflow"
+  short_description: "Mandatory Scan Chan implementation workflow"
+  default_prompt: "Use $scan-chan-development-workflow to plan, implement, self-review, document, and prepare Scan Chan changes."
+
+policy:
+  allow_implicit_invocation: true

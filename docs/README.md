@@ -17,6 +17,7 @@ Welcome to the official documentation for **Scan Chan** — a cozy virtual pet g
 | [MASCOT_PRODUCTION_GUIDE.md](./MASCOT_PRODUCTION_GUIDE.md) | **Mascot Production Guide** — pixel art specs, silhouette rules, shape language, color production, shading rules, animation production, expression library, SVG rules, sprite sheet organization, asset pipeline, quality control | **Complete** |
 | [UI_PRODUCTION_GUIDE.md](./UI_PRODUCTION_GUIDE.md) | **UI Production Guide** — Design System Bible: layout, spacing, radius, elevation, color application, typography, iconography, buttons, cards, navigation, modals, HUD, scanner, forms, lists, motion, responsive, accessibility, empty/loading/error states, rewards, Home Hub blueprint | **Complete** |
 | [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md) | **Project Architecture** — Engineering blueprint: architecture philosophy, folder structure, application layers, route architecture, component architecture, state management, database architecture, API architecture, scan/feeding/evolution pipelines, asset pipeline, animation architecture, performance strategy, error handling, offline strategy, security strategy, logging, testing strategy, coding standards, scalability roadmap, technical debt policy, engineering checklist, development workflow, engineering principles | **Complete** |
+| [SPRINT_BOOK.md](./SPRINT_BOOK.md) | **Sprint Book** — definitive production roadmap and sprint governance: sprint philosophy, immutable development rules, Sprint 0-9 sequencing, sprint boundaries, expected outcomes, Definition of Done, timeline philosophy, and mandatory sprint approval checklist | **Complete** |
 | [TECHNICAL_ROADMAP.md](./TECHNICAL_ROADMAP.md) | Development timeline, phases, milestones | Planning |
 | [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) | Technical architecture, database design, API specifications | Planning |
 | [CHANGELOG.md](./CHANGELOG.md) | Version history and notable changes | Active |
@@ -38,6 +39,16 @@ Documentation is **not optional**. It is the foundation of the project.
 4. **If a change affects multiple documents, update all affected documents**
 5. **Keep documentation synchronized with implementation** throughout the entire development lifecycle
 6. **Use Markdown best practices** and maintain consistent formatting
+
+### Workspace Agent Guidance
+
+The workspace includes permanent Codex skills that guide agent work:
+
+- `.agents/skills/scan-chan-core-rules/` defines project-wide source-of-truth and product guardrails.
+- `.agents/skills/scan-chan-development-workflow/` defines the mandatory implementation workflow before, during, and after code changes.
+- `.agents/skills/scan-chan-design-director/` defines the mandatory creative review workflow for visual, UX, motion, mascot, accessibility, emotional, and brand decisions.
+
+These skills do not replace project documentation. If a skill and `docs/` ever disagree, the discrepancy must be resolved before implementation continues.
 
 ### When to Create New Documents
 
@@ -128,6 +139,7 @@ When making changes:
 - [ ] Update MASCOT_PRODUCTION_GUIDE.md if mascot production specs, animation specs, or asset pipeline changes
 - [ ] Update UI_PRODUCTION_GUIDE.md if UI components, layout, spacing, motion, or any design system specification changes
 - [ ] Update PROJECT_ARCHITECTURE.md if architecture, folder structure, state management, API design, pipelines, or engineering standards change
+- [ ] Update SPRINT_BOOK.md if production roadmap, sprint order, sprint scope, sprint approval gates, or milestone sequencing changes
 - [ ] Update TECHNICAL_ROADMAP.md if timeline changes
 - [ ] Update IMPLEMENTATION_PLAN.md if architecture changes
 - [ ] Update CHANGELOG.md with version changes

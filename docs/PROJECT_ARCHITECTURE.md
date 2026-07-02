@@ -2539,6 +2539,12 @@ Every new feature must pass this checklist before implementation begins and befo
 
 ## 24. Development Workflow
 
+AI contributors must apply the permanent workspace skills before implementation:
+
+- `scan-chan-core-rules` for source-of-truth, product guardrails, and conflict handling.
+- `scan-chan-development-workflow` for planning, implementation policy, self-review, documentation updates, changelog updates, and PR readiness.
+- `scan-chan-design-director` for visual, UX, motion, mascot, accessibility, emotional, and brand approval before implementation.
+
 ### 24.1 Feature Planning
 
 1. **Read relevant documentation** — GDD, PED, VDD, UI Production Guide, and this architecture document

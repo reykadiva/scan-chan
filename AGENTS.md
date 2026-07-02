@@ -31,6 +31,7 @@ All project documentation lives in the `/docs` folder. Documentation is the sing
 | `docs/MASCOT_PRODUCTION_GUIDE.md` | **Mandatory reference** — Mascot production: pixel specs, animation, expressions, SVG, asset pipeline, quality control |
 | `docs/UI_PRODUCTION_GUIDE.md` | **Mandatory reference** — UI Production Guide: Design System Bible, layout, spacing, radius, elevation, color, typography, components, motion, responsive, accessibility, Home Hub blueprint |
 | `docs/PROJECT_ARCHITECTURE.md` | **Mandatory reference** — Project Architecture: engineering blueprint, folder structure, application layers, route/component/state/database/API architecture, pipelines, performance, security, testing, coding standards |
+| `docs/SPRINT_BOOK.md` | **Mandatory reference** — Production roadmap: sprint order, sprint boundaries, milestone sequencing, sprint Definition of Done, and approval checklist |
 | `docs/TECHNICAL_ROADMAP.md` | Development timeline and milestones |
 | `docs/IMPLEMENTATION_PLAN.md` | Technical architecture and specifications |
 | `docs/CHANGELOG.md` | Version history |
@@ -45,7 +46,8 @@ All project documentation lives in the `/docs` folder. Documentation is the sing
 5. Before producing any mascot sprite, animation frame, expression, accessory, or exported asset, you MUST consult `docs/MASCOT_PRODUCTION_GUIDE.md` and verify the asset passes the Production Checklist defined within. Never deviate from the production specifications.
 6. Before designing, building, or modifying any UI component, layout, interaction pattern, animation, form, navigation, modal, HUD element, or screen composition, you MUST consult `docs/UI_PRODUCTION_GUIDE.md` and verify the component passes the Component Checklist defined within. Never deviate from the Design System specifications.
 7. Before creating any new file, folder, store, API route, component category, or architectural pattern, you MUST consult `docs/PROJECT_ARCHITECTURE.md` and verify the change passes the Engineering Checklist defined within. Never deviate from the architecture specifications.
-8. If a feature conflicts with the emotional pillars, ethical design principles, or brand identity, it must be redesigned before proceeding.
+8. Before planning or implementing any production work, you MUST consult `docs/SPRINT_BOOK.md` and verify the work belongs to the active sprint. Never skip, reorder, or build ahead of the sprint roadmap unless `docs/SPRINT_BOOK.md` is intentionally updated first.
+9. If a feature conflicts with the emotional pillars, ethical design principles, or brand identity, it must be redesigned before proceeding.
 
 When a new system or feature is introduced, determine whether it belongs in an existing document or whether a new document should be created inside `/docs`.
 <!-- END:documentation-policy -->

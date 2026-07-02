@@ -1,0 +1,7 @@
+interface:
+  display_name: "Scan Chan Design Director"
+  short_description: "Permanent creative review director"
+  default_prompt: "Use $scan-chan-design-director to review Scan Chan visual, UX, mascot, motion, and emotional decisions before implementation."
+
+policy:
+  allow_implicit_invocation: true
