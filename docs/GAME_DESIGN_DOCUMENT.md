@@ -705,6 +705,12 @@ Sprint 3.3 implements the Browser Camera Adapter as a stream provider only. It m
 
 Sprint 3.4 implements barcode decoding as a normalized foundation only. BarcodeDetector is preferred when available, ZXing is the fallback path, duplicate scans and cooldowns are filtered before the scanner pipeline, and decoder metrics are recorded for future mobile tuning. Decoders may identify barcode values, but they must not perform product lookup, feeding, pet updates, rewards, scanner UI, overlays, or animations.
 
+Sprint 3.5 introduces the Scanner UI Foundation as a calm scanning surface only. It frames the future camera preview, permission states, loading states, unavailable states, scan success placeholders, scan failure placeholders, camera switching, and flash placeholder controls without product lookup, feeding, pet updates, inventory updates, rewards, or gameplay processing.
+
+Sprint 3.6 connects decoded barcodes to product lookup and product translation only. Unknown and unsupported products are handled before gameplay mutation, lookup results may be cached, retries may recover transient failures, and offline state is represented without feeding Scan Chan or updating inventory/progress.
+
+Sprint 3.7 connects successful scanner lookup results to feeding, pet state updates, memory creation, XP gain, scanner success/failure flow data, and Home Hub refresh intent. Rewards, achievements, missions, and inventory updates remain deferred so the feeding moment stays readable and the gameplay chain remains testable.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

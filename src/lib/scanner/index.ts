@@ -57,6 +57,16 @@ export {
 } from './barcode-decoder';
 
 export {
+  executeScannerGameplay,
+} from './gameplay';
+
+export {
+  lookupScannedProduct,
+  type ProductLookupCache,
+  type ProductLookupFn,
+} from './product-lookup';
+
+export {
   createBrowserCameraAdapter,
   createMockBrowserCameraAdapter,
 } from './browser-camera-adapter';

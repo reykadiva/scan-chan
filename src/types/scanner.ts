@@ -206,6 +206,36 @@ export interface BarcodeDecoderSelectionResult {
   readonly fallback: BarcodeDecoderAdapter | null;
 }
 
+export type ProductLookupStatus = 'found' | 'unknown' | 'unsupported' | 'offline' | 'failed';
+
+export interface ProductLookupCacheEntry {
+  readonly barcode: string;
+  readonly product: ProductTranslationInput | null;
+  readonly cachedAt: number;
+}
+
+export interface ProductLookupResult {
+  readonly barcode: string;
+  readonly status: ProductLookupStatus;
+  readonly product: ProductTranslationInput | null;
+  readonly food: FoodModel | null;
+  readonly translationStatus: ProductTranslationStatus | null;
+  readonly fromCache: boolean;
+  readonly attempts: number;
+  readonly error: string | null;
+}
+
+export interface ScannerGameplayResult {
+  readonly barcode: string;
+  readonly status: 'success' | 'failed';
+  readonly pet: PetStateModel;
+  readonly xpGain: number;
+  readonly nextXp: number;
+  readonly memoryCreated: boolean;
+  readonly homeHubShouldRefresh: boolean;
+  readonly error: string | null;
+}
+
 export interface BarcodeDecoderAdapter {
   readonly target: ScannerAdapterTarget;
   detectCapabilities: () => Promise<CameraCapabilityDetection>;

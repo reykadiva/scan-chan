@@ -62,6 +62,22 @@ export function createMockServices() {
           food: { id: 'unknown', name: 'Mysterious find', category: 'unknown' as const, nutrition: initialPetStats, isNew: true },
         },
       })),
+      lookupProduct: vi.fn(async () => ({
+        ok: true,
+        data: {
+          cache: new Map(),
+          result: {
+            barcode: '123',
+            status: 'unknown' as const,
+            product: null,
+            food: null,
+            translationStatus: null,
+            fromCache: false,
+            attempts: 0,
+            error: null,
+          },
+        },
+      })),
       runPipeline: vi.fn(() => ({
         ok: true,
         data: {

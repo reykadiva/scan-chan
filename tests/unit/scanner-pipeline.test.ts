@@ -12,6 +12,8 @@ import {
   createScanFrame,
   createZXingDecoder,
   decodeBarcodeWithFallback,
+  executeScannerGameplay,
+  lookupScannedProduct,
   registerBarcodeDecoder,
   registerCameraAdapter,
   runScannerPipeline,
@@ -227,5 +229,83 @@ describe('scanner pipeline', () => {
       code: 'scan-cooldown',
     });
     expect(applyBarcodeScanGuard(result, { lastValue: '98765', lastScannedAt: 1_000, cooldownMs: 250 })).toBe(result);
+  });
+
+  it('looks up scanned products, translates food, and caches without feeding', async () => {
+    const first = await lookupScannedProduct({
+      barcode: '123',
+      now: 3_000,
+      lookup: async () => ({ barcodeNumber: '123', productName: 'Berry Snack', category: 'Snack' }),
+    });
+    const second = await lookupScannedProduct({
+      barcode: '123',
+      now: 4_000,
+      cache: first.cache,
+      lookup: async () => {
+        throw new Error('should use cache');
+      },
+    });
+
+    expect(first.result).toMatchObject({ status: 'found', translationStatus: 'translated', attempts: 1, fromCache: false });
+    expect(first.result.food).toMatchObject({ id: '123', category: 'snack' });
+    expect(second.result).toMatchObject({ status: 'found', attempts: 0, fromCache: true });
+  });
+
+  it('handles unknown, unsupported, retry, and offline lookup states', async () => {
+    const unknown = await lookupScannedProduct({ barcode: '404', now: 1, lookup: async () => null });
+    const unsupported = await lookupScannedProduct({
+      barcode: '777',
+      now: 1,
+      lookup: async () => ({ barcodeNumber: '777', productName: 'Soap', category: 'Personal Care' }),
+    });
+    let attempts = 0;
+    const retried = await lookupScannedProduct({
+      barcode: '500',
+      now: 1,
+      retries: 1,
+      lookup: async () => {
+        attempts += 1;
+        throw new Error('network');
+      },
+    });
+    const offline = await lookupScannedProduct({ barcode: '123', now: 1, offline: true, lookup: async () => null });
+
+    expect(unknown.result).toMatchObject({ status: 'unknown', food: { category: 'unknown' } });
+    expect(unsupported.result).toMatchObject({ status: 'unsupported', translationStatus: 'unsupported' });
+    expect(retried.result).toMatchObject({ status: 'failed', attempts: 2, error: 'network' });
+    expect(attempts).toBe(2);
+    expect(offline.result).toMatchObject({ status: 'offline', attempts: 0 });
+  });
+
+  it('executes scanner gameplay through feeding and xp without rewards', async () => {
+    const lookup = await lookupScannedProduct({
+      barcode: '123',
+      now: 4_000,
+      lookup: async () => ({ barcodeNumber: '123', productName: 'Berry Snack', category: 'Snack' }),
+    });
+    const result = executeScannerGameplay({ lookup: lookup.result, pet, currentXp: 20, now: 4_000 });
+
+    expect(result).toMatchObject({
+      barcode: '123',
+      status: 'success',
+      xpGain: 10,
+      nextXp: 30,
+      memoryCreated: true,
+      homeHubShouldRefresh: true,
+      error: null,
+    });
+    expect(result.pet.stats.hunger).toBeGreaterThan(pet.stats.hunger);
+  });
+
+  it('keeps gameplay failure from mutating pet or xp', async () => {
+    const lookup = await lookupScannedProduct({
+      barcode: '777',
+      now: 4_000,
+      lookup: async () => ({ barcodeNumber: '777', productName: 'Soap', category: 'Personal Care' }),
+    });
+    const result = executeScannerGameplay({ lookup: lookup.result, pet, currentXp: 20, now: 4_000 });
+
+    expect(result).toMatchObject({ status: 'failed', xpGain: 0, nextXp: 20, homeHubShouldRefresh: false });
+    expect(result.pet).toBe(pet);
   });
 });

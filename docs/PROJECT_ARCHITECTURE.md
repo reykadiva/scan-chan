@@ -553,6 +553,12 @@ Sprint 3.3 adds the Browser Camera Adapter under `src/lib/scanner/browser-camera
 
 Sprint 3.4 adds the Barcode Decoder Foundation under `src/lib/scanner/barcode-decoder.ts`. Decoder implementations for BarcodeDetector and ZXing must stay isolated behind `BarcodeDecoderAdapter`, automatic selection must prefer BarcodeDetector and fall back to ZXing, and all outputs must normalize into `NormalizedBarcodeResult` with metrics before reaching scanner pipeline callers. Duplicate barcode filtering and scan cooldown protection belong to this decoder boundary, not product lookup, feeding, pet, UI, or camera stream code.
 
+Sprint 3.5 replaces the legacy `/scan` route with the v2 Scanner UI Foundation at `src/app/(game)/scan/page.tsx` and `scanner-client.tsx`. The screen may compose existing layout and UI primitives, scanner store presentation state, camera preview placeholder, scan frame overlay, controls, permission/loading/error/unavailable/success/failure placeholders, and accessibility labels only. It must not perform camera access, barcode decoding, product lookup, feeding, pet updates, inventory updates, rewards, scanner animations, or gameplay processing.
+
+Sprint 3.6 adds Product Lookup Integration under `src/lib/scanner/product-lookup.ts` and `ScannerService.lookupProduct()`. This layer connects barcode values to product lookup, product translation, unknown product handling, unsupported product handling, lookup cache, retry, and offline preparation. It may return translated `FoodModel` metadata for the next layer, but it must not update pets, inventory, XP, memories, missions, rewards, achievements, or UI state.
+
+Sprint 3.7 adds scanner gameplay orchestration under `src/lib/scanner/gameplay.ts`. This layer consumes product lookup output, delegates feeding to the existing pet feeding engine, returns pet state, XP gain, memory creation status, scanner success/failure status, and a Home Hub refresh signal. It must not implement rewards, achievements, missions, inventory mutation, UI rendering, camera behavior, barcode decoding, or repository access.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers

@@ -3051,6 +3051,8 @@ Sprint 2.8 components are presentational only. They may accept typed ViewModel d
 
 Sprint 2.9 composes the first Home Hub screen from the established primitives. The pet/mascot placeholder remains the dominant visual zone, secondary panels stay supportive, and all status, recommendation, and daily-summary sections consume the Home Hub ViewModel instead of owning gameplay logic. The placeholder may expose renderer attachment points, but it must not render mascot assets or implement animation.
 
+Sprint 3.5 establishes the v2 Scanner UI Foundation. The scanner surface should feel like a warm camera room, not a utility dashboard: the preview area is dominant, scan guides are simple and readable, secondary controls stay compact, permission/error/loading/unavailable states stay calm, and success/failure states remain placeholders until scanner gameplay is connected. The screen must not own product lookup, feeding, rewards, pet updates, or final scan animation behavior.
+
 ### Visual Checks
 
 - [ ] **Is it rounded?** — No sharp corners. Radius proportional to size.
