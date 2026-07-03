@@ -12,6 +12,7 @@ import {
   createScanFrame,
   createZXingDecoder,
   decodeBarcodeWithFallback,
+  executeScanFeedFlow,
   executeScannerGameplay,
   lookupScannedProduct,
   registerBarcodeDecoder,
@@ -308,4 +309,102 @@ describe('scanner pipeline', () => {
     expect(result).toMatchObject({ status: 'failed', xpGain: 0, nextXp: 20, homeHubShouldRefresh: false });
     expect(result.pet).toBe(pet);
   });
+
+  it('runs the full scan-to-feed flow from barcode to pet update in one call', async () => {
+    const result = await executeScanFeedFlow({
+      barcode: '123',
+      pet,
+      currentXp: 50,
+      now: 5_000,
+      lookup: async () => ({ barcodeNumber: '123', productName: 'Berry Snack', category: 'Snack' }),
+    });
+
+    expect(result).toMatchObject({
+      barcode: '123',
+      timestamp: 5_000,
+      lookupStatus: 'found',
+      lookupFromCache: false,
+      lookupAttempts: 1,
+      gameplayStatus: 'success',
+      xpGain: 10,
+      nextXp: 60,
+      memoryCreated: true,
+      homeHubShouldRefresh: true,
+      success: true,
+      error: null,
+    });
+    expect(result.lookupFood).toMatchObject({ id: '123', category: 'snack' });
+    expect(result.pet.stats.hunger).toBeGreaterThan(pet.stats.hunger);
+  });
+
+  it('returns failed flow when product is unsupported without mutating pet', async () => {
+    const result = await executeScanFeedFlow({
+      barcode: '777',
+      pet,
+      currentXp: 50,
+      now: 5_000,
+      lookup: async () => ({ barcodeNumber: '777', productName: 'Soap', category: 'Personal Care' }),
+    });
+
+    expect(result).toMatchObject({
+      lookupStatus: 'unsupported',
+      gameplayStatus: 'failed',
+      xpGain: 0,
+      nextXp: 50,
+      memoryCreated: false,
+      homeHubShouldRefresh: false,
+      success: false,
+    });
+    expect(result.pet).toBe(pet);
+  });
+
+  it('returns offline flow without network calls', async () => {
+    const result = await executeScanFeedFlow({
+      barcode: '123',
+      pet,
+      currentXp: 10,
+      now: 6_000,
+      offline: true,
+      lookup: async () => { throw new Error('should not call'); },
+    });
+
+    expect(result).toMatchObject({
+      lookupStatus: 'offline',
+      gameplayStatus: 'failed',
+      success: false,
+      error: 'offline',
+    });
+    expect(result.pet).toBe(pet);
+  });
+
+  it('reuses lookup cache across sequential scan-to-feed flows', async () => {
+    let lookupCalls = 0;
+    const lookup = async () => {
+      lookupCalls += 1;
+      return { barcodeNumber: '123', productName: 'Berry Snack', category: 'Snack' };
+    };
+
+    const first = await executeScanFeedFlow({ barcode: '123', pet, currentXp: 0, now: 7_000, lookup });
+    const second = await executeScanFeedFlow({ barcode: '123', pet, currentXp: 10, now: 8_000, lookup, cache: first.lookupCache });
+
+    expect(lookupCalls).toBe(1);
+    expect(first.lookupFromCache).toBe(false);
+    expect(second.lookupFromCache).toBe(true);
+    expect(second).toMatchObject({ success: true, xpGain: 10 });
+  });
+
+  it('keeps scanner service scan-feed flow as a thin boundary', async () => {
+    const service = new DefaultScannerService(createMockRepositories().scanner);
+    const result = await service.runScanFeedFlow({
+      barcode: '123',
+      pet,
+      currentXp: 0,
+      now: 9_000,
+      lookup: async () => ({ barcodeNumber: '123', productName: 'Berry Snack', category: 'Snack' }),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toMatchObject({ success: true, gameplayStatus: 'success', xpGain: 10 });
+  });
 });
+

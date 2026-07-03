@@ -236,6 +236,38 @@ export interface ScannerGameplayResult {
   readonly error: string | null;
 }
 
+export interface ScanFeedFlowInput {
+  readonly barcode: string;
+  readonly pet: PetStateModel;
+  readonly currentXp: number;
+  readonly now: number;
+}
+
+export interface ScanFeedFlowResult {
+  readonly barcode: string;
+  readonly timestamp: number;
+
+  // Lookup output
+  readonly lookupStatus: ProductLookupStatus;
+  readonly lookupProduct: ProductTranslationInput | null;
+  readonly lookupFood: FoodModel | null;
+  readonly lookupFromCache: boolean;
+  readonly lookupAttempts: number;
+  readonly lookupCache: ReadonlyMap<string, ProductLookupCacheEntry>;
+
+  // Gameplay output
+  readonly gameplayStatus: 'success' | 'failed';
+  readonly pet: PetStateModel;
+  readonly xpGain: number;
+  readonly nextXp: number;
+  readonly memoryCreated: boolean;
+  readonly homeHubShouldRefresh: boolean;
+
+  // Combined status
+  readonly success: boolean;
+  readonly error: string | null;
+}
+
 export interface BarcodeDecoderAdapter {
   readonly target: ScannerAdapterTarget;
   detectCapabilities: () => Promise<CameraCapabilityDetection>;

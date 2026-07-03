@@ -78,6 +78,27 @@ export function createMockServices() {
           },
         },
       })),
+      runScanFeedFlow: vi.fn(async () => ({
+        ok: true,
+        data: {
+          barcode: '123',
+          timestamp: 1,
+          lookupStatus: 'unknown' as const,
+          lookupProduct: null,
+          lookupFood: null,
+          lookupFromCache: false,
+          lookupAttempts: 0,
+          lookupCache: new Map(),
+          gameplayStatus: 'failed' as const,
+          pet,
+          xpGain: 0,
+          nextXp: 0,
+          memoryCreated: false,
+          homeHubShouldRefresh: false,
+          success: false,
+          error: null,
+        },
+      })),
       runPipeline: vi.fn(() => ({
         ok: true,
         data: {

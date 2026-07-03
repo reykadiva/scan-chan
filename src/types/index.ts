@@ -114,6 +114,8 @@ export type {
   ProductLookupCacheEntry,
   ProductLookupResult,
   ProductLookupStatus,
+  ScanFeedFlowInput,
+  ScanFeedFlowResult,
   ScanLog,
   ScanFrameModel,
   ScanRequestModel,

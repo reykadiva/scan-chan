@@ -67,6 +67,10 @@ export {
 } from './product-lookup';
 
 export {
+  executeScanFeedFlow,
+} from './scan-feed-flow';
+
+export {
   createBrowserCameraAdapter,
   createMockBrowserCameraAdapter,
 } from './browser-camera-adapter';
