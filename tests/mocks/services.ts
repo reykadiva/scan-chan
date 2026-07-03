@@ -125,6 +125,9 @@ export function createMockServices() {
       domain: 'inventory',
       prepareInventoryRead: vi.fn(ok),
       prepareItemMutation: vi.fn(ok),
+      getInventory: vi.fn(async (userId) => ({ id: 'inv-' + userId, userId, items: [], capacity: 20 })),
+      addItem: vi.fn(async (userId, item) => ({ id: 'inv-' + userId, userId, items: [{ id: '1', type: item.type, itemKey: item.itemKey, quantity: item.quantity }], capacity: 20 })),
+      removeItem: vi.fn(async (userId) => ({ id: 'inv-' + userId, userId, items: [], capacity: 20 })),
     } satisfies InventoryService,
     profile: {
       domain: 'profile',

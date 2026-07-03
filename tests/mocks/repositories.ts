@@ -15,7 +15,11 @@ export function createMockRepositories() {
     game: { domain: 'game' } satisfies GameRepository,
     scanner: { domain: 'scanner' } satisfies ScannerRepository,
     ui: { domain: 'ui' } satisfies UIRepository,
-    inventory: { domain: 'inventory' } satisfies InventoryRepository,
+    inventory: {
+      domain: 'inventory',
+      getInventoryByUserId: async () => null,
+      saveInventory: async (inv) => inv,
+    } satisfies InventoryRepository,
     profile: { domain: 'profile' } satisfies ProfileRepository,
     settings: { domain: 'settings' } satisfies SettingsRepository,
     shared: { domain: 'shared' } satisfies SharedRepository,

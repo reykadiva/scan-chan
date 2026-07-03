@@ -711,6 +711,12 @@ Sprint 3.6 connects decoded barcodes to product lookup and product translation o
 
 Sprint 3.7 connects successful scanner lookup results to feeding, pet state updates, memory creation, XP gain, scanner success/failure flow data, and Home Hub refresh intent. Rewards, achievements, missions, and inventory updates remain deferred so the feeding moment stays readable and the gameplay chain remains testable.
 
+Sprint 3.8 connects the camera adapter, lifecycle coordinator, and barcode decoders to the live React scanner client view, establishing the real-time frame loop, duplicate filters, scan guards, and camera toggle behaviors.
+
+Sprint 3.9 integrates device hints and mobile scanner optimizations to resolve Safari blurry lens overrides (iPhone 11 support), continuous autofocus, visibility state pause/resume, battery-aware interval throttling, and orientation changes.
+
+Sprint 4.1 establishes the Inventory Domain Foundation, introducing a pure, stackable, slot-capacity-validated inventory model and engine. It supports items of type product, food, memory, furniture, and decoration, with deterministic sorting, metadata lifecycle tracking, and serialization. This domain is bound via an InventoryService to Prisma transactional storage and delegates local mutations safely to Zustand.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |
