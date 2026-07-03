@@ -45,6 +45,10 @@ export type ScannerAdapterTarget =
   | 'barcode-detector-api'
   | 'zxing'
   | 'quagga'
+  | 'native-android-camerax'
+  | 'native-ios-visionkit'
+  | 'ml-kit'
+  | 'custom-adapter'
   | 'native-mobile-scanner';
 
 export type ScannerMobileReadinessConcern =
@@ -53,7 +57,109 @@ export type ScannerMobileReadinessConcern =
   | 'low-scan-latency'
   | 'stable-camera-lifecycle'
   | 'safari-camera-compatibility'
-  | 'android-camerax-compatibility';
+  | 'android-camerax-compatibility'
+  | 'orientation-handling'
+  | 'camera-warm-up'
+  | 'background-foreground-recovery'
+  | 'memory-safe-disposal';
+
+export type CameraSessionState = 'idle' | 'warming-up' | 'ready' | 'scanning' | 'paused' | 'stopped' | 'failed';
+
+export type CameraFacingMode = 'environment' | 'user' | 'unknown';
+
+export type CameraLifecycleEvent = 'warm-up' | 'start' | 'pause' | 'resume' | 'stop' | 'dispose';
+
+export type CameraErrorCode =
+  | 'adapter-unavailable'
+  | 'decoder-unavailable'
+  | 'session-not-ready'
+  | 'frame-invalid'
+  | 'decode-failed'
+  | 'lifecycle-failed';
+
+export interface CameraCapabilityDetection {
+  readonly target: ScannerAdapterTarget;
+  readonly available: boolean;
+  readonly concerns: readonly ScannerMobileReadinessConcern[];
+}
+
+export interface CameraSessionModel {
+  readonly id: string;
+  readonly adapterTarget: ScannerAdapterTarget;
+  readonly state: CameraSessionState;
+  readonly facingMode: CameraFacingMode;
+  readonly startedAt: number | null;
+  readonly updatedAt: number;
+  readonly orientation: 'portrait' | 'landscape' | 'unknown';
+}
+
+export interface CameraStateModel {
+  readonly session: CameraSessionModel | null;
+  readonly capabilities: readonly CameraCapabilityDetection[];
+  readonly lastError: CameraAdapterError | null;
+}
+
+export interface ScanFrameModel {
+  readonly id: string;
+  readonly capturedAt: number;
+  readonly width: number;
+  readonly height: number;
+  readonly rotationDegrees: 0 | 90 | 180 | 270;
+  readonly data: Uint8Array | null;
+}
+
+export interface CameraAdapterError {
+  readonly code: CameraErrorCode;
+  readonly message: string;
+  readonly recoverable: boolean;
+}
+
+export interface CameraLifecycleControls {
+  warmUp: (now: number) => Promise<CameraSessionModel>;
+  start: (now: number) => Promise<CameraSessionModel>;
+  pause: (now: number) => Promise<CameraSessionModel>;
+  resume: (now: number) => Promise<CameraSessionModel>;
+  stop: (now: number) => Promise<CameraSessionModel>;
+  dispose: (now: number) => Promise<void>;
+}
+
+export interface CameraFocusControls {
+  readonly supportsContinuousAutofocus: boolean;
+  requestAutofocus: () => Promise<boolean>;
+}
+
+export interface CameraTorchControls {
+  readonly supportsTorch: boolean;
+  setTorch: (enabled: boolean) => Promise<boolean>;
+}
+
+export interface CameraZoomControls {
+  readonly supportsZoom: boolean;
+  setZoom: (level: number) => Promise<boolean>;
+}
+
+export interface BarcodeDecodeResult {
+  readonly barcodeValue: string | null;
+  readonly decodedAt: number;
+  readonly error: CameraAdapterError | null;
+}
+
+export interface BarcodeDecoderAdapter {
+  readonly target: ScannerAdapterTarget;
+  detectCapabilities: () => Promise<CameraCapabilityDetection>;
+  decode: (frame: ScanFrameModel) => Promise<BarcodeDecodeResult>;
+}
+
+export interface CameraAdapter {
+  readonly target: ScannerAdapterTarget;
+  detectCapabilities: () => Promise<CameraCapabilityDetection>;
+  createSession: (input: { id: string; now: number; facingMode?: CameraFacingMode }) => CameraSessionModel;
+  lifecycle: CameraLifecycleControls;
+  focus: CameraFocusControls;
+  torch: CameraTorchControls;
+  zoom: CameraZoomControls;
+  readFrame: (now: number) => Promise<ScanFrameModel>;
+}
 
 export interface ScanRequestModel {
   readonly barcodeValue: string;

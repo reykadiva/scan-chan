@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { createScanSession, runScannerPipeline, SCANNER_ADAPTER_EXTENSION_POINTS, transitionScannerState } from '@/lib/scanner';
+import {
+  createBarcodeDecoderFactory,
+  createCameraAdapterFactory,
+  createMockCameraAdapter,
+  createScanSession,
+  registerBarcodeDecoder,
+  registerCameraAdapter,
+  runScannerPipeline,
+  SCANNER_ADAPTER_EXTENSION_POINTS,
+  transitionScannerState,
+} from '@/lib/scanner';
 import { normalizePetState } from '@/lib/pet';
 import { DefaultScannerService } from '@/services/scanner';
 import { createMockRepositories } from '@tests/mocks';
@@ -82,5 +92,25 @@ describe('scanner pipeline', () => {
         'android-camerax-compatibility',
       ]),
     );
+  });
+
+  it('registers mock camera and decoder adapters without browser APIs', async () => {
+    const { camera, decoder } = createMockCameraAdapter({ target: 'barcode-detector-api', barcodeValue: '987' });
+    const cameraFactory = createCameraAdapterFactory(registerCameraAdapter(new Map(), camera));
+    const decoderFactory = createBarcodeDecoderFactory(registerBarcodeDecoder(new Map(), decoder));
+    const adapter = cameraFactory.get('barcode-detector-api');
+    const session = adapter.createSession({ id: 'camera-1', now: 1_000 });
+    const ready = await adapter.lifecycle.start(1_100);
+    const frame = await adapter.readFrame(1_200);
+    const decoded = await decoderFactory.get('barcode-detector-api').decode(frame);
+
+    expect(session).toMatchObject({ state: 'idle', facingMode: 'environment' });
+    expect(ready).toMatchObject({ state: 'ready', startedAt: 1_100 });
+    expect(frame).toMatchObject({ id: 'mock-frame-1200', rotationDegrees: 0 });
+    expect(decoded).toMatchObject({ barcodeValue: '987', decodedAt: 1_200, error: null });
+    await expect(adapter.detectCapabilities()).resolves.toMatchObject({
+      available: true,
+      concerns: expect.arrayContaining(['iphone-11-blurry-preview', 'camera-warm-up', 'memory-safe-disposal']),
+    });
   });
 });

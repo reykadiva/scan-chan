@@ -695,7 +695,9 @@ The scanner pipeline exists to preserve the emotional bridge without letting sca
 Scan Request -> Barcode Value -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine
 ```
 
-Camera adapters may later provide barcode values from web or native mobile scanners. They must not decide food stats, feeding outcomes, pet state, memories, rewards, missions, achievements, or evolution. Mobile camera concerns such as blurry previews, autofocus, scan latency, lifecycle stability, Safari compatibility, and Android CameraX compatibility belong to adapter implementation only.
+Camera adapters may later provide barcode values from web or native mobile scanners. They must not decide food stats, feeding outcomes, pet state, memories, rewards, missions, achievements, or evolution. Mobile camera concerns such as blurry previews, autofocus, scan latency, lifecycle stability, Safari compatibility, Android CameraX compatibility, orientation handling, camera warm-up, background/foreground recovery, and memory-safe disposal belong to adapter implementation only.
+
+Sprint 3.1 defines adapter contracts for Browser BarcodeDetector, ZXing, Quagga, Android CameraX, iOS VisionKit, ML Kit, and custom adapters without implementing camera access, barcode decoding libraries, permissions, preview rendering, or platform-specific behavior. Future adapters must output barcode values into the existing scanner pipeline so the scanner remains separate from product translation, feeding rules, and pet state changes.
 
 ### 9.5 Comparison
 

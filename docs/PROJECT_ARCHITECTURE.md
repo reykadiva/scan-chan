@@ -545,6 +545,8 @@ Sprint 2.8 adds the reusable UI Component Foundation under `src/components/ui/`,
 
 Sprint 2.9 composes the first Home Hub screen at `src/app/(game)/home/page.tsx` using the Home Hub ViewModel, Mascot Runtime, and existing layout/UI primitives. The route may bridge store snapshots into the ViewModel, but rendered sections consume the ViewModel only. It must not access Prisma, repositories, services, scanner implementation, camera APIs, inventory/settings/profile pages, mascot rendering, animation playback, or business-rule ownership.
 
+Sprint 3.1 adds the Camera Adapter Foundation under `src/lib/scanner/camera-adapter.ts` and `src/types/scanner.ts`. It defines camera adapter, barcode decoder, camera session, camera state, scan frame, lifecycle, autofocus, torch, zoom, capability detection, error, registration, factory, and mock-adapter contracts only. Adapters remain independent from React, browser APIs, camera preview, rendering, platform-specific decoder libraries, scanner UI, product translation, feeding, and pet business logic.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers

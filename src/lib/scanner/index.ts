@@ -31,13 +31,36 @@ export const SCANNER_ADAPTER_EXTENSION_POINTS: readonly ScannerAdapterExtensionP
       'stable-camera-lifecycle',
       'safari-camera-compatibility',
       'android-camerax-compatibility',
+      'orientation-handling',
+      'camera-warm-up',
+      'background-foreground-recovery',
+      'memory-safe-disposal',
     ],
   },
   { target: 'barcode-detector-api', ownedConcerns: ['low-scan-latency', 'safari-camera-compatibility'] },
   { target: 'zxing', ownedConcerns: ['low-scan-latency'] },
   { target: 'quagga', ownedConcerns: ['low-scan-latency'] },
+  { target: 'native-android-camerax', ownedConcerns: ['fast-autofocus', 'stable-camera-lifecycle', 'android-camerax-compatibility'] },
+  { target: 'native-ios-visionkit', ownedConcerns: ['fast-autofocus', 'stable-camera-lifecycle'] },
+  { target: 'ml-kit', ownedConcerns: ['low-scan-latency', 'orientation-handling'] },
+  { target: 'custom-adapter', ownedConcerns: ['memory-safe-disposal'] },
   { target: 'native-mobile-scanner', ownedConcerns: ['fast-autofocus', 'stable-camera-lifecycle', 'android-camerax-compatibility'] },
 ];
+
+export {
+  createBarcodeDecoderFactory,
+  createCameraAdapterError,
+  createCameraAdapterFactory,
+  createCameraCapability,
+  createCameraSession,
+  createMockCameraAdapter,
+  createScanFrame,
+  registerBarcodeDecoder,
+  registerCameraAdapter,
+  transitionCameraSession,
+  type BarcodeDecoderRegistry,
+  type CameraAdapterRegistry,
+} from './camera-adapter';
 
 export function createScanSession(id: string, startedAt: number): ScanSessionModel {
   return { id, state: 'ready', startedAt, completedAt: null, lastStage: null };
