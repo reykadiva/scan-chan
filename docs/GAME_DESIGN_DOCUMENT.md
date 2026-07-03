@@ -685,6 +685,16 @@ Product metadata must become food before it can affect Scan Chan. The scanner on
 
 The feeding engine must never need barcode or product database knowledge. It should receive a `FoodModel` only.
 
+### 9.4.3 Scanner Pipeline Foundation
+
+The scanner pipeline exists to preserve the emotional bridge without letting scanner code own gameplay rules:
+
+```
+Scan Request -> Barcode Value -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine
+```
+
+Camera adapters may later provide barcode values from web or native mobile scanners. They must not decide food stats, feeding outcomes, pet state, memories, rewards, missions, achievements, or evolution. Mobile camera concerns such as blurry previews, autofocus, scan latency, lifecycle stability, Safari compatibility, and Android CameraX compatibility belong to adapter implementation only.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

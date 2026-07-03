@@ -535,6 +535,8 @@ Sprint 2.3 adds the feeding foundation to the pure pet engine. The feeding engin
 
 Sprint 2.4 adds the Product -> Food translation bridge under `src/lib/product/`. Product translation owns product metadata validation, quality scoring, known/unknown/unsupported product handling, safe category mapping, and `FoodModel` output. The scanner may provide barcode or lookup results, but it must not contain feeding rules. The feeding engine remains unchanged and receives only validated food metadata.
 
+Sprint 2.5 adds the scanner pipeline foundation under `src/lib/scanner/`. The pipeline owns scan request/result models, scan session state, scanner state transitions, stage sequencing, and scanner error results. It orchestrates Barcode Value -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine without camera access, barcode decoding libraries, browser APIs, React UI, animations, rewards, achievements, synchronization, or evolution.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -580,6 +582,8 @@ Sprint 2.2 adds `PetService.interact()` and `preparePetInteraction()`. `interact
 Sprint 2.3 adds `PetService.feed()` and converts `prepareFeeding()` into a feeding-domain preparation hook. `feed()` delegates to the pure pet feeding engine and returns applied/rejected outcome data. The `petUpdate` application flow includes `pet.feeding` without implementing scanner, product lookup, inventory UI, reward, mission, achievement, sync, animation, or evolution behavior.
 
 Sprint 2.4 adds `ScannerService.translateProductToFood()` as a service boundary wrapper around the pure product translation engine, plus a `product.translation` preparation step in the product lookup flow. This keeps the final chain explicit: Barcode Scanner -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine. Repositories remain isolated and scanner/camera code must not embed feeding business logic.
+
+Sprint 2.5 adds `ScannerService.runPipeline()` as a thin service wrapper around the pure scanner pipeline. The scanner service remains the future orchestration boundary for scan requests, but feeding and pet state rules remain inside the feeding and pet engines. Camera adapters must provide barcode values to the pipeline instead of owning product, food, feeding, or pet business logic.
 
 ### 3.5 Persistence Layer
 
@@ -1360,6 +1364,14 @@ console.warn('[GET /api/products] Slow query: 723ms');  // Performance warning
 ---
 
 ## 9. Scan Pipeline
+
+Sprint 2.5 foundation pipeline:
+
+```
+Scan Request -> Barcode Value -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine
+```
+
+The scanner pipeline must stay UI-independent and camera-independent. Future camera adapters may target a camera adapter, BarcodeDetector API, ZXing, Quagga, or native mobile scanner. iPhone 11 blurry preview fixes, fast autofocus, low scan latency, stable camera lifecycle, Safari camera compatibility, and Android CameraX compatibility belong only to those future adapter layers, never inside product translation, feeding, or pet logic.
 
 ### 9.1 Complete Lifecycle
 

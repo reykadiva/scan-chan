@@ -50,7 +50,21 @@ export {
   type ProductTranslationInput,
   type ProductTranslationStatus,
 } from './product';
-export type { ScanLog, ScanResult, Statistics } from './scanner';
+export type {
+  ScanLog,
+  ScanRequestModel,
+  ScanResult,
+  ScannerAdapterExtensionPoint,
+  ScannerAdapterTarget,
+  ScannerMobileReadinessConcern,
+  ScannerPipelineError,
+  ScannerPipelineErrorCode,
+  ScannerPipelineResult,
+  ScannerPipelineStage,
+  ScannerPipelineState,
+  ScanSessionModel,
+  Statistics,
+} from './scanner';
 export type { SettingsDomainBoundary } from './settings';
 export type { LoadState } from './shared';
 export type { ModalId, SheetId } from './ui';
