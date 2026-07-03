@@ -703,6 +703,8 @@ Sprint 3.2 defines camera lifecycle contracts for permission state, warm-up, sta
 
 Sprint 3.3 implements the Browser Camera Adapter as a stream provider only. It may request and enumerate browser camera streams, switch cameras, and clean up tracks, but barcode decoding, product lookup, feeding, pet updates, scanner UI, overlays, and scan animation remain out of scope. This keeps camera reliability work separate from Scan Chan's care and feeding rules.
 
+Sprint 3.4 implements barcode decoding as a normalized foundation only. BarcodeDetector is preferred when available, ZXing is the fallback path, duplicate scans and cooldowns are filtered before the scanner pipeline, and decoder metrics are recorded for future mobile tuning. Decoders may identify barcode values, but they must not perform product lookup, feeding, pet updates, rewards, scanner UI, overlays, or animations.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

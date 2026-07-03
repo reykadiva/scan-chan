@@ -84,7 +84,9 @@ export type CameraErrorCode =
   | 'session-not-ready'
   | 'frame-invalid'
   | 'decode-failed'
-  | 'lifecycle-failed';
+  | 'lifecycle-failed'
+  | 'duplicate-barcode'
+  | 'scan-cooldown';
 
 export interface CameraCapabilityDetection {
   readonly target: ScannerAdapterTarget;
@@ -176,6 +178,32 @@ export interface BarcodeDecodeResult {
   readonly barcodeValue: string | null;
   readonly decodedAt: number;
   readonly error: CameraAdapterError | null;
+}
+
+export interface NormalizedBarcodeResult {
+  readonly value: string;
+  readonly format: string;
+  readonly decodedAt: number;
+  readonly source: ScannerAdapterTarget;
+  readonly metrics: BarcodeDecoderMetrics;
+}
+
+export interface BarcodeDecoderMetrics {
+  readonly startedAt: number;
+  readonly completedAt: number;
+  readonly durationMs: number;
+  readonly attempts: number;
+}
+
+export interface BarcodeScanGuardState {
+  readonly lastValue: string | null;
+  readonly lastScannedAt: number | null;
+  readonly cooldownMs: number;
+}
+
+export interface BarcodeDecoderSelectionResult {
+  readonly decoder: BarcodeDecoderAdapter;
+  readonly fallback: BarcodeDecoderAdapter | null;
 }
 
 export interface BarcodeDecoderAdapter {

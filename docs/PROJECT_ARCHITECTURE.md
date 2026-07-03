@@ -551,6 +551,8 @@ Sprint 3.2 adds the Camera Lifecycle Foundation under `src/lib/scanner/camera-li
 
 Sprint 3.3 adds the Browser Camera Adapter under `src/lib/scanner/browser-camera-adapter.ts`. This is the only approved scanner foundation layer that may access browser `MediaDevices`, `getUserMedia()`, `enumerateDevices()`, and `MediaStream` cleanup. It provides stream creation, shutdown, camera switching, device enumeration, and capability detection only; it must not implement BarcodeDetector, ZXing, Quagga, barcode decoding, product lookup, scanner UI, preview rendering, animations, feeding, pet updates, or gameplay logic.
 
+Sprint 3.4 adds the Barcode Decoder Foundation under `src/lib/scanner/barcode-decoder.ts`. Decoder implementations for BarcodeDetector and ZXing must stay isolated behind `BarcodeDecoderAdapter`, automatic selection must prefer BarcodeDetector and fall back to ZXing, and all outputs must normalize into `NormalizedBarcodeResult` with metrics before reaching scanner pipeline callers. Duplicate barcode filtering and scan cooldown protection belong to this decoder boundary, not product lookup, feeding, pet, UI, or camera stream code.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers

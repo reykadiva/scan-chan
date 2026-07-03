@@ -87,6 +87,9 @@ export {
 export type {
   BarcodeDecodeResult,
   BarcodeDecoderAdapter,
+  BarcodeDecoderMetrics,
+  BarcodeDecoderSelectionResult,
+  BarcodeScanGuardState,
   BrowserCameraAdapter,
   BrowserCameraDeviceModel,
   CameraAdapter,
@@ -107,6 +110,7 @@ export type {
   CameraStateModel,
   CameraTorchControls,
   CameraZoomControls,
+  NormalizedBarcodeResult,
   ScanLog,
   ScanFrameModel,
   ScanRequestModel,

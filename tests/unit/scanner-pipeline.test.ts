@@ -1,15 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyBarcodeScanGuard,
   createBarcodeDecoderFactory,
+  createBarcodeDetectorDecoder,
+  createMockBarcodeDecoder,
   createMockBrowserCameraAdapter,
   createCameraAdapterFactory,
   createCameraSessionCoordinator,
   createMockCameraAdapter,
   createScanSession,
+  createScanFrame,
+  createZXingDecoder,
+  decodeBarcodeWithFallback,
   registerBarcodeDecoder,
   registerCameraAdapter,
   runScannerPipeline,
   SCANNER_ADAPTER_EXTENSION_POINTS,
+  selectBarcodeDecoder,
   transitionScannerState,
 } from '@/lib/scanner';
 import { normalizePetState } from '@/lib/pet';
@@ -171,5 +178,54 @@ describe('scanner pipeline', () => {
     switchingAdapter.shutdownStream();
 
     expect(stopped).toEqual(['first', 'second']);
+  });
+
+  it('selects BarcodeDetector first and falls back to ZXing with normalized metrics', async () => {
+    const frame = createScanFrame({ id: 'decode-frame-1', capturedAt: 1_250 });
+    const barcodeDetector = createMockBarcodeDecoder({
+      target: 'barcode-detector-api',
+      error: { code: 'decode-failed', message: 'No barcode.', recoverable: true },
+    });
+    const zxing = createZXingDecoder(async () => ' 998877 ');
+    const selected = selectBarcodeDecoder({ barcodeDetector, zxing });
+    const result = await decodeBarcodeWithFallback({ frame, selected, now: 1_200 });
+
+    expect(result).toMatchObject({
+      value: '998877',
+      source: 'zxing',
+      metrics: { startedAt: 1_200, completedAt: 1_250, durationMs: 50, attempts: 2 },
+    });
+  });
+
+  it('normalizes BarcodeDetector results when supported', async () => {
+    const decoder = createBarcodeDetectorDecoder({
+      detect: async () => [{ rawValue: '12345', format: 'ean_13' }],
+    });
+    const selected = selectBarcodeDecoder({ barcodeDetector: decoder, zxing: createMockBarcodeDecoder({ target: 'zxing' }) });
+    const result = await decodeBarcodeWithFallback({
+      frame: createScanFrame({ id: 'detector-frame-1', capturedAt: 2_000 }),
+      selected,
+      now: 1_990,
+    });
+
+    expect(result).toMatchObject({ value: '12345', source: 'barcode-detector-api' });
+  });
+
+  it('filters duplicate and cooldown scan results', () => {
+    const result = {
+      value: '12345',
+      format: 'unknown',
+      decodedAt: 2_000,
+      source: 'zxing' as const,
+      metrics: { startedAt: 1_990, completedAt: 2_000, durationMs: 10, attempts: 1 },
+    };
+
+    expect(applyBarcodeScanGuard(result, { lastValue: '12345', lastScannedAt: 1_000, cooldownMs: 250 })).toMatchObject({
+      code: 'duplicate-barcode',
+    });
+    expect(applyBarcodeScanGuard(result, { lastValue: '98765', lastScannedAt: 1_900, cooldownMs: 250 })).toMatchObject({
+      code: 'scan-cooldown',
+    });
+    expect(applyBarcodeScanGuard(result, { lastValue: '98765', lastScannedAt: 1_000, cooldownMs: 250 })).toBe(result);
   });
 });

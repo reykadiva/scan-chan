@@ -48,6 +48,15 @@ export const SCANNER_ADAPTER_EXTENSION_POINTS: readonly ScannerAdapterExtensionP
 ];
 
 export {
+  applyBarcodeScanGuard,
+  createBarcodeDetectorDecoder,
+  createMockBarcodeDecoder,
+  createZXingDecoder,
+  decodeBarcodeWithFallback,
+  selectBarcodeDecoder,
+} from './barcode-decoder';
+
+export {
   createBrowserCameraAdapter,
   createMockBrowserCameraAdapter,
 } from './browser-camera-adapter';
