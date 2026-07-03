@@ -2150,6 +2150,17 @@ Input success states:
 
 ### 17.1 Inventory
 
+**Sprint 4.3 Implementation Details**:
+- Route: `/collection` page route binds `InventoryClient` Client Component.
+- Statistics Bar: Summarizes total items count, unique stacks count, and type-specific (food) items using Panel primitives.
+- Slot Capacity Bar: Uses `ProgressBar` primitive showing occupancy percentage, displaying a warning `StatusChip` when `isFull` triggers.
+- Category Filters: Renders cluster of action buttons filtering items by categories: All Things, Foods, Products, Furniture, Decorations, and Memories.
+- Sorting Panel: Renders dropdown sorting items by Name, Quantity, or Category, with an `IconButton` to toggle sort order.
+- Grid & Cards: Multi-column grid rendering rounded `Card` components with solid borders matching rarity colors, featuring quantity badges and pixel-art cat placeholder decorators. Includes 3 inviting empty slots with dashed borders.
+- Item Actions Panel: Displays a detailed side panel for the selected item, presenting its display name, large cat mascot visual preview, description text, and stub actions ("Use Item", "Discard") as obvious future interaction placeholders.
+- Empty & Loading States: Integrated standard `EmptyState` and `LoadingState` UI primitives.
+
+
 The inventory is a grid of owned items:
 
 **Grid specification**:

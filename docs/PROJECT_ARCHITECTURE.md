@@ -567,6 +567,8 @@ Sprint 4.1 adds the Inventory Domain Foundation under `src/lib/inventory/engine.
 
 Sprint 4.2 adds the Inventory ViewModel and UI Foundation under `src/lib/inventory/viewmodel.ts` and `src/types/inventory.ts`. The ViewModel builder `buildInventoryViewModel` is a pure, deterministic function that compiles raw `InventoryItem` data snapshots into `InventoryViewModel` structures. It provides item mapping, capitalization formatting, type filtering, sorting (by type, quantity, itemKey, id), query-based search filtering, selected item tracking, capacity summary calculation, type counts, and total item statistics. It also includes future extension boundaries for drag-and-drop actions (`dragAndDropData`) and item actions (`actions`). The ViewModel builder operates independently of React, browser APIs, Prisma, scanner logic, feeding logic, pet rules, and active UI stores.
 
+Sprint 4.3 adds the Inventory Screen Composition under `src/app/(game)/collection/page.tsx` and `src/app/(game)/collection/inventory-client.tsx`. The screen acts as the collection gallery, composing the pure `InventoryViewModel` with UI layout primitives (`AppShell`, `SafeArea`, `ResponsiveContainer`, `SectionContainer`, `Stack`, `Cluster`) and presentation cards. It displays slot capacity utilization via `ProgressBar`, category filters, and detailed sidebar summaries of the selected item with placeholders for actions ("Use Item", "Discard"). The presentation components remain pure visual renderers with no embedded databases, side effects, server actions, or business rules.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
