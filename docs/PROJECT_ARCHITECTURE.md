@@ -543,6 +543,8 @@ Sprint 2.7 adds the Mascot Runtime foundation under `src/lib/mascot-runtime/`. T
 
 Sprint 2.8 adds the reusable UI Component Foundation under `src/components/ui/`, `src/components/layout/`, and `src/components/shared/`. These primitives cover app shell, responsive and safe-area containers, layout stacks/grids, surfaces, panels, typography, icon buttons, progress bars, status chips, stat cards, empty/loading states, toast container alias, bottom sheet foundation, and accessibility helpers. Components must remain presentational, mobile-first, renderer-agnostic, and free of Prisma, repositories, services, stores, routes, scanner camera logic, mascot rendering, and business rules.
 
+Sprint 2.9 composes the first Home Hub screen at `src/app/(game)/home/page.tsx` using the Home Hub ViewModel, Mascot Runtime, and existing layout/UI primitives. The route may bridge store snapshots into the ViewModel, but rendered sections consume the ViewModel only. It must not access Prisma, repositories, services, scanner implementation, camera APIs, inventory/settings/profile pages, mascot rendering, animation playback, or business-rule ownership.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -1526,6 +1528,8 @@ Sprint 2.3 feeding rules must reject invalid food and prevent overfeeding when t
 Sprint 2.6 Home Hub recommendation state may point the player toward scan, comfort, rest, pet, or observe actions based on existing store/domain state. It is presentation guidance only: pet stat changes, feeding, scanning, and product translation remain owned by their existing domains.
 
 Sprint 2.7 mascot runtime state may translate pet status, lifecycle, stats, dominant personality trait, and Home Hub runtime events into expression and animation intent. It must not select sprite sheets, load assets, step frames, render canvas, control DOM, or implement final animation timing.
+
+Sprint 2.9 Home Hub composition exposes a mascot placeholder attachment surface for future Pixel Sprite, Rive, Live2D, and Spine renderers through data attributes and typed runtime output. Future renderers must attach without changing the page's ViewModel-first architecture.
 
 ### 10.5 Mission Update
 

@@ -3049,6 +3049,8 @@ Sprint 2.8 establishes the reusable UI Component Foundation before Home Hub, sca
 
 Sprint 2.8 components are presentational only. They may accept typed ViewModel data or primitive props, but they must not read stores, call services, access repositories, access Prisma, implement routes, run scanner camera logic, render mascot assets, or own gameplay rules.
 
+Sprint 2.9 composes the first Home Hub screen from the established primitives. The pet/mascot placeholder remains the dominant visual zone, secondary panels stay supportive, and all status, recommendation, and daily-summary sections consume the Home Hub ViewModel instead of owning gameplay logic. The placeholder may expose renderer attachment points, but it must not render mascot assets or implement animation.
+
 ### Visual Checks
 
 - [ ] **Is it rounded?** — No sharp corners. Radius proportional to size.
