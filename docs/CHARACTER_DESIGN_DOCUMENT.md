@@ -1104,6 +1104,8 @@ These rules are immutable. Every visual representation of the mascot — in-game
 
 The mascot must be recognizable by silhouette alone. If the character is rendered as a solid black shape, a viewer should still identify it as the Scan Chan mascot.
 
+Sprint 2.7 defines the Mascot Runtime foundation before any rendering or animation implementation. The runtime may derive emotion, expression, attention, gaze, idle behavior, and animation intent from pet state, but it must remain consistent with this Character Bible and must never know sprite assets, image paths, rendering libraries, UI components, or final animation playback details.
+
 Requirements:
 - Distinctive ear shape (slightly rounded, not pointed like a Siamese)
 - Recognizable body proportions (medium head, compact body, medium-length tail)

@@ -79,10 +79,10 @@ describe('home hub view model', () => {
   it('keeps future mascot runtime data as a typed hint, not rendering logic', () => {
     const viewModel = buildHomeHubViewModel(createInput({ settings: { ...createInput().settings, reducedMotion: true } }));
 
-    expect(viewModel.mascotRuntime).toEqual({
-      lifecycle: 'awake',
-      status: 'content',
-      reducedMotion: true,
+    expect(viewModel.mascotRuntime).toMatchObject({
+      phase: 'idle',
+      emotion: 'content',
+      animationIntent: { name: 'idle', intensity: 'minimal' },
     });
   });
 });

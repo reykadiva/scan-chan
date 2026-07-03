@@ -539,6 +539,8 @@ Sprint 2.5 adds the scanner pipeline foundation under `src/lib/scanner/`. The pi
 
 Sprint 2.6 adds the Home Hub ViewModel foundation under `src/lib/home-hub/`. The Home Hub layer consumes typed store snapshots and derives presentation-ready state for greeting, pet summary, status cards, daily summary, empty/loading states, recommendation hints, and future mascot runtime hints. It must not import React components, pages, Prisma, repositories, services, browser APIs, scanner camera code, or duplicate pet, feeding, scanner, product, inventory, settings, or profile business rules.
 
+Sprint 2.7 adds the Mascot Runtime foundation under `src/lib/mascot-runtime/`. The runtime consumes pet state and produces typed emotion, expression, idle behavior, attention, gaze, runtime phase, and animation intent models. It must never import React, rendering libraries, browser APIs, sprite assets, image paths, scanner code, camera code, Prisma, repositories, or services. Future animation adapters may consume the intent output, but the runtime itself only describes behavior.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -588,6 +590,8 @@ Sprint 2.4 adds `ScannerService.translateProductToFood()` as a service boundary 
 Sprint 2.5 adds `ScannerService.runPipeline()` as a thin service wrapper around the pure scanner pipeline. The scanner service remains the future orchestration boundary for scan requests, but feeding and pet state rules remain inside the feeding and pet engines. Camera adapters must provide barcode values to the pipeline instead of owning product, food, feeding, or pet business logic.
 
 Sprint 2.6 does not add service orchestration. Home Hub aggregation is a derived ViewModel boundary between stores and future UI components, so it remains pure, synchronous, and independently testable.
+
+Sprint 2.7 does not add service orchestration. Mascot runtime state is pure domain behavior that sits between Pet State and future animation adapters.
 
 ### 3.5 Persistence Layer
 
@@ -1512,6 +1516,8 @@ affection = clamp(affection + 5, 0, 100)  // Every scan increases affection
 Sprint 2.3 feeding rules must reject invalid food and prevent overfeeding when the pet is already full. Feeding records are stored as a foundation for future favorites, balancing, and scanner integration. First feeds, favorite foods, and new foods may create memories; routine feeding should not flood the memory list. Future barcode scanning should only provide validated `FoodModel` metadata to the feeding engine, never embed feeding business logic inside scanner code.
 
 Sprint 2.6 Home Hub recommendation state may point the player toward scan, comfort, rest, pet, or observe actions based on existing store/domain state. It is presentation guidance only: pet stat changes, feeding, scanning, and product translation remain owned by their existing domains.
+
+Sprint 2.7 mascot runtime state may translate pet status, lifecycle, stats, dominant personality trait, and Home Hub runtime events into expression and animation intent. It must not select sprite sheets, load assets, step frames, render canvas, control DOM, or implement final animation timing.
 
 ### 10.5 Mission Update
 

@@ -7,6 +7,7 @@ import type {
   PetStatsState,
   PetStatus,
 } from './pet';
+import type { MascotRuntimeState } from './mascot-runtime';
 
 export type HomeHubLoadState = 'loading' | 'empty' | 'ready';
 
@@ -88,12 +89,6 @@ export interface HomeHubDailySummary {
   readonly lastBarcode: string | null;
 }
 
-export interface HomeHubMascotRuntimeHint {
-  readonly lifecycle: PetLifecycleState;
-  readonly status: PetStatus;
-  readonly reducedMotion: boolean;
-}
-
 export interface HomeHubViewModel {
   readonly loadState: HomeHubLoadState;
   readonly greeting: HomeHubGreetingState;
@@ -101,7 +96,7 @@ export interface HomeHubViewModel {
   readonly statusCards: readonly HomeHubStatusCard[];
   readonly recommendedAction: HomeHubRecommendedAction;
   readonly dailySummary: HomeHubDailySummary;
-  readonly mascotRuntime: HomeHubMascotRuntimeHint | null;
+  readonly mascotRuntime: MascotRuntimeState | null;
   readonly isLoading: boolean;
   readonly isEmpty: boolean;
 }

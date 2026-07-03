@@ -25,7 +25,6 @@ export type {
   HomeHubInput,
   HomeHubInventorySnapshot,
   HomeHubLoadState,
-  HomeHubMascotRuntimeHint,
   HomeHubPetSnapshot,
   HomeHubPetSummary,
   HomeHubProfileSnapshot,
@@ -39,6 +38,22 @@ export type {
   HomeHubViewModel,
 } from './home-hub';
 export type { InventoryDomainBoundary } from './inventory';
+export type {
+  MascotAnimationAdapterExtensionPoint,
+  MascotAnimationAdapterTarget,
+  MascotAnimationIntensity,
+  MascotAnimationIntent,
+  MascotAnimationIntentName,
+  MascotAttentionTarget,
+  MascotEmotion,
+  MascotExpression,
+  MascotGazeIntent,
+  MascotIdleBehavior,
+  MascotRuntimeEvent,
+  MascotRuntimeInput,
+  MascotRuntimePhase,
+  MascotRuntimeState,
+} from './mascot-runtime';
 export type {
   FeedingRecord,
   FoodCategory,

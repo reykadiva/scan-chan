@@ -6,6 +6,7 @@ import type {
   HomeHubStatusCard,
   HomeHubViewModel,
 } from '@/types/home-hub';
+import { buildMascotRuntime } from '@/lib/mascot-runtime';
 
 export const buildHomeHubViewModel = (input: HomeHubInput): HomeHubViewModel => {
   const isLoading = !input.pet.hasHydrated || !input.settings.hasHydrated;
@@ -30,11 +31,15 @@ export const buildHomeHubViewModel = (input: HomeHubInput): HomeHubViewModel => 
     recommendedAction: pet ? getRecommendedAction(input.pet.stats) : 'scan',
     dailySummary,
     mascotRuntime: pet
-      ? {
-          lifecycle: input.pet.lifecycle,
+      ? buildMascotRuntime({
+          stage: input.pet.stage,
           status: input.pet.status,
+          lifecycle: input.pet.lifecycle,
+          stats: input.pet.stats,
+          dominantTrait: input.pet.personality.dominantTrait,
           reducedMotion: input.settings.reducedMotion,
-        }
+          event: input.pet.lifecycle === 'greeting' ? 'player-return' : 'idle',
+        })
       : null,
     isLoading,
     isEmpty,

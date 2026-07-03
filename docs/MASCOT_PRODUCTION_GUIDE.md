@@ -862,6 +862,8 @@ Every animation must follow these principles:
 | **Timing** | Faster movements = more energy. Slower movements = more weight. |
 | **Staging** | The mascot's action should be clear against the background |
 
+Sprint 2.7 introduces animation intent models only. Intent names such as idle, greet, sleep, rest, look-at-player, look-at-food, comfort, and investigate are contracts for future adapters; they are not sprite loading, frame timing, renderer selection, or animation playback. Future adapters may target the pixel sprite renderer, Rive, Live2D, Spine, Pixi, Canvas, or native mobile renderers, and they must translate these intents into production assets while following this guide.
+
 ---
 
 ## 8. Expression Library Production
