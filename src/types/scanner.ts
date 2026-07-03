@@ -69,6 +69,15 @@ export type CameraFacingMode = 'environment' | 'user' | 'unknown';
 
 export type CameraLifecycleEvent = 'warm-up' | 'start' | 'pause' | 'resume' | 'stop' | 'dispose';
 
+export type CameraPermissionState = 'unknown' | 'prompt' | 'granted' | 'denied' | 'unavailable';
+
+export type CameraLifecycleEventType =
+  | CameraLifecycleEvent
+  | 'background'
+  | 'foreground'
+  | 'orientation-change'
+  | 'recover';
+
 export type CameraErrorCode =
   | 'adapter-unavailable'
   | 'decoder-unavailable'
@@ -96,7 +105,32 @@ export interface CameraSessionModel {
 export interface CameraStateModel {
   readonly session: CameraSessionModel | null;
   readonly capabilities: readonly CameraCapabilityDetection[];
+  readonly permission: CameraPermissionState;
   readonly lastError: CameraAdapterError | null;
+}
+
+export interface CameraLifecycleEventModel {
+  readonly type: CameraLifecycleEventType;
+  readonly occurredAt: number;
+  readonly orientation?: CameraSessionModel['orientation'];
+}
+
+export interface CameraLifecycleStateModel {
+  readonly camera: CameraStateModel;
+  readonly events: readonly CameraLifecycleEventModel[];
+  readonly disposed: boolean;
+}
+
+export interface CameraSessionCoordinator {
+  warmUp: (now: number) => Promise<CameraLifecycleStateModel>;
+  start: (now: number) => Promise<CameraLifecycleStateModel>;
+  pause: (now: number) => Promise<CameraLifecycleStateModel>;
+  resume: (now: number) => Promise<CameraLifecycleStateModel>;
+  enterBackground: (now: number) => Promise<CameraLifecycleStateModel>;
+  enterForeground: (now: number) => Promise<CameraLifecycleStateModel>;
+  changeOrientation: (orientation: CameraSessionModel['orientation'], now: number) => CameraLifecycleStateModel;
+  recover: (now: number) => Promise<CameraLifecycleStateModel>;
+  shutdown: (now: number) => Promise<CameraLifecycleStateModel>;
 }
 
 export interface ScanFrameModel {

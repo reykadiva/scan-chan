@@ -547,6 +547,8 @@ Sprint 2.9 composes the first Home Hub screen at `src/app/(game)/home/page.tsx` 
 
 Sprint 3.1 adds the Camera Adapter Foundation under `src/lib/scanner/camera-adapter.ts` and `src/types/scanner.ts`. It defines camera adapter, barcode decoder, camera session, camera state, scan frame, lifecycle, autofocus, torch, zoom, capability detection, error, registration, factory, and mock-adapter contracts only. Adapters remain independent from React, browser APIs, camera preview, rendering, platform-specific decoder libraries, scanner UI, product translation, feeding, and pet business logic.
 
+Sprint 3.2 adds the Camera Lifecycle Foundation under `src/lib/scanner/camera-lifecycle.ts`. The lifecycle controller coordinates camera adapters through typed permission, warm-up, start, pause, resume, background, foreground, orientation, recovery, shutdown, and disposal contracts only. It must not import React, browser APIs, `navigator.mediaDevices`, BarcodeDetector, ZXing, Quagga, ML Kit, camera preview, rendering, scanner UI, product lookup, feeding, or pet business logic.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers

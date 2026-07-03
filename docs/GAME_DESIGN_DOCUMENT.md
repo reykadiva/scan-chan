@@ -699,6 +699,8 @@ Camera adapters may later provide barcode values from web or native mobile scann
 
 Sprint 3.1 defines adapter contracts for Browser BarcodeDetector, ZXing, Quagga, Android CameraX, iOS VisionKit, ML Kit, and custom adapters without implementing camera access, barcode decoding libraries, permissions, preview rendering, or platform-specific behavior. Future adapters must output barcode values into the existing scanner pipeline so the scanner remains separate from product translation, feeding rules, and pet state changes.
 
+Sprint 3.2 defines camera lifecycle contracts for permission state, warm-up, startup, pause/resume, background/foreground recovery, orientation changes, interruption recovery, shutdown, and memory-safe disposal. The lifecycle layer may coordinate camera adapters, but it must not know browser, native, decoder, preview, scanner UI, product lookup, feeding, or pet implementation details.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

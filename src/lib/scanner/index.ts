@@ -48,6 +48,12 @@ export const SCANNER_ADAPTER_EXTENSION_POINTS: readonly ScannerAdapterExtensionP
 ];
 
 export {
+  createCameraLifecycleState,
+  createCameraSessionCoordinator,
+  createMockCameraLifecycle,
+} from './camera-lifecycle';
+
+export {
   createBarcodeDecoderFactory,
   createCameraAdapterError,
   createCameraAdapterFactory,

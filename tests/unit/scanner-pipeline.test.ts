@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   createBarcodeDecoderFactory,
   createCameraAdapterFactory,
+  createCameraSessionCoordinator,
   createMockCameraAdapter,
   createScanSession,
   registerBarcodeDecoder,
@@ -112,5 +113,33 @@ describe('scanner pipeline', () => {
       available: true,
       concerns: expect.arrayContaining(['iphone-11-blurry-preview', 'camera-warm-up', 'memory-safe-disposal']),
     });
+  });
+
+  it('coordinates camera lifecycle without platform details', async () => {
+    const { camera } = createMockCameraAdapter({ target: 'native-android-camerax' });
+    const session = camera.createSession({ id: 'camera-life-1', now: 1_000 });
+    const lifecycle = createCameraSessionCoordinator({ adapter: camera, session, permission: 'granted' });
+
+    const warmed = await lifecycle.warmUp(1_100);
+    const started = await lifecycle.start(1_200);
+    const backgrounded = await lifecycle.enterBackground(1_300);
+    const oriented = lifecycle.changeOrientation('landscape', 1_400);
+    const recovered = await lifecycle.recover(1_500);
+    const stopped = await lifecycle.shutdown(1_600);
+
+    expect(warmed.camera.session).toMatchObject({ state: 'warming-up' });
+    expect(started.camera.session).toMatchObject({ state: 'ready', startedAt: 1_200 });
+    expect(backgrounded.camera.session).toMatchObject({ state: 'paused' });
+    expect(oriented.camera.session).toMatchObject({ orientation: 'landscape' });
+    expect(recovered.events.map((event) => event.type)).toContain('recover');
+    expect(stopped).toMatchObject({ disposed: true });
+    expect(stopped.events.map((event) => event.type)).toEqual([
+      'warm-up',
+      'start',
+      'background',
+      'orientation-change',
+      'recover',
+      'dispose',
+    ]);
   });
 });
