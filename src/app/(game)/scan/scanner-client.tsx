@@ -14,7 +14,12 @@ import { LoadingState } from "@/components/ui/loading-state"
 import { StatusChip } from "@/components/ui/status-chip"
 import { Heading, Text } from "@/components/ui/typography"
 import { cn } from "@/lib/utils"
-import { useScannerStore } from "@/stores/scanner-store"
+
+import { useScannerStore, selectLastScanFeedResult } from "@/stores/scanner-store"
+import { usePetStore } from "@/stores/pet-store"
+import { useGameStore } from "@/stores/game-store"
+
+import { calculatePetStatus } from "@/lib/pet"
 import {
   createBrowserCameraAdapter,
   createCameraSessionCoordinator,
@@ -24,7 +29,19 @@ import {
   decodeBarcodeWithFallback,
   applyBarcodeScanGuard,
   decodeBarcodeFromVideo,
+  executeScanFeedFlow,
+  configureVideoForMobileScanning,
+  detectMobileDeviceHint,
+  disposeMediaStream,
+  getDecodeIntervalMs,
+  getBatteryDecodeMultiplier,
+  onOrientationChange,
+  onVisibilityChange,
+  releaseVideoElement,
+  requestContinuousAutofocus,
 } from "@/lib/scanner"
+
+import { ScanResult } from "@/components/scanner/scan-result"
 import type { BrowserCameraAdapter, BrowserCameraDeviceModel, CameraSessionCoordinator } from "@/types/scanner"
 
 const scannerStates = {
@@ -47,8 +64,11 @@ export function ScannerClient() {
     setScanState,
     setLastBarcode,
     setErrorMessage,
+    applyScanFeedResult,
     reset,
   } = useScannerStore()
+
+  const lastScanFeedResult = useScannerStore(selectLastScanFeedResult)
 
   const [devices, setDevices] = useState<readonly BrowserCameraDeviceModel[]>([])
   const [currentDeviceIndex, setCurrentDeviceIndex] = useState<number>(-1)
@@ -63,7 +83,7 @@ export function ScannerClient() {
   const unavailable = errorMessage === "camera-unavailable"
   const loading = scanState === "requesting-permission"
 
-  // Initialize camera adapter and list devices
+  // 1. Initialize camera adapter and device listing
   useEffect(() => {
     let active = true
     const initAdapter = async () => {
@@ -98,13 +118,15 @@ export function ScannerClient() {
     }
   }, [setErrorMessage])
 
-  // Start camera helper
+  // 2. Start camera helper (autofocus, iPhone 11 blurry mitigation, constraints)
   const startCamera = async (deviceId?: string) => {
     if (!adapterRef.current) return
     try {
       setScanState("requesting-permission")
       setPermissionState("prompt")
 
+      // iPhone 11 and overall device constraints are handled in BrowserCameraAdapter
+      // using buildMobileCameraConstraints and detectMobileDeviceHint internally
       if (deviceId) {
         await adapterRef.current.createStream({ deviceId, now: Date.now() })
       }
@@ -127,7 +149,13 @@ export function ScannerClient() {
 
       const stream = adapterRef.current.getStream()
       if (stream && videoRef.current) {
+        // Optimize video element rendering settings for iOS/Safari/Android
+        configureVideoForMobileScanning(videoRef.current)
         videoRef.current.srcObject = stream
+        
+        // Request continuous autofocus
+        await requestContinuousAutofocus(stream)
+
         setPermissionState("granted")
         setScanState("scanning")
         setErrorMessage(null)
@@ -143,7 +171,7 @@ export function ScannerClient() {
     }
   }
 
-  // Handle manual/re-request trigger
+  // Handle manual / re-request trigger
   const handleRequestCamera = () => {
     const targetDevice = devices[currentDeviceIndex]
     void startCamera(targetDevice?.deviceId)
@@ -157,13 +185,48 @@ export function ScannerClient() {
 
     const nextDevice = devices[nextIndex]
     if (scanState === "scanning" && coordinatorRef.current) {
-      // Shutdown current and start new
       await coordinatorRef.current.shutdown(Date.now())
       void startCamera(nextDevice.deviceId)
     }
   }
 
-  // Decoding loop
+  // 3. Background/foreground recovery listener (visibility state change)
+  useEffect(() => {
+    const unsubscribe = onVisibilityChange(async (state) => {
+      if (state === "hidden") {
+        if (coordinatorRef.current && scanState === "scanning") {
+          await coordinatorRef.current.pause(Date.now())
+          setScanState("paused")
+        }
+      } else if (state === "visible") {
+        if (coordinatorRef.current && scanState === "paused") {
+          await coordinatorRef.current.resume(Date.now())
+          const stream = adapterRef.current?.getStream()
+          if (stream && videoRef.current) {
+            videoRef.current.srcObject = stream
+            await requestContinuousAutofocus(stream)
+          }
+          setScanState("scanning")
+        }
+      }
+    })
+    return unsubscribe;
+  }, [scanState, setScanState])
+
+  // 4. Orientation change listener
+  useEffect(() => {
+    const unsubscribe = onOrientationChange((orientation) => {
+      if (coordinatorRef.current) {
+        coordinatorRef.current.changeOrientation(
+          orientation === "portrait" ? "portrait" : "landscape",
+          Date.now()
+        )
+      }
+    })
+    return unsubscribe;
+  }, [])
+
+  // 5. Battery and device-aware decoding loop (scan latency tuning)
   useEffect(() => {
     const loop = async () => {
       if (scanState !== "scanning" || !videoRef.current || !adapterRef.current) return
@@ -209,10 +272,75 @@ export function ScannerClient() {
 
             if (guarded && !("code" in guarded)) {
               lastScannedAtRef.current = guarded.decodedAt
-              // Sprint 3.8: Mock success - log and save barcode value
-              console.log("Decoded barcode successfully:", guarded.value)
-              setLastBarcode(guarded.value)
-              setScanState("success")
+              
+              // Integrate executeScanFeedFlow from Sprint 3.7
+              const petStore = usePetStore.getState()
+              const gameStore = useGameStore.getState()
+
+              const flowResult = await executeScanFeedFlow({
+                barcode: guarded.value,
+                pet: {
+                  name: petStore.name,
+                  stage: petStore.stage,
+                  stats: {
+                    hunger: petStore.hunger,
+                    mood: petStore.mood,
+                    energy: petStore.energy,
+                    affection: petStore.affection,
+                    curiosity: petStore.curiosity,
+                  },
+                  personality: petStore.personality,
+                  memories: petStore.memories,
+                  lifecycle: petStore.lifecycle,
+                  lastDecayTimestamp: petStore.lastDecayTimestamp,
+                  interactions: petStore.interactions,
+                  feedings: petStore.feedings,
+                },
+                currentXp: gameStore.xp,
+                now: Date.now(),
+                lookup: async (code) => {
+                  try {
+                    const response = await fetch(`/api/products/${code}`)
+                    if (response.ok) {
+                      const resJson = await response.json()
+                      if (resJson.success && resJson.data) {
+                        return resJson.data
+                      }
+                    }
+                  } catch (e) {
+                    console.error("Product lookup failed:", e)
+                  }
+                  return null
+                }
+              })
+
+              // Apply result to store and update pet/game state
+              applyScanFeedResult(flowResult)
+
+              if (flowResult.success) {
+                const nextPet = flowResult.pet
+                usePetStore.setState({
+                  hunger: nextPet.stats.hunger,
+                  mood: nextPet.stats.mood,
+                  energy: nextPet.stats.energy,
+                  affection: nextPet.stats.affection,
+                  curiosity: nextPet.stats.curiosity,
+                  personality: nextPet.personality,
+                  memories: [...nextPet.memories],
+                  lifecycle: nextPet.lifecycle,
+                  status: calculatePetStatus(nextPet.stats),
+                  feedings: [...nextPet.feedings],
+                  lastDecayTimestamp: nextPet.lastDecayTimestamp,
+                  interactions: nextPet.interactions,
+                })
+
+                const nextLevel = Math.floor(flowResult.nextXp / 100) + 1
+                useGameStore.setState({
+                  xp: flowResult.nextXp,
+                  level: nextLevel,
+                })
+                gameStore.recordScanPlaceholder(flowResult.barcode, flowResult.timestamp)
+              }
               return
             }
           }
@@ -221,7 +349,13 @@ export function ScannerClient() {
         }
       }
 
-      decodingLoopRef.current = setTimeout(loop, 300)
+      // Dynamic battery-aware scan interval calculation
+      const hint = detectMobileDeviceHint()
+      const baseInterval = getDecodeIntervalMs(hint)
+      const multiplier = await getBatteryDecodeMultiplier()
+      const interval = baseInterval * multiplier
+
+      decodingLoopRef.current = setTimeout(loop, interval)
     }
 
     if (scanState === "scanning") {
@@ -233,17 +367,52 @@ export function ScannerClient() {
         clearTimeout(decodingLoopRef.current)
       }
     }
-  }, [scanState, lastBarcode, setLastBarcode, setScanState])
+  }, [scanState, lastBarcode, setLastBarcode, setScanState, applyScanFeedResult])
 
+  // 6. Resource disposal on reset/shutdown
   const handleReset = () => {
+    if (decodingLoopRef.current) {
+      clearTimeout(decodingLoopRef.current)
+    }
     if (coordinatorRef.current) {
       void coordinatorRef.current.shutdown(Date.now())
     }
     if (videoRef.current) {
-      videoRef.current.srcObject = null
+      releaseVideoElement(videoRef.current)
     }
+    disposeMediaStream(adapterRef.current ? adapterRef.current.getStream() : null)
     reset()
   }
+
+  // Map ScanFeedFlowResult output back to ScanResult's expected format
+  // ProductTranslationInput is a narrow type without id/imageUrl; the API
+  // lookup may return a broader object at runtime, so we access extra fields
+  // via an intermediate unknown cast.
+  const lp = lastScanFeedResult?.lookupProduct
+    ? (lastScanFeedResult.lookupProduct as unknown as Record<string, unknown>)
+    : null
+  const mappedResult = lastScanFeedResult ? {
+    found: lastScanFeedResult.success,
+    product: lp ? {
+      id: (lp.id as string | undefined) ?? 'prod-' + lastScanFeedResult.barcode,
+      barcodeNumber: lastScanFeedResult.lookupProduct!.barcodeNumber,
+      productName: (lastScanFeedResult.lookupProduct!.productName as string | undefined) ?? 'Unknown Product',
+      brand: lastScanFeedResult.lookupProduct!.brand ?? null,
+      category: lastScanFeedResult.lookupProduct!.category ?? null,
+      description: lastScanFeedResult.lookupProduct!.description ?? null,
+      imageUrl: (lp.imageUrl as string | undefined) ?? null,
+      creatorId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } : null,
+    scanLog: {
+      id: "scan-" + lastScanFeedResult.timestamp,
+      barcodeNumber: lastScanFeedResult.barcode,
+      productId: (lp?.id as string | undefined) ?? null,
+      deviceType: "mobile",
+      scannedAt: new Date(lastScanFeedResult.timestamp).toISOString(),
+    }
+  } : null
 
   return (
     <AppShell className="bg-[#FFF8F0]">
@@ -271,9 +440,9 @@ export function ScannerClient() {
             <main className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]" aria-labelledby="scanner-title">
               <SectionContainer className="py-0">
                 <div className="relative min-h-[62dvh] overflow-hidden rounded-[2rem] bg-[#1A1625] shadow-xl" aria-label="Camera preview placeholder">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(245,166,35,0.2),transparent_34%),linear-gradient(135deg,rgba(34,211,238,0.16),transparent_45%)] animate-pulse" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(245,166,35,0.2),transparent_34%),linear-gradient(135deg,rgba(34,211,238,0.16),transparent_45%)]" />
                   
-                  {(scanState === "scanning" || scanState === "ready") && (
+                  {(scanState === "scanning" || scanState === "ready" || scanState === "paused") && (
                     <video
                       ref={videoRef}
                       className="absolute inset-0 h-full w-full object-cover"
@@ -306,6 +475,13 @@ export function ScannerClient() {
                   <div className="absolute inset-x-4 bottom-4 z-10">
                     <StatusPanel blocked={blocked} loading={loading} unavailable={unavailable} errorMessage={errorMessage} />
                   </div>
+
+                  {mappedResult && (
+                    <ScanResult
+                      result={mappedResult}
+                      onScanAgain={handleReset}
+                    />
+                  )}
                 </div>
               </SectionContainer>
 
@@ -344,7 +520,7 @@ function ScannerFrame({ state }: { state: keyof typeof scannerStates }) {
         {["left-4 top-4 border-l-4 border-t-4", "right-4 top-4 border-r-4 border-t-4", "bottom-4 left-4 border-b-4 border-l-4", "bottom-4 right-4 border-b-4 border-r-4"].map((corner) => (
           <span key={corner} className={cn("absolute size-12 rounded-sm border-brand-cyan", corner)} />
         ))}
-        <div className="absolute inset-x-8 top-1/2 h-px bg-brand-cyan/70 animate-pulse" />
+        <div className="absolute inset-x-8 top-1/2 h-px bg-brand-cyan/70" />
         <div className="absolute inset-0 grid place-items-center text-center">
           <Stack className="max-w-xs items-center gap-2 text-white">
             <ScanLine className="size-10 opacity-80" />

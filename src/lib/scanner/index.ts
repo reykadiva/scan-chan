@@ -100,6 +100,27 @@ export {
   type CameraAdapterRegistry,
 } from './camera-adapter';
 
+export {
+  buildMobileCameraConstraints,
+  configureVideoForMobileScanning,
+  detectMobileDeviceHint,
+  disposeMediaStream,
+  getDecodeIntervalMs,
+  getDeviceOrientation,
+  getBatteryDecodeMultiplier,
+  isAndroidChrome,
+  isLowBattery,
+  isSafari,
+  onOrientationChange,
+  onVisibilityChange,
+  releaseVideoElement,
+  requestContinuousAutofocus,
+  type AppVisibilityState,
+  type DeviceOrientation,
+  type MobileCameraConstraints,
+  type MobileDeviceHint,
+} from './mobile-optimization';
+
 export function createScanSession(id: string, startedAt: number): ScanSessionModel {
   return { id, state: 'ready', startedAt, completedAt: null, lastStage: null };
 }

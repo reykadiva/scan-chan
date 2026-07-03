@@ -10,6 +10,7 @@ import type {
   BrowserCameraDeviceModel,
   CameraFacingMode,
 } from '@/types/scanner';
+import { buildMobileCameraConstraints, detectMobileDeviceHint } from './mobile-optimization';
 
 type MediaDevicesAccess = Pick<MediaDevices, 'enumerateDevices' | 'getUserMedia'>;
 
@@ -19,10 +20,12 @@ export function createBrowserCameraAdapter(mediaDevices: MediaDevicesAccess = ge
 
   const createStream = async (input: { deviceId?: string; facingMode?: CameraFacingMode; now: number }) => {
     stopStream(stream);
-    stream = await mediaDevices.getUserMedia({
-      video: input.deviceId ? { deviceId: { exact: input.deviceId } } : { facingMode: input.facingMode ?? 'environment' },
-      audio: false,
+    const hint = detectMobileDeviceHint();
+    const constraints = buildMobileCameraConstraints(hint, {
+      deviceId: input.deviceId,
+      facingMode: input.facingMode === 'unknown' ? 'environment' : input.facingMode,
     });
+    stream = await mediaDevices.getUserMedia(constraints);
     session = transitionCameraSession(session, 'ready', input.now);
     return stream;
   };
