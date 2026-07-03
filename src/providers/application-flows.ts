@@ -96,6 +96,7 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
     petUpdate: flow('petUpdate', [
       { name: 'pet.state', run: services.pet.preparePetState },
       { name: 'pet.interaction', run: services.pet.preparePetInteraction },
+      { name: 'pet.feeding', run: services.pet.prepareFeeding },
     ]),
     missionUpdate: flow('missionUpdate', [{ name: 'game.mission-pipeline', run: services.game.prepareMissionPipeline }]),
     achievementUpdate: flow('achievementUpdate', [

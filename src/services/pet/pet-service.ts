@@ -1,5 +1,6 @@
 import type { PetRepository } from '@/repositories';
 import {
+  applyPetFeeding,
   applyPetInteraction,
   applyPassivePetDecay,
   applyPersonalitySignal,
@@ -9,7 +10,7 @@ import {
   createPetMemory,
   normalizePetState,
 } from '@/lib/pet';
-import type { PetInteractionType, PetMemory, PetMemoryType, PetPersonalityTrait, PetStateModel, PetStatsState } from '@/types/pet';
+import type { FoodModel, PetInteractionType, PetMemory, PetMemoryType, PetPersonalityTrait, PetStateModel, PetStatsState } from '@/types/pet';
 import { deferred, type ServiceResult, type FutureOrchestrationPoint } from '../service-result';
 
 export interface PetService {
@@ -21,9 +22,10 @@ export interface PetService {
   applyPersonalitySignal: (pet: PetStateModel, trait: PetPersonalityTrait, amount?: number) => ServiceResult<PetStateModel>;
   createMemory: (input: { id: string; type: PetMemoryType; title: string; createdAt: string; productBarcode?: string; reaction?: string }) => ServiceResult<PetMemory>;
   interact: (pet: PetStateModel, input: { type: PetInteractionType; now: number; memoryId?: string }) => ServiceResult<ReturnType<typeof applyPetInteraction>>;
+  feed: (pet: PetStateModel, input: { food: FoodModel; now: number; memoryId?: string }) => ServiceResult<ReturnType<typeof applyPetFeeding>>;
   preparePetState: () => ServiceResult;
   preparePetInteraction: () => ServiceResult;
-  prepareFeeding: () => ServiceResult<FutureOrchestrationPoint>;
+  prepareFeeding: () => ServiceResult;
   prepareEvolution: () => ServiceResult<FutureOrchestrationPoint>;
 }
 
@@ -91,6 +93,10 @@ export class DefaultPetService implements PetService {
     return { ok: true, data: applyPetInteraction(pet, input) };
   }
 
+  feed(pet: PetStateModel, input: { food: FoodModel; now: number; memoryId?: string }) {
+    return { ok: true, data: applyPetFeeding(pet, input) };
+  }
+
   /** Sprint 2.1 orchestration hook for pet state updates; feature pipelines stay deferred. */
   preparePetState() {
     return { ok: true };
@@ -101,9 +107,9 @@ export class DefaultPetService implements PetService {
     return { ok: true };
   }
 
-  /** Future Sprint 2 extension point: orchestrate scan-to-feeding without storing gameplay rules here. */
+  /** Sprint 2.3 orchestration hook for feeding; scanner/product lookup stay outside this service. */
   prepareFeeding() {
-    return deferred('feeding');
+    return { ok: true };
   }
 
   /** Future Sprint 3 extension point: delegate evolution orchestration to documented domain logic. */

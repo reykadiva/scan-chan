@@ -1,4 +1,8 @@
 import type {
+  FeedingRecord,
+  FoodCategory,
+  FoodModel,
+  FoodNutritionProfile,
   PetLifecycleState,
   PetInteractionType,
   PetMemory,
@@ -56,6 +60,15 @@ export const initialPetStats: PetStatsState = {
   curiosity: 50,
 };
 
+export const FOOD_NUTRITION_PROFILES: Readonly<Record<FoodCategory, FoodNutritionProfile>> = {
+  meal: { hunger: 30, mood: 8, energy: 6, affection: 5, curiosity: 2 },
+  snack: { hunger: 20, mood: 10, energy: 5, affection: 5, curiosity: 4 },
+  treat: { hunger: 15, mood: 15, energy: 3, affection: 5, curiosity: 6 },
+  drink: { hunger: 15, mood: 5, energy: 8, affection: 5, curiosity: 5 },
+  fresh: { hunger: 25, mood: 8, energy: 10, affection: 5, curiosity: 10 },
+  unknown: { hunger: 15, mood: 5, energy: 0, affection: 5, curiosity: 12 },
+};
+
 const PET_INTERACTION_COOLDOWNS: Readonly<Record<PetInteractionType, number>> = {
   pet: 10_000,
   greet: 60_000,
@@ -74,6 +87,15 @@ const PET_INTERACTION_RULES: Readonly<
   comfort: { stats: { mood: 5, affection: 3 }, trait: 'gentle', memory: 'A quiet comfort' },
   praise: { stats: { mood: 3, affection: 2, curiosity: 1 }, trait: 'routine-loving', memory: 'A proud little moment' },
   play: { stats: { mood: 4, curiosity: 4, energy: -3 }, trait: 'adventurous', memory: 'A playful moment' },
+};
+
+const FOOD_PERSONALITY_TRAITS: Readonly<Record<FoodCategory, PetPersonalityTrait>> = {
+  meal: 'foodie',
+  snack: 'foodie',
+  treat: 'foodie',
+  drink: 'routine-loving',
+  fresh: 'adventurous',
+  unknown: 'adventurous',
 };
 
 export function clampPetStat(stat: PetStatName, value: number): number {
@@ -161,6 +183,77 @@ export function createPetMemory(input: {
   };
 }
 
+export function createFood(input: {
+  id: string;
+  name: string;
+  category: FoodCategory;
+  nutrition?: Partial<FoodNutritionProfile>;
+  isFavorite?: boolean;
+  isNew?: boolean;
+}): FoodModel {
+  return {
+    id: input.id.trim(),
+    name: input.name.trim(),
+    category: input.category,
+    nutrition: normalizePetStats({ ...FOOD_NUTRITION_PROFILES[input.category], ...input.nutrition }),
+    isFavorite: input.isFavorite,
+    isNew: input.isNew,
+  };
+}
+
+export function applyPetFeeding(
+  pet: PetStateModel,
+  input: { food: FoodModel; now: number; memoryId?: string },
+): { pet: PetStateModel; applied: boolean; reason?: 'invalid-food' | 'overfed'; memory?: PetMemory; feeding?: FeedingRecord } {
+  const food = input.food;
+  const values = Object.values(food.nutrition);
+
+  if (!food.id || !food.name || values.some((value) => !Number.isFinite(value))) {
+    return { pet, applied: false, reason: 'invalid-food' };
+  }
+
+  if (pet.stats.hunger >= 95) {
+    return { pet, applied: false, reason: 'overfed' };
+  }
+
+  const trait = FOOD_PERSONALITY_TRAITS[food.category];
+  const traitWeight = pet.personality.dominantTrait === trait || food.isFavorite ? 2 : 1;
+  const nextStats = applyPetStatUpdate(
+    pet.stats,
+    Object.fromEntries(
+      Object.entries(food.nutrition).map(([stat, value]) => [
+        stat,
+        pet.stats[stat as PetStatName] + value * traitWeight,
+      ]),
+    ) as Partial<PetStatsState>,
+  );
+  const memoryType: PetMemoryType | null = pet.feedings.length === 0 ? 'first-feed' : food.isFavorite ? 'favorite' : food.isNew ? 'rare-find' : null;
+  const memory = memoryType
+    ? createPetMemory({
+        id: input.memoryId ?? `feeding-${food.id}-${input.now}`,
+        type: memoryType,
+        title: memoryType === 'first-feed' ? 'First Feed' : `${food.name} shared`,
+        createdAt: new Date(input.now).toISOString(),
+        reaction: food.category,
+      })
+    : undefined;
+  const feeding = { foodId: food.id, category: food.category, fedAt: input.now };
+
+  return {
+    applied: true,
+    feeding,
+    memory,
+    pet: {
+      ...pet,
+      stats: nextStats,
+      personality: applyPersonalitySignal(pet.personality, trait, 1),
+      memories: memory ? [...pet.memories, memory] : pet.memories,
+      lifecycle: calculatePetLifecycle(nextStats),
+      feedings: [...pet.feedings, feeding],
+    },
+  };
+}
+
 export function applyPetInteraction(
   pet: PetStateModel,
   input: { type: PetInteractionType; now: number; memoryId?: string },
@@ -220,5 +313,6 @@ export function normalizePetState(pet: Partial<PetStateModel>): PetStateModel {
     lifecycle: pet.lifecycle ?? calculatePetLifecycle(stats),
     lastDecayTimestamp: pet.lastDecayTimestamp ?? null,
     interactions: pet.interactions ?? {},
+    feedings: pet.feedings ?? [],
   };
 }

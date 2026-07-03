@@ -33,6 +33,25 @@ export interface PetInteractionRecord {
 
 export type PetInteractionHistory = Partial<Record<PetInteractionType, PetInteractionRecord>>;
 
+export type FoodCategory = 'meal' | 'snack' | 'treat' | 'drink' | 'fresh' | 'unknown';
+
+export type FoodNutritionProfile = PetStatsState;
+
+export interface FoodModel {
+  readonly id: string;
+  readonly name: string;
+  readonly category: FoodCategory;
+  readonly nutrition: FoodNutritionProfile;
+  readonly isFavorite?: boolean;
+  readonly isNew?: boolean;
+}
+
+export interface FeedingRecord {
+  readonly foodId: string;
+  readonly category: FoodCategory;
+  readonly fedAt: number;
+}
+
 export interface PetStatsState {
   readonly hunger: number;
   readonly mood: number;
@@ -64,6 +83,7 @@ export interface PetStateModel {
   readonly lifecycle: PetLifecycleState;
   readonly lastDecayTimestamp: number | null;
   readonly interactions: PetInteractionHistory;
+  readonly feedings: readonly FeedingRecord[];
 }
 
 export interface PetDomainBoundary {

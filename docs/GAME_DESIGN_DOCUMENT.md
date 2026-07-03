@@ -245,6 +245,8 @@ Personality is not binary. Scan Chan exists on a spectrum, showing dominant trai
 
 Direct interactions also shape personality. Petting and greeting strengthen social behavior, observing supports independence, comforting reinforces gentleness, praise supports routine-loving behavior, and play supports adventurous behavior. These signals should remain gentle and cumulative rather than forcing abrupt personality changes.
 
+Feeding shapes personality as well. Frequent meals, snacks, and treats strengthen Foodie tendencies; fresh or unknown food strengthens Adventurous tendencies; familiar drinks can support routine-loving behavior. Favorite foods may amplify the response, but the reaction should feel like preference rather than optimization.
+
 ### 5.3 Memory System
 
 Every scan becomes a memory:
@@ -258,6 +260,8 @@ Every scan becomes a memory:
 Memories are visualized as a scrapbook or photo album the player can browse. Each memory includes the date, the product, and Scan Chan's reaction.
 
 Meaningful direct interactions can also create memories. Greet, comfort, praise, and play moments may become `Special Moments` when they represent a warm emotional beat. Routine petting and observation should usually affect state without creating memory clutter.
+
+Meaningful feeding events create memories too. The first feeding creates `First Feed`, favorite foods may create `Favorites`, and new or unusual foods may create `Rare Finds`. Ordinary repeated feeding should update history without cluttering the scrapbook.
 
 ---
 
@@ -657,6 +661,18 @@ Every product you've ever scanned becomes part of Scan Chan's story. Years from 
 - "Remember when you tried this weird flavor?"
 
 The barcode database becomes a **diary of your life together**.
+
+### 9.4.1 Feeding Foundation
+
+Before scanner integration, feeding is modeled as a pure pet-domain event. A food item has a category and nutrition profile. Feeding affects all five pet stats:
+
+- Hunger increases from the food's fullness value.
+- Mood increases from enjoyment.
+- Energy changes based on the food category.
+- Affection increases because feeding is care.
+- Curiosity increases when the food is novel, fresh, or unusual.
+
+The pet should not be overfed. If Scan Chan is already full, feeding is rejected without penalty. Invalid food is rejected without changing state. These rules protect the cozy fantasy: feeding is care, not a spam action or optimization exploit.
 
 ### 9.5 Comparison
 

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  applyPetFeeding,
   applyPetInteraction,
   applyPassivePetDecay,
   applyPersonalitySignal,
   applyPetStatUpdate,
   calculatePetLifecycle,
   calculatePetStatus,
+  createFood,
   createPetMemory,
   initialPetPersonality,
   initialPetStats,
@@ -88,6 +90,42 @@ describe('pet domain', () => {
     expect(result.pet.stats.curiosity).toBe(58);
     expect(result.pet.stats.energy).toBe(94);
   });
+
+  it('feeds valid food into all five pet stats and feeding history', () => {
+    const pet = normalizePetState({ stats: { hunger: 40, mood: 40, energy: 40, affection: 25, curiosity: 40 } });
+    const food = createFood({ id: 'snack-1', name: 'Snack', category: 'snack' });
+    const result = applyPetFeeding(pet, { food, now: 1_000, memoryId: 'first-feed-1' });
+
+    expect(result.applied).toBe(true);
+    expect(result.pet.stats).toMatchObject({ hunger: 60, mood: 50, energy: 45, affection: 30, curiosity: 44 });
+    expect(result.pet.feedings).toHaveLength(1);
+    expect(result.memory).toMatchObject({ id: 'first-feed-1', type: 'first-feed' });
+  });
+
+  it('prevents overfeeding and invalid feeding without mutating pet state', () => {
+    const pet = normalizePetState({ stats: { hunger: 99, mood: 40, energy: 40, affection: 25, curiosity: 40 } });
+    const validFood = createFood({ id: 'meal-1', name: 'Meal', category: 'meal' });
+    const invalidFood = createFood({ id: ' ', name: ' ', category: 'meal' });
+
+    expect(applyPetFeeding(pet, { food: validFood, now: 1_000 })).toMatchObject({ applied: false, reason: 'overfed' });
+    expect(applyPetFeeding({ ...pet, stats: { ...pet.stats, hunger: 40 } }, { food: invalidFood, now: 1_000 })).toMatchObject({
+      applied: false,
+      reason: 'invalid-food',
+    });
+  });
+
+  it('lets food personality and favorites influence feeding outcome', () => {
+    const pet = normalizePetState({
+      stats: { hunger: 40, mood: 40, energy: 40, affection: 25, curiosity: 40 },
+      personality: applyPersonalitySignal(initialPetPersonality, 'foodie', 3),
+      feedings: [{ foodId: 'old', category: 'meal', fedAt: 1 }],
+    });
+    const food = createFood({ id: 'treat-1', name: 'Favorite Treat', category: 'treat', isFavorite: true });
+    const result = applyPetFeeding(pet, { food, now: 2_000 });
+
+    expect(result.pet.stats).toMatchObject({ hunger: 70, mood: 70, energy: 46, affection: 35, curiosity: 52 });
+    expect(result.memory?.type).toBe('favorite');
+  });
 });
 
 describe('pet service', () => {
@@ -101,5 +139,6 @@ describe('pet service', () => {
     });
     expect(service.createMemory({ id: 'memory-1', type: 'first-feed', title: 'First Feed', createdAt: '2026-07-03T00:00:00.000Z' }).data?.title).toBe('First Feed');
     expect(service.interact(pet, { type: 'greet', now: 1_000 }).data?.pet.lifecycle).toBe('greeting');
+    expect(service.feed(pet, { food: createFood({ id: 'meal-1', name: 'Meal', category: 'meal' }), now: 1_000 }).data?.applied).toBe(false);
   });
 });

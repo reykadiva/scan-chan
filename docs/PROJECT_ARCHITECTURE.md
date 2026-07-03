@@ -531,6 +531,8 @@ Sprint 2.1 implements the pet foundation as pure domain logic under `src/lib/pet
 
 Sprint 2.2 extends the same pure pet engine with direct player-to-pet interactions: `pet`, `greet`, `observe`, `comfort`, `praise`, and foundation-only `play`. The interaction engine owns cooldown checks, stat deltas, personality trait signals, meaningful interaction memories, and deterministic outcomes. Cooldowns exist only to prevent spam and must not create guilt, loss, or urgency. Scanner, product lookup, inventory UI, missions, achievements, rewards, synchronization, camera behavior, animation, evolution, and Home Hub UI remain outside Sprint 2.2.
 
+Sprint 2.3 adds the feeding foundation to the pure pet engine. The feeding engine owns typed food models, food categories, nutrition profiles, stat restoration, overfeeding prevention, invalid-food rejection, feeding history, food-driven personality signals, and meaningful feeding memories. It does not perform barcode scanning, camera access, product lookup, inventory mutation, UI rendering, missions, achievements, rewards, synchronization, animation, or evolution.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -572,6 +574,8 @@ Sprint 1.6 adds application flows to the composition root. Flows sequence servic
 Sprint 2.1 adds `PetService` methods for pet normalization, stat updates, passive decay, status calculation, personality signals, and memory creation. These methods wrap the pure pet domain engine and keep UI, stores, repositories, Prisma, scanner logic, feeding, rewards, evolution, and animations out of the pet foundation. `petUpdate` application flow now targets the pet state foundation only; future feeding and evolution sequences remain deferred.
 
 Sprint 2.2 adds `PetService.interact()` and `preparePetInteraction()`. `interact()` delegates to the pure pet interaction engine and returns applied/cooldown outcome data. The `petUpdate` application flow includes a `pet.interaction` preparation step without implementing UI, animation, scanner, feeding, rewards, missions, achievements, synchronization, or evolution behavior.
+
+Sprint 2.3 adds `PetService.feed()` and converts `prepareFeeding()` into a feeding-domain preparation hook. `feed()` delegates to the pure pet feeding engine and returns applied/rejected outcome data. The `petUpdate` application flow includes `pet.feeding` without implementing scanner, product lookup, inventory UI, reward, mission, achievement, sync, animation, or evolution behavior.
 
 ### 3.5 Persistence Layer
 
@@ -913,6 +917,8 @@ interface PetState {
 Sprint 2.1 store actions may call pure pet-domain functions to keep persisted state normalized, but the store must not access repositories, Prisma, APIs, or other stores. Cross-store orchestration and persistence synchronization remain future service/flow responsibilities.
 
 Sprint 2.2 adds a store-level `interact(type, now)` action that delegates to the pure pet interaction engine and persists the resulting pet stats, personality, memories, lifecycle, status, and interaction cooldown history. The store must continue to avoid repositories, Prisma, APIs, other stores, React UI, animations, and scanner logic.
+
+Sprint 2.3 adds a store-level `feed(food, now)` action that delegates to the pure pet feeding engine and persists the resulting pet stats, personality, memories, lifecycle, status, and feeding history. The store must continue to avoid scanner behavior, product lookup, inventory mutation, rewards, missions, achievements, synchronization, animations, and repository or Prisma access.
 
 #### Game Store (`stores/game-store.ts`)
 
@@ -1431,6 +1437,8 @@ Everything that happens after a successful scan that feeds the pet.
 
 ### 10.2 Food Generation
 
+Sprint 2.3 defines feeding-domain food models before scanner integration exists. Food categories are `meal`, `snack`, `treat`, `drink`, `fresh`, and `unknown`. Each category has a complete nutrition profile affecting hunger, mood, energy, affection, and curiosity. Later scanner/product work may convert scanned products into these food models, but Sprint 2.3 does not perform barcode scanning or product lookup.
+
 ```typescript
 // src/lib/food-engine.ts
 interface FoodItem {
@@ -1476,6 +1484,8 @@ energy = clamp(energy + food.energyRestore, 0, 100)
 curiosity = clamp(curiosity + food.curiosityRestore, 0, 100)
 affection = clamp(affection + 5, 0, 100)  // Every scan increases affection
 ```
+
+Sprint 2.3 feeding rules must reject invalid food and prevent overfeeding when the pet is already full. Feeding records are stored as a foundation for future favorites, balancing, and scanner integration. First feeds, favorite foods, and new foods may create memories; routine feeding should not flood the memory list. Future barcode scanning should only provide validated `FoodModel` metadata to the feeding engine, never embed feeding business logic inside scanner code.
 
 ### 10.5 Mission Update
 

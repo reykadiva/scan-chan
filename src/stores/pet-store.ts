@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import {
+  applyPetFeeding,
   applyPetInteraction,
   applyPassivePetDecay,
   applyPetStatUpdate,
@@ -10,6 +11,8 @@ import {
   initialPetStats,
 } from '@/lib/pet';
 import type {
+  FeedingRecord,
+  FoodModel,
   PetInteractionHistory,
   PetInteractionType,
   PetLifecycleState,
@@ -37,6 +40,7 @@ export interface PetStoreState {
   status: PetStatus;
   lastDecayTimestamp: number | null;
   interactions: PetInteractionHistory;
+  feedings: FeedingRecord[];
   accessories: string[];
   furniture: string[];
   currentAnimation: string | null;
@@ -49,6 +53,7 @@ export interface PetStoreState {
   applyDecay: (now: number) => void;
   recordMemory: (memory: PetMemory) => void;
   interact: (type: PetInteractionType, now: number) => void;
+  feed: (food: FoodModel, now: number) => void;
   queueAnimation: (animation: string | null) => void;
   reset: () => void;
 }
@@ -66,6 +71,7 @@ export const initialPetState = {
   status: 'content' as const,
   lastDecayTimestamp: null as number | null,
   interactions: {} as PetInteractionHistory,
+  feedings: [] as FeedingRecord[],
   accessories: [] as string[],
   furniture: [] as string[],
   currentAnimation: null as string | null,
@@ -124,6 +130,20 @@ export const usePetStore = create<PetStoreState>()(
               interactions: next.interactions,
             };
           }),
+        feed: (food, now) =>
+          set((state) => {
+            const result = applyPetFeeding(toPetStateModel(state), { food, now });
+            const next = result.pet;
+
+            return {
+              ...next.stats,
+              personality: next.personality,
+              memories: [...next.memories],
+              lifecycle: next.lifecycle,
+              status: calculatePetStatus(next.stats),
+              feedings: [...next.feedings],
+            };
+          }),
         queueAnimation: (currentAnimation) => set({ currentAnimation }),
         reset: () =>
           set((state) => ({
@@ -136,7 +156,7 @@ export const usePetStore = create<PetStoreState>()(
         name: petStorageKey('guest'),
         version: 1,
         storage: createJSONStorage(() => localStorage),
-        partialize: ({ name, stage, hunger, mood, energy, affection, curiosity, personality, memories, lifecycle, status, lastDecayTimestamp, interactions, accessories, furniture, persistenceMode }) => ({
+        partialize: ({ name, stage, hunger, mood, energy, affection, curiosity, personality, memories, lifecycle, status, lastDecayTimestamp, interactions, feedings, accessories, furniture, persistenceMode }) => ({
           name,
           stage,
           hunger,
@@ -150,6 +170,7 @@ export const usePetStore = create<PetStoreState>()(
           status,
           lastDecayTimestamp,
           interactions,
+          feedings,
           accessories,
           furniture,
           persistenceMode,
@@ -183,4 +204,5 @@ const toPetStateModel = (state: PetStoreState) => ({
   lifecycle: state.lifecycle,
   lastDecayTimestamp: state.lastDecayTimestamp,
   interactions: state.interactions,
+  feedings: state.feedings,
 });

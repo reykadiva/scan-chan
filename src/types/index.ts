@@ -21,6 +21,10 @@ export type {
 export type { GameAchievement, MissionProgress } from './game';
 export type { InventoryDomainBoundary } from './inventory';
 export type {
+  FeedingRecord,
+  FoodCategory,
+  FoodModel,
+  FoodNutritionProfile,
   PetDomainBoundary,
   PetInteractionHistory,
   PetInteractionRecord,
