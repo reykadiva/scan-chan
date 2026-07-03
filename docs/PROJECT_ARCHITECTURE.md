@@ -541,6 +541,8 @@ Sprint 2.6 adds the Home Hub ViewModel foundation under `src/lib/home-hub/`. The
 
 Sprint 2.7 adds the Mascot Runtime foundation under `src/lib/mascot-runtime/`. The runtime consumes pet state and produces typed emotion, expression, idle behavior, attention, gaze, runtime phase, and animation intent models. It must never import React, rendering libraries, browser APIs, sprite assets, image paths, scanner code, camera code, Prisma, repositories, or services. Future animation adapters may consume the intent output, but the runtime itself only describes behavior.
 
+Sprint 2.8 adds the reusable UI Component Foundation under `src/components/ui/`, `src/components/layout/`, and `src/components/shared/`. These primitives cover app shell, responsive and safe-area containers, layout stacks/grids, surfaces, panels, typography, icon buttons, progress bars, status chips, stat cards, empty/loading states, toast container alias, bottom sheet foundation, and accessibility helpers. Components must remain presentational, mobile-first, renderer-agnostic, and free of Prisma, repositories, services, stores, routes, scanner camera logic, mascot rendering, and business rules.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -777,6 +779,8 @@ Atomic primitives. No game logic. Fully reusable. All customized per UI Producti
 
 #### Pet Components (`components/pet/`)
 
+Sprint 2.8 extends `components/ui/` with `typography.tsx`, `surface.tsx`, `icon-button.tsx`, `progress-bar.tsx`, `status-chip.tsx`, `stat-card.tsx`, `empty-state.tsx`, `loading-state.tsx`, `bottom-sheet.tsx`, and `toast-container.tsx`. These components accept props or typed ViewModel-shaped data only. They must not subscribe to stores, call services, access repositories, import Prisma, implement navigation, or contain gameplay, scanner, mascot, inventory, mission, achievement, reward, or sync logic.
+
 Everything related to rendering and animating the pet.
 
 - `pet-canvas.tsx` — Main pet rendering surface (sprite or SVG-based)
@@ -838,6 +842,10 @@ Page structure and navigation.
 - `page-transition.tsx` — Page transition animation wrapper
 
 #### Shared Components (`components/shared/`)
+
+Sprint 2.8 adds `app-shell.tsx`, `containers.tsx`, and `layout-primitives.tsx` to `components/layout/` as reusable layout foundations for future pages. They provide structure only and do not implement routing, navigation, camera, scanner UI, mascot rendering, or page composition.
+
+Sprint 2.8 adds `accessibility.tsx` to `components/shared/` for screen-reader and live-region helpers.
 
 Reusable composite patterns.
 

@@ -3045,6 +3045,10 @@ Total duration: ~7 seconds. This is the most emotionally significant moment in S
 
 Every UI component must pass this checklist before implementation. If a component fails more than two checks, it must be redesigned.
 
+Sprint 2.8 establishes the reusable UI Component Foundation before Home Hub, scanner UI, inventory UI, navigation, or mascot rendering are implemented. The foundation includes app shell, responsive/safe-area containers, layout primitives, surfaces, panels, typography primitives, button and icon-button usage, badges, progress bars, status chips, stat cards, empty/loading states, toast container, dialog foundation, bottom sheet foundation, and accessibility helpers.
+
+Sprint 2.8 components are presentational only. They may accept typed ViewModel data or primitive props, but they must not read stores, call services, access repositories, access Prisma, implement routes, run scanner camera logic, render mascot assets, or own gameplay rules.
+
 ### Visual Checks
 
 - [ ] **Is it rounded?** — No sharp corners. Radius proportional to size.
