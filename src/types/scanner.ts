@@ -195,6 +195,20 @@ export interface CameraAdapter {
   readFrame: (now: number) => Promise<ScanFrameModel>;
 }
 
+export interface BrowserCameraDeviceModel {
+  readonly deviceId: string;
+  readonly label: string;
+  readonly facingMode: CameraFacingMode;
+}
+
+export interface BrowserCameraAdapter extends CameraAdapter {
+  enumerateDevices: () => Promise<readonly BrowserCameraDeviceModel[]>;
+  createStream: (input: { deviceId?: string; facingMode?: CameraFacingMode; now: number }) => Promise<MediaStream>;
+  switchCamera: (input: { deviceId?: string; facingMode?: CameraFacingMode; now: number }) => Promise<MediaStream>;
+  shutdownStream: () => void;
+  getStream: () => MediaStream | null;
+}
+
 export interface ScanRequestModel {
   readonly barcodeValue: string;
   readonly requestedAt: number;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createBarcodeDecoderFactory,
+  createMockBrowserCameraAdapter,
   createCameraAdapterFactory,
   createCameraSessionCoordinator,
   createMockCameraAdapter,
@@ -141,5 +142,34 @@ describe('scanner pipeline', () => {
       'recover',
       'dispose',
     ]);
+  });
+
+  it('creates, switches, and cleans up browser camera streams', async () => {
+    const stopped: string[] = [];
+    const firstStream = { getTracks: () => [{ stop: () => stopped.push('first') }] } as unknown as MediaStream;
+    const secondStream = { getTracks: () => [{ stop: () => stopped.push('second') }] } as unknown as MediaStream;
+    const adapter = createMockBrowserCameraAdapter({
+      devices: [
+        { deviceId: 'front', label: 'Front Camera', facingMode: 'user' },
+        { deviceId: 'rear', label: 'Rear Camera', facingMode: 'environment' },
+      ],
+      stream: [firstStream],
+    });
+    const switchingAdapter = createMockBrowserCameraAdapter({
+      devices: [{ deviceId: 'rear', label: 'Rear Camera', facingMode: 'environment' }],
+      stream: [firstStream, secondStream],
+    });
+
+    expect(await adapter.enumerateDevices()).toEqual([
+      { deviceId: 'front', label: 'Front Camera', facingMode: 'user' },
+      { deviceId: 'rear', label: 'Rear Camera', facingMode: 'environment' },
+    ]);
+
+    expect(await switchingAdapter.createStream({ facingMode: 'environment', now: 1_000 })).toBe(firstStream);
+    expect(switchingAdapter.getStream()).toBe(firstStream);
+    expect(await switchingAdapter.switchCamera({ deviceId: 'rear', now: 1_100 })).toBe(secondStream);
+    switchingAdapter.shutdownStream();
+
+    expect(stopped).toEqual(['first', 'second']);
   });
 });

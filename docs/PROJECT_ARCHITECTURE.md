@@ -549,6 +549,8 @@ Sprint 3.1 adds the Camera Adapter Foundation under `src/lib/scanner/camera-adap
 
 Sprint 3.2 adds the Camera Lifecycle Foundation under `src/lib/scanner/camera-lifecycle.ts`. The lifecycle controller coordinates camera adapters through typed permission, warm-up, start, pause, resume, background, foreground, orientation, recovery, shutdown, and disposal contracts only. It must not import React, browser APIs, `navigator.mediaDevices`, BarcodeDetector, ZXing, Quagga, ML Kit, camera preview, rendering, scanner UI, product lookup, feeding, or pet business logic.
 
+Sprint 3.3 adds the Browser Camera Adapter under `src/lib/scanner/browser-camera-adapter.ts`. This is the only approved scanner foundation layer that may access browser `MediaDevices`, `getUserMedia()`, `enumerateDevices()`, and `MediaStream` cleanup. It provides stream creation, shutdown, camera switching, device enumeration, and capability detection only; it must not implement BarcodeDetector, ZXing, Quagga, barcode decoding, product lookup, scanner UI, preview rendering, animations, feeding, pet updates, or gameplay logic.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers

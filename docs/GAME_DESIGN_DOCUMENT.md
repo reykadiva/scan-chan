@@ -701,6 +701,8 @@ Sprint 3.1 defines adapter contracts for Browser BarcodeDetector, ZXing, Quagga,
 
 Sprint 3.2 defines camera lifecycle contracts for permission state, warm-up, startup, pause/resume, background/foreground recovery, orientation changes, interruption recovery, shutdown, and memory-safe disposal. The lifecycle layer may coordinate camera adapters, but it must not know browser, native, decoder, preview, scanner UI, product lookup, feeding, or pet implementation details.
 
+Sprint 3.3 implements the Browser Camera Adapter as a stream provider only. It may request and enumerate browser camera streams, switch cameras, and clean up tracks, but barcode decoding, product lookup, feeding, pet updates, scanner UI, overlays, and scan animation remain out of scope. This keeps camera reliability work separate from Scan Chan's care and feeding rules.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

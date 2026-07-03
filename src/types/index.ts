@@ -87,6 +87,8 @@ export {
 export type {
   BarcodeDecodeResult,
   BarcodeDecoderAdapter,
+  BrowserCameraAdapter,
+  BrowserCameraDeviceModel,
   CameraAdapter,
   CameraAdapterError,
   CameraCapabilityDetection,

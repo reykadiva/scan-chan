@@ -48,6 +48,11 @@ export const SCANNER_ADAPTER_EXTENSION_POINTS: readonly ScannerAdapterExtensionP
 ];
 
 export {
+  createBrowserCameraAdapter,
+  createMockBrowserCameraAdapter,
+} from './browser-camera-adapter';
+
+export {
   createCameraLifecycleState,
   createCameraSessionCoordinator,
   createMockCameraLifecycle,
