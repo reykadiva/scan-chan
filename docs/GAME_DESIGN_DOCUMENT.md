@@ -568,6 +568,8 @@ Sprint 2.2 defines the foundation for direct pet interactions before any UI is b
 
 Interactions use short cooldowns to prevent spam, not to pressure the player. Cooldowns must never become timers, chores, penalties, streak pressure, or loss mechanics. Visual feedback, animation, sound, and Home Hub interaction surfaces belong to later sprints.
 
+Sprint 2.6 defines the Home Hub ViewModel foundation before any Home Hub UI is built. It derives greeting state, pet summary, daily summary, gentle next-action hints, loading state, and empty state from existing store/domain state only. These hints must keep Scan Chan as the emotional focus, must never become chores or pressure mechanics, and must not duplicate pet, feeding, scanner, product, inventory, settings, or profile business rules.
+
 ### 8.1 Core Loop (Single Session)
 
 ```

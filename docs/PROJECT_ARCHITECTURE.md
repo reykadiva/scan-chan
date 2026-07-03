@@ -537,6 +537,8 @@ Sprint 2.4 adds the Product -> Food translation bridge under `src/lib/product/`.
 
 Sprint 2.5 adds the scanner pipeline foundation under `src/lib/scanner/`. The pipeline owns scan request/result models, scan session state, scanner state transitions, stage sequencing, and scanner error results. It orchestrates Barcode Value -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine without camera access, barcode decoding libraries, browser APIs, React UI, animations, rewards, achievements, synchronization, or evolution.
 
+Sprint 2.6 adds the Home Hub ViewModel foundation under `src/lib/home-hub/`. The Home Hub layer consumes typed store snapshots and derives presentation-ready state for greeting, pet summary, status cards, daily summary, empty/loading states, recommendation hints, and future mascot runtime hints. It must not import React components, pages, Prisma, repositories, services, browser APIs, scanner camera code, or duplicate pet, feeding, scanner, product, inventory, settings, or profile business rules.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -584,6 +586,8 @@ Sprint 2.3 adds `PetService.feed()` and converts `prepareFeeding()` into a feedi
 Sprint 2.4 adds `ScannerService.translateProductToFood()` as a service boundary wrapper around the pure product translation engine, plus a `product.translation` preparation step in the product lookup flow. This keeps the final chain explicit: Barcode Scanner -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine. Repositories remain isolated and scanner/camera code must not embed feeding business logic.
 
 Sprint 2.5 adds `ScannerService.runPipeline()` as a thin service wrapper around the pure scanner pipeline. The scanner service remains the future orchestration boundary for scan requests, but feeding and pet state rules remain inside the feeding and pet engines. Camera adapters must provide barcode values to the pipeline instead of owning product, food, feeding, or pet business logic.
+
+Sprint 2.6 does not add service orchestration. Home Hub aggregation is a derived ViewModel boundary between stores and future UI components, so it remains pure, synchronous, and independently testable.
 
 ### 3.5 Persistence Layer
 
@@ -927,6 +931,8 @@ Sprint 2.1 store actions may call pure pet-domain functions to keep persisted st
 Sprint 2.2 adds a store-level `interact(type, now)` action that delegates to the pure pet interaction engine and persists the resulting pet stats, personality, memories, lifecycle, status, and interaction cooldown history. The store must continue to avoid repositories, Prisma, APIs, other stores, React UI, animations, and scanner logic.
 
 Sprint 2.3 adds a store-level `feed(food, now)` action that delegates to the pure pet feeding engine and persists the resulting pet stats, personality, memories, lifecycle, status, and feeding history. The store must continue to avoid scanner behavior, product lookup, inventory mutation, rewards, missions, achievements, synchronization, animations, and repository or Prisma access.
+
+Sprint 2.6 allows the Home Hub ViewModel to read pet store snapshots for summary state, greeting state, daily feeding counts, and future mascot runtime hints. It must not mutate the Pet Store or reimplement pet/feeding rules.
 
 #### Game Store (`stores/game-store.ts`)
 
@@ -1504,6 +1510,8 @@ affection = clamp(affection + 5, 0, 100)  // Every scan increases affection
 ```
 
 Sprint 2.3 feeding rules must reject invalid food and prevent overfeeding when the pet is already full. Feeding records are stored as a foundation for future favorites, balancing, and scanner integration. First feeds, favorite foods, and new foods may create memories; routine feeding should not flood the memory list. Future barcode scanning should only provide validated `FoodModel` metadata to the feeding engine, never embed feeding business logic inside scanner code.
+
+Sprint 2.6 Home Hub recommendation state may point the player toward scan, comfort, rest, pet, or observe actions based on existing store/domain state. It is presentation guidance only: pet stat changes, feeding, scanning, and product translation remain owned by their existing domains.
 
 ### 10.5 Mission Update
 

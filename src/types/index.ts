@@ -19,6 +19,25 @@ export type {
   User,
 } from './database';
 export type { GameAchievement, MissionProgress } from './game';
+export type {
+  HomeHubDailySummary,
+  HomeHubGreetingState,
+  HomeHubInput,
+  HomeHubInventorySnapshot,
+  HomeHubLoadState,
+  HomeHubMascotRuntimeHint,
+  HomeHubPetSnapshot,
+  HomeHubPetSummary,
+  HomeHubProfileSnapshot,
+  HomeHubRecommendedAction,
+  HomeHubScannerSnapshot,
+  HomeHubScannerState,
+  HomeHubSettingsSnapshot,
+  HomeHubStatusCard,
+  HomeHubStatusCardId,
+  HomeHubStatusCardState,
+  HomeHubViewModel,
+} from './home-hub';
 export type { InventoryDomainBoundary } from './inventory';
 export type {
   FeedingRecord,
