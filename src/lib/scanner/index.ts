@@ -71,6 +71,10 @@ export {
 } from './scan-feed-flow';
 
 export {
+  decodeBarcodeFromVideo,
+} from './zxing-wasm-decoder';
+
+export {
   createBrowserCameraAdapter,
   createMockBrowserCameraAdapter,
 } from './browser-camera-adapter';
