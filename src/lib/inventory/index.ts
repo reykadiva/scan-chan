@@ -9,3 +9,11 @@ export {
   serializeInventory,
   deserializeInventory,
 } from './engine';
+
+export {
+  formatDisplayName,
+  deriveRarityColor,
+  deriveDescription,
+  toItemViewModel,
+  buildInventoryViewModel,
+} from './viewmodel';
