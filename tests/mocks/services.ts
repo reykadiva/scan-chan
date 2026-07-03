@@ -52,8 +52,19 @@ export function createMockServices() {
     } satisfies GameService,
     scanner: {
       domain: 'scanner',
+      translateProductToFood: vi.fn(() => ({
+        ok: true,
+        data: {
+          status: 'unknown' as const,
+          canFeed: true,
+          qualityScore: 0,
+          reasons: [],
+          food: { id: 'unknown', name: 'Mysterious find', category: 'unknown' as const, nutrition: initialPetStats, isNew: true },
+        },
+      })),
       prepareScanSession: vi.fn(ok),
       prepareScanResultHandling: vi.fn(ok),
+      prepareProductTranslation: vi.fn(ok),
     } satisfies ScannerService,
     ui: {
       domain: 'ui',

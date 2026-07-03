@@ -533,6 +533,8 @@ Sprint 2.2 extends the same pure pet engine with direct player-to-pet interactio
 
 Sprint 2.3 adds the feeding foundation to the pure pet engine. The feeding engine owns typed food models, food categories, nutrition profiles, stat restoration, overfeeding prevention, invalid-food rejection, feeding history, food-driven personality signals, and meaningful feeding memories. It does not perform barcode scanning, camera access, product lookup, inventory mutation, UI rendering, missions, achievements, rewards, synchronization, animation, or evolution.
 
+Sprint 2.4 adds the Product -> Food translation bridge under `src/lib/product/`. Product translation owns product metadata validation, quality scoring, known/unknown/unsupported product handling, safe category mapping, and `FoodModel` output. The scanner may provide barcode or lookup results, but it must not contain feeding rules. The feeding engine remains unchanged and receives only validated food metadata.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers
@@ -576,6 +578,8 @@ Sprint 2.1 adds `PetService` methods for pet normalization, stat updates, passiv
 Sprint 2.2 adds `PetService.interact()` and `preparePetInteraction()`. `interact()` delegates to the pure pet interaction engine and returns applied/cooldown outcome data. The `petUpdate` application flow includes a `pet.interaction` preparation step without implementing UI, animation, scanner, feeding, rewards, missions, achievements, synchronization, or evolution behavior.
 
 Sprint 2.3 adds `PetService.feed()` and converts `prepareFeeding()` into a feeding-domain preparation hook. `feed()` delegates to the pure pet feeding engine and returns applied/rejected outcome data. The `petUpdate` application flow includes `pet.feeding` without implementing scanner, product lookup, inventory UI, reward, mission, achievement, sync, animation, or evolution behavior.
+
+Sprint 2.4 adds `ScannerService.translateProductToFood()` as a service boundary wrapper around the pure product translation engine, plus a `product.translation` preparation step in the product lookup flow. This keeps the final chain explicit: Barcode Scanner -> Product Lookup -> Product Translation -> FoodModel -> Feeding Engine -> Pet Engine. Repositories remain isolated and scanner/camera code must not embed feeding business logic.
 
 ### 3.5 Persistence Layer
 
@@ -1438,6 +1442,8 @@ Everything that happens after a successful scan that feeds the pet.
 ### 10.2 Food Generation
 
 Sprint 2.3 defines feeding-domain food models before scanner integration exists. Food categories are `meal`, `snack`, `treat`, `drink`, `fresh`, and `unknown`. Each category has a complete nutrition profile affecting hunger, mood, energy, affection, and curiosity. Later scanner/product work may convert scanned products into these food models, but Sprint 2.3 does not perform barcode scanning or product lookup.
+
+Sprint 2.4 defines the product translation input as barcode, product name, brand, category, and description metadata. Supported product categories map to feeding categories. Unknown products become gentle `unknown` food with `canFeed: true`. Unsupported categories, such as personal care, return a compatible `FoodModel` with zero nutrition and `canFeed: false` so future orchestration can explain the result without passing unsafe items into feeding.
 
 ```typescript
 // src/lib/food-engine.ts

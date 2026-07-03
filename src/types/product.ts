@@ -11,6 +11,16 @@ export interface Product {
   updatedAt: string;
 }
 
+export type ProductTranslationStatus = 'translated' | 'unknown' | 'unsupported';
+
+export interface ProductTranslationInput {
+  readonly barcodeNumber: string;
+  readonly productName?: string | null;
+  readonly brand?: string | null;
+  readonly category?: string | null;
+  readonly description?: string | null;
+}
+
 export const CATEGORIES = [
   'Snack',
   'Drink',

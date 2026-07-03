@@ -674,6 +674,17 @@ Before scanner integration, feeding is modeled as a pure pet-domain event. A foo
 
 The pet should not be overfed. If Scan Chan is already full, feeding is rejected without penalty. Invalid food is rejected without changing state. These rules protect the cozy fantasy: feeding is care, not a spam action or optimization exploit.
 
+### 9.4.2 Product To Food Translation
+
+Product metadata must become food before it can affect Scan Chan. The scanner only finds a barcode and product lookup only returns product metadata. Translation decides whether that metadata is known, unknown, or unsupported.
+
+- Known food-like products become a matching food category.
+- Unknown products become a gentle mystery food so discovery still feels warm.
+- Unsupported products do not become feedable care actions.
+- Product quality is scored from available metadata so future balancing can prefer better lookup results.
+
+The feeding engine must never need barcode or product database knowledge. It should receive a `FoodModel` only.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

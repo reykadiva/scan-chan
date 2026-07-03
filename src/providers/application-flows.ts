@@ -91,6 +91,7 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
     scannerSession: flow('scannerSession', [{ name: 'scanner.session', run: services.scanner.prepareScanSession }]),
     productLookup: flow('productLookup', [
       { name: 'scanner.result-handling', run: services.scanner.prepareScanResultHandling },
+      { name: 'product.translation', run: services.scanner.prepareProductTranslation },
     ]),
     inventoryUpdate: flow('inventoryUpdate', [{ name: 'inventory.item-mutation', run: services.inventory.prepareItemMutation }]),
     petUpdate: flow('petUpdate', [

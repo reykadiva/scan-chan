@@ -47,6 +47,8 @@ export {
   CATEGORY_EMOJIS,
   type Category,
   type Product,
+  type ProductTranslationInput,
+  type ProductTranslationStatus,
 } from './product';
 export type { ScanLog, ScanResult, Statistics } from './scanner';
 export type { SettingsDomainBoundary } from './settings';
