@@ -569,6 +569,20 @@ Sprint 4.2 adds the Inventory ViewModel and UI Foundation under `src/lib/invento
 
 Sprint 4.3 adds the Inventory Screen Composition under `src/app/(game)/collection/page.tsx` and `src/app/(game)/collection/inventory-client.tsx`. The screen acts as the collection gallery, composing the pure `InventoryViewModel` with UI layout primitives (`AppShell`, `SafeArea`, `ResponsiveContainer`, `SectionContainer`, `Stack`, `Cluster`) and presentation cards. It displays slot capacity utilization via `ProgressBar`, category filters, and detailed sidebar summaries of the selected item with placeholders for actions ("Use Item", "Discard"). The presentation components remain pure visual renderers with no embedded databases, side effects, server actions, or business rules.
 
+Sprint 4.4 adds Inventory Gameplay Integration under `src/lib/inventory/gameplay.ts`. The pure gameplay engine handles use/consume actions (feeds food/products to pet with hunger validation, awards XP), inspect actions (timestamp tracking), and favorite actions (toggle flags). `InventoryService.executeGameplayAction` orchestrates the flow boundary, `InventoryStore.executeGameplayAction` dispatches actions, and the UI wires Pet Store stat updates and Game Store XP rewards. All gameplay logic remains in the pure domain layer without embedding business rules in React, Zustand, or service boundaries.
+
+Sprint 5.1 adds the Content Foundation under `src/lib/content/` and `src/types/content.ts`. The content layer defines typed structures for `AchievementDefinition`, `MissionDefinition`, and `FoodCategoryDefinition`. Content registry loads and validates achievement definitions, mission templates, and enhanced food categories. The foundation remains pure data and validation only, without implementing unlock logic, UI, or persistence.
+
+Sprint 5.2 adds the Achievement System. The achievement engine under `src/lib/game/achievement-engine.ts` provides pure functions for checking unlock conditions (scan count, level, streak, evolution, collection milestones). `GameService` extends with `checkAchievements()` and `unlockAchievement()` orchestration. `game-store.ts` adds achievement state management. The engine remains deterministic and framework-agnostic, delegating persistence to repositories and state management to stores.
+
+Sprint 5.3 adds the Mission System. The mission engine under `src/lib/game/mission-engine.ts` generates daily/weekly missions, tracks progress (scan count, product variety, consecutive days), and detects completion. `GameService` extends with `generateDailyMissions()` and `updateMissionProgress()`. `game-store.ts` adds mission state management. Mission generation and progress tracking remain pure domain functions independent of UI or persistence.
+
+Sprint 5.4 extends Food & Product Content. Product-to-food translation under `src/lib/product/translation.ts` gains enhanced category mapping using Sprint 5.1 food categories. Feeding reactions select messages based on category and personality. The translation layer extends existing scanner/feeding pipeline from Sprints 2-3 without introducing new architectural layers.
+
+Sprint 5.5 adds Content Presentation. `src/app/(game)/achievements/page.tsx` presents the achievement gallery. `src/app/(game)/missions/page.tsx` presents the mission list. Both pages consume Sprint 5.2-5.3 systems through stores and follow the established presentation layer pattern of pure UI rendering without embedded business logic.
+
+Sprint 5.6 applies Balancing & Polish. Configuration tuning happens in `src/lib/game-config.ts` (XP formulas, mission rewards, achievement thresholds). Integration tests validate complete gameplay loops (scan → feed → XP → mission progress → achievement unlock). Balancing requires all Sprint 5.1-5.5 systems integrated and testable.
+
 ### 3.4 Service And Business Layer
 
 **Location**: `src/services/`, `src/lib/validations/`, API route handlers

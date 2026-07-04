@@ -447,6 +447,113 @@ interface StatIndicatorProps {
 
 ---
 
+## 9. Sprint 5 - Content Production Implementation
+
+### 9.1 Sprint 5.1: Content Foundation
+
+**Content Type Definitions** (`src/types/content.ts`):
+```typescript
+interface AchievementDefinition {
+  id: string
+  key: string
+  name: string
+  description: string
+  unlockCondition: UnlockConditionType
+  threshold?: number
+  rewardXp: number
+}
+
+interface MissionDefinition {
+  id: string
+  type: 'daily' | 'weekly'
+  name: string
+  description: string
+  objective: ObjectiveType
+  target: number
+  rewardXp: number
+}
+
+interface FoodCategoryDefinition {
+  category: FoodCategory
+  statBoosts: Partial<PetStatsState>
+  reactionMessages: string[]
+}
+```
+
+**Content Registry** (`src/lib/content/registry.ts`):
+- Load and validate content definitions
+- Export typed content accessors
+- Support hot-reload in development
+
+### 9.2 Sprint 5.2: Achievement System
+
+**Achievement Engine** (`src/lib/game/achievement-engine.ts`):
+- Pure functions for unlock condition checking
+- Support conditions: scan count, level, streak, evolution, collection
+- Deterministic, testable, framework-agnostic
+
+**Service Integration**:
+- `GameService.checkAchievements(petState, gameState): Achievement[]`
+- `GameService.unlockAchievement(userId, achievementKey): Result`
+
+**Store Integration**:
+- `game-store.ts`: Add `achievements: Achievement[]`, `unlockedAchievementKeys: string[]`
+- Actions: `checkAndUnlockAchievements()`, `unlockAchievement(key)`
+
+### 9.3 Sprint 5.3: Mission System
+
+**Mission Engine** (`src/lib/game/mission-engine.ts`):
+- Daily mission generation (3 per day)
+- Weekly mission generation (1 per week)
+- Progress tracking: scan count, product variety, consecutive days
+- Completion detection
+
+**Service Integration**:
+- `GameService.generateDailyMissions(date): Mission[]`
+- `GameService.updateMissionProgress(userId, action): Mission[]`
+- `GameService.completeMission(userId, missionId): Result`
+
+### 9.4 Sprint 5.4: Food & Product Content
+
+**Enhanced Translation**:
+- Extend product-to-food mapping with detailed categories
+- Add reaction message selection based on personality
+- Support favorite food tracking
+
+**Food Categories**:
+- Snack, Meal, Drink, Treat, Fresh, Packaged
+- Each category has unique stat boost profile
+- Reaction messages vary by category and personality
+
+### 9.5 Sprint 5.5: Content Presentation
+
+**Achievement Gallery** (`src/app/(game)/achievements/page.tsx`):
+- Grid layout with locked/unlocked states
+- Milestone celebration animations
+- Progress indicators for in-progress achievements
+
+**Mission List** (`src/app/(game)/missions/page.tsx`):
+- Daily/weekly tabs
+- Progress bars
+- Completion celebration
+- Reward claim UI
+
+### 9.6 Sprint 5.6: Balancing & Polish
+
+**Configuration Tuning** (`src/lib/game-config.ts`):
+- XP_PER_SCAN, XP_PER_NEW_PRODUCT, XP_PER_MISSION
+- MISSION_REWARD_MULTIPLIERS
+- ACHIEVEMENT_THRESHOLDS
+- STAT_RECOVERY_RATES
+
+**Integration Tests**:
+- Full scan → feed → XP → mission progress → achievement unlock flow
+- Daily mission refresh
+- Streak tracking
+- Level progression
+
+---
+
 **Document Status**: This document will be expanded as implementation begins. Each system will have detailed specifications before development.
 
 **Document End**

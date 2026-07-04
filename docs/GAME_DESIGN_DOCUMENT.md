@@ -717,6 +717,20 @@ Sprint 3.9 integrates device hints and mobile scanner optimizations to resolve S
 
 Sprint 4.1 establishes the Inventory Domain Foundation, introducing a pure, stackable, slot-capacity-validated inventory model and engine. It supports items of type product, food, memory, furniture, and decoration, with deterministic sorting, metadata lifecycle tracking, and serialization. This domain is bound via an InventoryService to Prisma transactional storage and delegates local mutations safely to Zustand.
 
+Sprint 4.2-4.4 extend the inventory system with viewmodel foundation, screen composition, and gameplay integration for feeding, equipment toggling, inspection, and favoriting.
+
+Sprint 5.1 establishes the Content Foundation with typed definitions for achievements, missions, and food categories. Content registry loads and validates definitions without implementing unlock logic or UI.
+
+Sprint 5.2 adds the Achievement System with pure unlock condition checking (scan count, level, streak, evolution), service orchestration, and store integration.
+
+Sprint 5.3 adds the Mission System with daily/weekly generation, progress tracking, and completion detection.
+
+Sprint 5.4 extends product-to-food translation with enhanced categories and personality-based reaction messages.
+
+Sprint 5.5 adds achievement gallery and mission list presentation UI.
+
+Sprint 5.6 applies progression balancing (XP, missions, achievements) and validates complete gameplay loops through integration tests.
+
 ### 9.5 Comparison
 
 | Traditional Pet Game | Scan Chan |

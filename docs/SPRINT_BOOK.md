@@ -1112,7 +1112,93 @@ Sprint 5 must balance:
 
 Balancing must support comfort and long-term attachment, not compulsion.
 
-### 9.9 Sprint 5 Expected Outcome
+### 9.9 Sprint 5 Implementation Structure
+
+Sprint 5 is divided into six implementation phases:
+
+#### Sprint 5.1: Content Foundation
+
+Establish typed content infrastructure and base definitions.
+
+**Deliverables**:
+- Content type definitions (Achievement, Mission, FoodCategory schemas)
+- Content registry structure
+- Base achievement definitions
+- Base mission templates
+- Enhanced food category definitions
+- Content validation utilities
+- Unit tests
+
+**Scope**: Foundation layer only. No game logic, UI, or persistence.
+
+#### Sprint 5.2: Achievement System
+
+Implement achievement unlock logic and persistence.
+
+**Deliverables**:
+- Achievement engine (pure functions for unlock conditions)
+- Achievement service orchestration
+- Achievement store integration
+- Repository persistence
+- Unit tests
+
+**Scope**: Domain through persistence layers. No UI.
+
+#### Sprint 5.3: Mission System
+
+Implement daily/weekly mission generation and tracking.
+
+**Deliverables**:
+- Mission generation engine
+- Mission progress tracking
+- Mission completion logic
+- Mission service orchestration
+- Mission store integration
+- Unit tests
+
+**Scope**: Domain through persistence layers. No UI.
+
+#### Sprint 5.4: Food & Product Content
+
+Enhance product categorization and feeding reactions.
+
+**Deliverables**:
+- Enhanced product-to-food translation
+- Improved category mapping
+- Feeding reaction messages
+- Product variety support
+- Unit tests
+
+**Scope**: Extends existing scanner/feeding pipeline. No new UI.
+
+#### Sprint 5.5: Content Presentation
+
+Build UI for achievements, missions, and collections.
+
+**Deliverables**:
+- Achievement gallery page
+- Mission list page
+- Enhanced collection views
+- Content presentation components
+- Component tests
+
+**Scope**: Presentation layer only. Consumes 5.2-5.4 systems.
+
+#### Sprint 5.6: Balancing & Polish
+
+Tune progression systems and validate complete flows.
+
+**Deliverables**:
+- XP formula tuning
+- Mission reward balancing
+- Achievement threshold tuning
+- Stat recovery balancing
+- Integration tests
+- Documentation updates
+
+**Scope**: Configuration tuning and end-to-end validation.
+
+### 9.10 Sprint 5 Expected Outcome
 
 At the end of Sprint 5, Scan Chan should have enough meaningful content to feel alive across repeated sessions while still leaving future expansion space.
 
