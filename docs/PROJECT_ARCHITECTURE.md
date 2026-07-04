@@ -1084,18 +1084,29 @@ Manages shared loading, error, and offline flags that are not owned by a narrowe
 | Guest | Game | `localStorage` | None |
 | Guest | UI | None | None |
 | Guest | Scanner | None | None |
-| Guest | Inventory | None in Sprint 1.3 | None |
-| Guest | Profile | None in Sprint 1.3 | None |
+| Guest | Inventory | `localStorage` (Sprint 4.1+) | None |
+| Guest | Profile | None | None |
 | Guest | Settings | `localStorage` | None |
 | Guest | Shared | None | None |
-| Arashu | Pet | `localStorage`; Supabase in Sprint 6 | Future sync |
-| Arashu | Game | `localStorage`; Supabase in Sprint 6 | Future sync |
+| Arashu | Pet | `localStorage` + Server sync (Sprint 6) | Bidirectional |
+| Arashu | Game | `localStorage` + Server sync (Sprint 6) | Bidirectional |
 | Arashu | UI | None | None |
 | Arashu | Scanner | None | None |
-| Arashu | Inventory | None in Sprint 1.3 | None |
-| Arashu | Profile | None in Sprint 1.3 | None |
-| Arashu | Settings | `localStorage`; Supabase in Sprint 6 | Future sync |
+| Arashu | Inventory | `localStorage` + Server sync (Sprint 6) | Bidirectional |
+| Arashu | Profile | None | None |
+| Arashu | Settings | `localStorage` + Server sync (Sprint 6) | Bidirectional |
 | Arashu | Shared | None | None |
+
+**Sprint 6 Sync Architecture**:
+
+Sprint 6 implements Arashu Mode server synchronization via `SyncService` (`src/services/sync/sync-service.ts`) and `SyncRepository` (`src/repositories/sync-repository.ts`):
+
+- **Guest Mode**: Zustand persist middleware writes to `localStorage` with versioned storage keys (`scan-chan-guest-{store}-state`)
+- **Arashu Mode**: Local `localStorage` serves as cache; `SyncService.syncToServer()` pushes to database; `SyncService.loadFromServer()` pulls from database
+- **Conflict Resolution**: Server-wins strategy (server state overwrites local on conflict)
+- **Offline Queue**: `createSyncQueue()` (`src/lib/sync/queue.ts`) buffers pending actions when offline; retries with exponential backoff (max 3 retries)
+- **Sync Metadata**: `SyncMetadata` table tracks `lastSyncedAt`, `version`, and `source` per user
+- **Versioned Storage**: `createVersionedStorage()` (`src/lib/sync/storage.ts`) wraps `localStorage` with version checking and corruption recovery
 
 ### 6.4 Migration Strategy
 

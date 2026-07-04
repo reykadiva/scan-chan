@@ -8,3 +8,4 @@ export { DefaultInventoryService, type InventoryService } from './inventory';
 export { DefaultProfileService, type ProfileService } from './profile';
 export { DefaultSettingsService, type SettingsService } from './settings';
 export { DefaultSharedService, type SharedService } from './shared';
+export { SyncService } from './sync';

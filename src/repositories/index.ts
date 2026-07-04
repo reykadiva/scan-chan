@@ -8,3 +8,4 @@ export { PrismaInventoryRepository, type InventoryRepository } from './inventory
 export { PrismaProfileRepository, type ProfileRepository } from './profile';
 export { PrismaSettingsRepository, type SettingsRepository } from './settings';
 export { PrismaSharedRepository, type SharedRepository } from './shared';
+export { PrismaSyncRepository, type SyncRepository } from './sync-repository';
