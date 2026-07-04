@@ -14,18 +14,6 @@ async function main() {
   console.log('🌱 Seeding database...');
 
   // Seed achievements
-  const achievements = [
-    { title: 'First Scan', description: 'Complete your very first barcode scan!', badgeImage: '🎉' },
-    { title: 'Product Pioneer', description: 'Register your first product in the database.', badgeImage: '🏅' },
-    { title: '10 Products Scanned', description: 'Scan 10 different products.', badgeImage: '🌟' },
-    { title: '50 Products Scanned', description: 'Scan 50 different products.', badgeImage: '🏆' },
-    { title: '100 Products Scanned', description: "Scan 100 different products. You're a legend!", badgeImage: '👑' },
-    { title: 'Snack Hunter', description: 'Scan 5 snack products.', badgeImage: '🍿' },
-    { title: 'Drink Collector', description: 'Scan 5 drink products.', badgeImage: '🥤' },
-    { title: 'Candy Lover', description: 'Scan 5 candy products.', badgeImage: '🍬' },
-    { title: 'Barcode Master', description: 'Scan 200 barcodes total.', badgeImage: '📱' },
-  ];
-
   // ponytail: seed file uses old schema; skip achievement seeding until Sprint 5.5 UI needs it
   console.log('Skipping achievement seed (schema updated for Sprint 5.2)');
 

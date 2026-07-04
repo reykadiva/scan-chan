@@ -47,7 +47,9 @@ export function createMockServices() {
     } satisfies PetService,
     game: {
       domain: 'game',
-      prepareMissionPipeline: vi.fn(ok),
+      generateMissions: vi.fn(() => ({ ok: true, data: { missions: [] } })),
+      updateMissions: vi.fn(() => ({ ok: true, data: { missions: [], completed: [] } })),
+      pruneMissions: vi.fn(() => ({ ok: true, data: { missions: [] } })),
       checkAchievements: vi.fn(() => ({ ok: true, data: { unlocked: [], progress: {} } })),
       prepareRewardPipeline: vi.fn(ok),
     } satisfies GameService,

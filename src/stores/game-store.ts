@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, devtools, persist } from 'zustand/middleware';
 import type { MissionProgress } from '@/types/game';
 import type { AchievementProgress } from '@/types/achievement';
+import type { MissionState } from '@/types/mission';
 
 export interface GameStoreState {
   isInitialized: boolean;
@@ -14,6 +15,7 @@ export interface GameStoreState {
   registeredBarcodes: string[];
   scanHistory: string[];
   dailyMissions: MissionProgress[];
+  missions: MissionState[];
   unlockedAchievements: string[];
   achievementProgress: Record<string, AchievementProgress>;
   pendingXpGain: number;
@@ -30,6 +32,8 @@ export interface GameStoreState {
   registerBarcodePlaceholder: (barcodeNumber: string, registeredAt?: number) => void;
   unlockAchievements: (keys: readonly string[], now: number) => void;
   updateAchievementProgress: (progress: Record<string, number>) => void;
+  setMissions: (missions: readonly MissionState[]) => void;
+  updateMissions: (missions: readonly MissionState[]) => void;
   setScanSessionState: (scanSessionState: GameStoreState['scanSessionState']) => void;
   clearPendingRewards: () => void;
   reset: () => void;
@@ -46,6 +50,7 @@ export const initialGameState = {
   registeredBarcodes: [] as string[],
   scanHistory: [] as string[],
   dailyMissions: [] as MissionProgress[],
+  missions: [] as MissionState[],
   unlockedAchievements: [] as string[],
   achievementProgress: {} as Record<string, AchievementProgress>,
   pendingXpGain: 0,
@@ -99,6 +104,8 @@ export const useGameStore = create<GameStoreState>()(
               [key]: { key, unlockedAt: state.achievementProgress[key]?.unlockedAt ?? null, progress: value },
             }), state.achievementProgress),
           })),
+        setMissions: (missions) => set({ missions: [...missions] }),
+        updateMissions: (missions) => set({ missions: [...missions] }),
         setScanSessionState: (scanSessionState) => set({ scanSessionState }),
         clearPendingRewards: () => set({ pendingXpGain: 0, pendingAchievementUnlocks: [], rewardsQueue: [] }),
         reset: () =>
@@ -112,7 +119,7 @@ export const useGameStore = create<GameStoreState>()(
         name: gameStorageKey('guest'),
         version: 1,
         storage: createJSONStorage(() => localStorage),
-        partialize: ({ xp, level, streak, lastActiveDate, registeredBarcodes, scanHistory, dailyMissions, unlockedAchievements, achievementProgress, pendingXpGain, pendingAchievementUnlocks, rewardsQueue, lastScanTime, lastRegisterTime, persistenceMode }) => ({
+        partialize: ({ xp, level, streak, lastActiveDate, registeredBarcodes, scanHistory, dailyMissions, missions, unlockedAchievements, achievementProgress, pendingXpGain, pendingAchievementUnlocks, rewardsQueue, lastScanTime, lastRegisterTime, persistenceMode }) => ({
           xp,
           level,
           streak,
@@ -120,6 +127,7 @@ export const useGameStore = create<GameStoreState>()(
           registeredBarcodes,
           scanHistory,
           dailyMissions,
+          missions,
           unlockedAchievements,
           achievementProgress,
           pendingXpGain,

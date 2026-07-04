@@ -5,3 +5,4 @@ export { BASE_DAILY_MISSIONS, BASE_WEEKLY_MISSIONS } from './missions';
 export { FOOD_CATEGORY_DEFINITIONS } from './food-categories';
 export { validateAchievement, validateMission, validateFoodCategory, validateContentRegistry } from './content-validation';
 export { checkAchievementUnlock, checkAllAchievements } from './achievement-engine';
+export { generateMissions, updateMissionProgress, updateAllMissions, pruneExpiredMissions } from './mission-engine';
