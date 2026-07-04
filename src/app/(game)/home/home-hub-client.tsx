@@ -92,7 +92,9 @@ function HomeHubScreen({ viewModel }: { viewModel: HomeHubViewModel }) {
       <SafeArea>
         <ResponsiveContainer>
           <SectionContainer className="min-h-dvh">
-            {viewModel.isLoading ? <LoadingState label="Scan Chan is settling in" /> : viewModel.isEmpty ? <HomeHubEmptyState /> : <HomeHubReady viewModel={viewModel} />}
+            <main id="main-content">
+              {viewModel.isLoading ? <LoadingState label="Scan Chan is settling in" /> : viewModel.isEmpty ? <HomeHubEmptyState /> : <HomeHubReady viewModel={viewModel} />}
+            </main>
           </SectionContainer>
         </ResponsiveContainer>
       </SafeArea>
@@ -102,7 +104,7 @@ function HomeHubScreen({ viewModel }: { viewModel: HomeHubViewModel }) {
 
 function HomeHubReady({ viewModel }: { viewModel: HomeHubViewModel }) {
   return (
-    <main aria-labelledby="home-hub-title" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+    <div aria-labelledby="home-hub-title" className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
       <Stack className="gap-5">
         <GreetingSection viewModel={viewModel} />
         <MascotPlaceholder viewModel={viewModel} />
@@ -113,7 +115,7 @@ function HomeHubReady({ viewModel }: { viewModel: HomeHubViewModel }) {
         <DailySummary viewModel={viewModel} />
         <StatusCards viewModel={viewModel} />
       </Stack>
-    </main>
+    </div>
   )
 }
 
