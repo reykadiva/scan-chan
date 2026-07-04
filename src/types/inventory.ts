@@ -1,3 +1,5 @@
+import type { PetStateModel } from './pet';
+
 export type InventoryItemType = 'product' | 'food' | 'memory' | 'furniture' | 'decoration';
 
 export interface InventoryItem {
@@ -96,5 +98,29 @@ export interface InventoryViewModelInput {
   readonly sortOrder?: 'asc' | 'desc';
   readonly selectedItemId?: string | null;
   readonly isLoading?: boolean;
+}
+
+export type InventoryGameplayAction = 'use' | 'consume' | 'inspect' | 'favorite';
+
+export interface InventoryGameplayInput {
+  readonly action: InventoryGameplayAction;
+  readonly itemId: string;
+  readonly inventory: InventoryModel;
+  readonly pet: PetStateModel;
+  readonly currentXp: number;
+  readonly now: number;
+}
+
+export interface InventoryGameplayResult {
+  readonly success: boolean;
+  readonly status: 'success' | 'failed';
+  readonly inventory: InventoryModel;
+  readonly pet: PetStateModel;
+  readonly xpGain: number;
+  readonly nextXp: number;
+  readonly memoryCreated: boolean;
+  readonly petRefreshNeeded: boolean;
+  readonly homeHubRefreshNeeded: boolean;
+  readonly error: string | null;
 }
 

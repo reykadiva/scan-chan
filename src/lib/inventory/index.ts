@@ -17,3 +17,7 @@ export {
   toItemViewModel,
   buildInventoryViewModel,
 } from './viewmodel';
+
+export {
+  executeInventoryGameplayFlow,
+} from './gameplay';

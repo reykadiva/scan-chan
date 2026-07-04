@@ -1,6 +1,12 @@
 import type { InventoryRepository } from '@/repositories';
-import type { InventoryModel, InventoryItem } from '@/types/inventory';
-import { createInventory, addItem, removeItem } from '@/lib/inventory';
+import type {
+  InventoryModel,
+  InventoryItem,
+  InventoryGameplayAction,
+  InventoryGameplayResult,
+} from '@/types/inventory';
+import type { PetStateModel } from '@/types/pet';
+import { createInventory, addItem, removeItem, executeInventoryGameplayFlow } from '@/lib/inventory';
 import { deferred, type FutureOrchestrationPoint, type ServiceResult } from '../service-result';
 
 export interface InventoryService {
@@ -12,6 +18,14 @@ export interface InventoryService {
   getInventory: (userId: string) => Promise<InventoryModel>;
   addItem: (userId: string, item: Omit<InventoryItem, 'id'>, now: number) => Promise<InventoryModel>;
   removeItem: (userId: string, itemId: string, quantity: number) => Promise<InventoryModel>;
+  executeGameplayAction: (
+    userId: string,
+    action: InventoryGameplayAction,
+    itemId: string,
+    pet: PetStateModel,
+    currentXp: number,
+    now: number
+  ) => Promise<InventoryGameplayResult>;
 }
 
 export class DefaultInventoryService implements InventoryService {
@@ -54,5 +68,30 @@ export class DefaultInventoryService implements InventoryService {
       throw new Error(result.error?.message ?? 'Failed to remove item from inventory.');
     }
     return this.repository.saveInventory(result.inventory);
+  }
+
+  async executeGameplayAction(
+    userId: string,
+    action: InventoryGameplayAction,
+    itemId: string,
+    pet: PetStateModel,
+    currentXp: number,
+    now: number
+  ): Promise<InventoryGameplayResult> {
+    const inventory = await this.getInventory(userId);
+    const result = executeInventoryGameplayFlow({
+      action,
+      itemId,
+      inventory,
+      pet,
+      currentXp,
+      now,
+    });
+
+    if (result.success && result.inventory) {
+      await this.repository.saveInventory(result.inventory);
+    }
+
+    return result;
   }
 }

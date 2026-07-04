@@ -32,6 +32,8 @@ import {
 } from '@/components/ui';
 import { buildInventoryViewModel } from '@/lib/inventory/viewmodel';
 import { useInventoryStore } from '@/stores/inventory-store';
+import { usePetStore } from '@/stores/pet-store';
+import { useGameStore } from '@/stores/game-store';
 import type { InventoryItem, InventoryItemViewModel, InventoryItemType } from '@/types/inventory';
 import { PixelCat, CatVariantId } from '@/components/legacy/pixel-cat';
 import { Search, ArrowUpDown, Plus, HelpCircle } from 'lucide-react';
@@ -78,19 +80,40 @@ const DEFAULT_MOCK_ITEMS: readonly InventoryItem[] = [
 export function InventoryClient() {
   const storeItems = useInventoryStore((state) => state.items);
   const storeCapacity = useInventoryStore((state) => state.capacity);
+  const executeGameplayAction = useInventoryStore((state) => state.executeGameplayAction);
 
-  // Client states for query filtering and presentation
+  const petState = usePetStore((state) => ({
+    name: state.name,
+    stage: state.stage,
+    stats: {
+      hunger: state.hunger,
+      mood: state.mood,
+      energy: state.energy,
+      affection: state.affection,
+      curiosity: state.curiosity,
+    },
+    personality: state.personality,
+    memories: state.memories,
+    lifecycle: state.lifecycle,
+    lastDecayTimestamp: state.lastDecayTimestamp,
+    interactions: state.interactions,
+    feedings: state.feedings,
+  }));
+  const updatePetStats = usePetStore((state) => state.updateStats);
+
+  const currentXp = useGameStore((state) => state.xp);
+  const updateGameProgress = useGameStore((state) => state.setProgress);
+
   const [searchQuery, setSearchQuery] = React.useState('');
   const [filterType, setFilterType] = React.useState<InventoryItemType | 'all'>('all');
   const [sortBy, setSortBy] = React.useState<'type' | 'quantity' | 'itemKey' | 'id'>('itemKey');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null);
 
-  // Populate store with mock items initially if empty so the UI looks active
   React.useEffect(() => {
     if (storeItems.length === 0) {
-      // Map domain models to store entries
       const mapped = DEFAULT_MOCK_ITEMS.map((item) => ({
         id: item.id,
         type: item.type,
@@ -101,6 +124,13 @@ export function InventoryClient() {
       useInventoryStore.getState().setItems(mapped);
     }
   }, [storeItems]);
+
+  React.useEffect(() => {
+    if (feedbackMessage) {
+      const timer = setTimeout(() => setFeedbackMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedbackMessage]);
 
   // Compute ViewModel purely using the snapshot from Zustand state
   const viewModel = React.useMemo(() => {
@@ -120,9 +150,73 @@ export function InventoryClient() {
     });
   }, [storeItems, storeCapacity, searchQuery, filterType, sortBy, sortOrder, selectedItemId, isLoading]);
 
-  // Simulation handlers for item action extension points
   const handleUseItem = (item: InventoryItemViewModel) => {
-    alert(`[Action Placeholder] Using ${item.displayName}. Future Sprints will connect this to feeding/decoration gameplay!`);
+    const action = item.type === 'food' || item.type === 'product' ? 'consume' : 'use';
+    
+    const result = executeGameplayAction({
+      action,
+      itemId: item.id,
+      pet: petState,
+      currentXp,
+      now: Date.now(),
+    });
+
+    if (result.success) {
+      if (result.petRefreshNeeded) {
+        updatePetStats({
+          hunger: result.pet.stats.hunger,
+          mood: result.pet.stats.mood,
+          energy: result.pet.stats.energy,
+          affection: result.pet.stats.affection,
+          curiosity: result.pet.stats.curiosity,
+        });
+      }
+
+      if (result.xpGain > 0) {
+        updateGameProgress({ xp: result.nextXp });
+      }
+
+      if (item.quantity <= 1 && (action === 'consume' || action === 'use')) {
+        setSelectedItemId(null);
+      }
+
+      setFeedbackMessage(
+        action === 'consume' 
+          ? `${item.displayName} fed to ${petState.name}! +${result.xpGain} XP`
+          : `${item.displayName} ${item.type === 'furniture' || item.type === 'decoration' ? 'placed in room' : 'used'}!`
+      );
+    } else {
+      setFeedbackMessage(result.error || 'Action failed');
+    }
+  };
+
+  const handleInspectItem = (item: InventoryItemViewModel) => {
+    const result = executeGameplayAction({
+      action: 'inspect',
+      itemId: item.id,
+      pet: petState,
+      currentXp,
+      now: Date.now(),
+    });
+
+    if (result.success) {
+      setFeedbackMessage(`Inspected ${item.displayName}`);
+    }
+  };
+
+  const handleFavoriteItem = (item: InventoryItemViewModel) => {
+    const result = executeGameplayAction({
+      action: 'favorite',
+      itemId: item.id,
+      pet: petState,
+      currentXp,
+      now: Date.now(),
+    });
+
+    if (result.success) {
+      const isFavorited = result.inventory.items.find(i => i.id === item.id)?.metadata?.favorite;
+      setFeedbackMessage(isFavorited ? `${item.displayName} favorited!` : `${item.displayName} unfavorited`);
+    }
   };
 
   const handleDiscardItem = (item: InventoryItemViewModel) => {
@@ -133,8 +227,9 @@ export function InventoryClient() {
         if (item.quantity <= 1) {
           setSelectedItemId(null);
         }
+        setFeedbackMessage(`${item.displayName} discarded`);
       } else {
-        alert('Failed to discard item.');
+        setFeedbackMessage('Failed to discard item');
       }
     }
   };
@@ -168,6 +263,13 @@ export function InventoryClient() {
                   </Button>
                 </Cluster>
               </header>
+
+              {/* Feedback Message Banner */}
+              {feedbackMessage && (
+                <Surface className="border-l-4 border-primary bg-primary/5 p-3">
+                  <Text className="text-sm">{feedbackMessage}</Text>
+                </Surface>
+              )}
 
               {/* Statistics & Capacity Dashboard Cards */}
               <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Inventory Metrics">
@@ -400,25 +502,47 @@ export function InventoryClient() {
 
                       <Separator />
 
-                      {/* Extension boundaries for item actions */}
-                      <Cluster className="justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={!viewModel.selectedItem.canDiscard}
-                          onClick={() => handleDiscardItem(viewModel.selectedItem!)}
-                        >
-                          Discard
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          disabled={!viewModel.selectedItem.canUse}
-                          onClick={() => handleUseItem(viewModel.selectedItem!)}
-                        >
-                          Use Item
-                        </Button>
-                      </Cluster>
+                      {/* Item gameplay actions */}
+                      <Stack className="gap-2">
+                        <Cluster className="gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1"
+                            disabled={!viewModel.selectedItem.canUse}
+                            onClick={() => handleUseItem(viewModel.selectedItem!)}
+                          >
+                            {viewModel.selectedItem.type === 'food' || viewModel.selectedItem.type === 'product' ? 'Feed' : 'Use'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleInspectItem(viewModel.selectedItem!)}
+                          >
+                            Inspect
+                          </Button>
+                        </Cluster>
+                        <Cluster className="gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleFavoriteItem(viewModel.selectedItem!)}
+                          >
+                            Favorite
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            disabled={!viewModel.selectedItem.canDiscard}
+                            onClick={() => handleDiscardItem(viewModel.selectedItem!)}
+                          >
+                            Discard
+                          </Button>
+                        </Cluster>
+                      </Stack>
                     </Surface>
                   ) : (
                     /* Inviting panel fallback details when selection is empty */

@@ -1,12 +1,19 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import type { InventoryItem, InventoryItemType } from '@/types/inventory';
+import type {
+  InventoryItem,
+  InventoryItemType,
+  InventoryGameplayAction,
+  InventoryGameplayResult,
+} from '@/types/inventory';
+import type { PetStateModel } from '@/types/pet';
 import {
   createInventory,
   addItem as engineAddItem,
   removeItem as engineRemoveItem,
   updateItemQuantity as engineUpdateItemQuantity,
   sortInventory as engineSortInventory,
+  executeInventoryGameplayFlow,
 } from '@/lib/inventory';
 
 export interface InventoryEntry {
@@ -31,6 +38,13 @@ export interface InventoryStoreState {
   removeItem: (itemId: string, quantity: number) => boolean;
   updateQuantity: (itemId: string, quantity: number, now?: number) => boolean;
   sort: (sortBy: 'type' | 'quantity' | 'itemKey' | 'id', order?: 'asc' | 'desc') => void;
+  executeGameplayAction: (input: {
+    action: InventoryGameplayAction;
+    itemId: string;
+    pet: PetStateModel;
+    currentXp: number;
+    now?: number;
+  }) => InventoryGameplayResult;
   
   reset: () => void;
 }
@@ -98,6 +112,30 @@ export const useInventoryStore = create<InventoryStoreState>()(
           const sorted = engineSortInventory(inv, sortBy, order);
           return { items: [...sorted.items] };
         });
+      },
+
+      executeGameplayAction: (input) => {
+        const { action, itemId, pet, currentXp, now = Date.now() } = input;
+        let flowResult: InventoryGameplayResult;
+
+        set((state) => {
+          const inv = createInventory('guest-user', state.capacity, state.items);
+          const result = executeInventoryGameplayFlow({
+            action,
+            itemId,
+            inventory: inv,
+            pet,
+            currentXp,
+            now,
+          });
+          flowResult = result;
+          if (result.success && result.inventory) {
+            return { items: [...result.inventory.items] };
+          }
+          return {};
+        });
+
+        return flowResult!;
       },
 
       reset: () => set(initialInventoryState),

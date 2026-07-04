@@ -128,6 +128,18 @@ export function createMockServices() {
       getInventory: vi.fn(async (userId) => ({ id: 'inv-' + userId, userId, items: [], capacity: 20 })),
       addItem: vi.fn(async (userId, item) => ({ id: 'inv-' + userId, userId, items: [{ id: '1', type: item.type, itemKey: item.itemKey, quantity: item.quantity }], capacity: 20 })),
       removeItem: vi.fn(async (userId) => ({ id: 'inv-' + userId, userId, items: [], capacity: 20 })),
+      executeGameplayAction: vi.fn(async (userId, action, itemId, petState, currentXp) => ({
+        success: true,
+        status: 'success' as const,
+        inventory: { id: 'inv-' + userId, userId, items: [], capacity: 20 },
+        pet: petState,
+        xpGain: 10,
+        nextXp: currentXp + 10,
+        memoryCreated: false,
+        petRefreshNeeded: true,
+        homeHubRefreshNeeded: true,
+        error: null,
+      })),
     } satisfies InventoryService,
     profile: {
       domain: 'profile',
