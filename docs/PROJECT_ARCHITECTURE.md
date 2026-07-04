@@ -1,7 +1,7 @@
 # Scan Chan — Project Architecture
 
-**Version**: 1.0  
-**Last Updated**: June 29, 2026  
+**Version**: 1.1  
+**Last Updated**: July 4, 2026  
 **Status**: Active — Mandatory Reference for All Engineering Decisions  
 **Document Type**: Engineering Blueprint & Technical Architecture
 
@@ -2352,11 +2352,47 @@ Privacy-respecting gameplay metrics:
 
 ### 19.7 Accessibility Testing
 
+**Sprint 7.1 - Keyboard Navigation Testing**:
+- Unit tests for focus trap utilities (10+ tests)
+- Integration tests for tab order validation
+- Manual keyboard navigation audit (Tab, Enter, Escape, Arrow keys)
+- Focus indicator visibility testing on all backgrounds
+
+**Sprint 7.2 - Reduced Motion Testing**:
+- Visual regression tests for reduced motion variants
+- Manual testing with OS-level `prefers-reduced-motion`
+- Animation variant validation
+- Settings toggle integration testing
+
+**Sprint 7.3 - Contrast & Touch Target Testing**:
+- Automated contrast checking tools (WCAG AA)
+- Manual contrast measurements for all text/icon combinations
+- Touch target size validation (44×44px minimum)
+- Mobile device testing for thumb-zone reachability
+
+**Sprint 7.4 - Screen Reader Testing**:
 - Automated: `jest-axe` for component accessibility
-- Manual: Keyboard navigation audit (Tab, Enter, Escape, Arrow keys)
-- Manual: Screen reader testing (NVDA, VoiceOver)
-- Automated: Lighthouse accessibility audit on every deploy
-- Manual: Color contrast verification against UI Production Guide specs
+- Integration tests for ARIA presence (15+ tests)
+- Manual screen reader testing (NVDA on Windows, VoiceOver on macOS/iOS)
+- Live region announcement validation
+- Landmark navigation testing
+
+**Sprint 7.5 - Responsive & Documentation**:
+- Responsive testing matrix (6 device sizes)
+- Landscape orientation validation
+- Accessibility checklist validation
+- Documentation review
+
+**Automated Tools**:
+- Lighthouse accessibility audit on every deploy (score > 90)
+- `jest-axe` for component-level ARIA validation
+- Color contrast checking during design token updates
+
+**Manual Procedures**:
+- Keyboard-only navigation (no mouse)
+- Screen reader walkthrough of critical flows
+- Reduced motion visual verification
+- Touch target measurement on mobile devices
 
 ### 19.8 Performance Testing
 

@@ -204,7 +204,7 @@ Every sprint must pass:
 | Sprint 4 | UI Polish | Refine the interface into the Scan Chan visual and emotional standard. | Motion, transitions, microinteractions, lighting, visual consistency, design tokens, responsive composition, refined states. | Sprint 3 complete. | The app feels warm, handcrafted, pet-first, and visually cohesive. | UI passes Design Director review, UI Production Guide checklist, Brand Checklist, and reduced-motion requirements. |
 | Sprint 5 | Content | Produce enough structured content to support repeated play. | Items, foods, achievements, collections, furniture placeholders, localization preparation, balancing. | Sprint 4 complete. | The game has meaningful material without overbuilding future systems. | Content is documented, categorized, balanced, and presented without feature-density or collection pressure. |
 | Sprint 6 | Persistence | Make progress durable across sessions and modes. | Guest save, Arashu sync, cloud architecture, migration, offline queue, conflict resolution. | Sprint 5 complete. | Player progress and pet history survive real use safely. | Guest and Arashu persistence are isolated, tested, recoverable, and documented. |
-| Sprint 7 | Accessibility | Ensure the product can be used comfortably by all supported players. | Keyboard flow, reduced motion, contrast, touch targets, screen readers, responsive review. | Sprint 6 complete. | Accessibility is a first-class quality gate, not late patchwork. | Critical flows pass accessibility review and manual assistive checks. |
+| Sprint 7 | Accessibility | Ensure the product can be used comfortably by all supported players. | Keyboard flow, reduced motion, contrast, touch targets, screen readers, responsive review. Decomposed into 5 sub-sprints (7.1-7.5). | Sprint 6 complete. | Accessibility is a first-class quality gate, not late patchwork. | All 5 sub-sprints complete; critical flows pass accessibility review and manual assistive checks. |
 | Sprint 8 | Performance | Make the app fast, smooth, and resilient under realistic use. | Bundle size, lazy loading, memory, FPS, image optimization, caching, database optimization. | Sprint 7 complete. | The experience feels instant and stable on target devices. | Performance targets are measured, documented, and met or explicitly risk-accepted. |
 | Sprint 9 | Release Candidate | Prepare the full product for launch trust. | QA, bug fixing, regression testing, store assets, Steam checklist, release checklist, launch preparation. | Sprint 8 complete. | A release candidate that can be confidently shipped. | No known release-blocking bugs; docs, assets, QA, changelog, and release checklist are complete. |
 
@@ -1295,94 +1295,180 @@ At the end of Sprint 6, a player can trust that their companion, memories, and p
 
 Sprint 7 makes accessibility a complete product quality pass. Accessibility is not a compliance checkbox. It is part of Scan Chan's promise of comfort, warmth, and respect.
 
-### 11.2 Keyboard
+Sprint 7 is decomposed into five focused sub-sprints to ensure incremental validation, parallel work streams, and manageable scope.
+
+### 11.2 Sprint 7 Implementation Structure
+
+Sprint 7 is divided into five implementation phases:
+
+#### Sprint 7.1: Keyboard Navigation Foundation
+
+Establish keyboard navigation infrastructure and core flows.
+
+**Deliverables**:
+- Focus management hooks (`useFocusTrap`, `useFocusVisible`)
+- Escape key handler system
+- Skip navigation link
+- Tab order validation for Home, Scanner, Collection pages
+- Focus ring visibility on all buttons and links
+- Modal focus trapping
+- Unit tests for focus utilities
+
+**Scope**: Foundation layer only. No screen reader support, contrast audit, or responsive testing.
+
+#### Sprint 7.2: Reduced Motion Support
+
+Implement `prefers-reduced-motion` across all animations.
+
+**Deliverables**:
+- CSS media query utilities for reduced motion
+- Animation variant system (full motion vs reduced)
+- Page transition reduced-motion fallbacks
+- Pet idle animation reduced-motion variant
+- Particle/burst reduced-motion fallbacks
+- Popup/modal reduced-motion transitions
+- Settings toggle integration
+- Documentation of reduced motion behavior
+
+**Scope**: Animation layer only. No keyboard, contrast, or screen reader work.
+
+#### Sprint 7.3: Color Contrast & Touch Targets
+
+Audit and fix contrast ratios, validate touch target sizing.
+
+**Deliverables**:
+- Contrast audit report (WCAG AA validation)
+- Color adjustments where needed
+- Touch target size validation (44×44px minimum)
+- Touch target spacing validation (8px minimum)
+- Pet tap area expansion (20% larger than sprite)
+- Button size review
+- Documentation of contrast ratios and touch target standards
+
+**Scope**: Visual quality and mobile usability. No keyboard or screen reader work.
+
+#### Sprint 7.4: Screen Reader Support
+
+Comprehensive ARIA labels, landmarks, live regions.
+
+**Deliverables**:
+- `aria-label` on all interactive elements (50+ additions)
+- Navigation landmarks (`nav`, `main`, `aside`)
+- `aria-live` regions for pet state, XP, level up
+- Form field labels and associations
+- Error announcements
+- Image `alt` text audit
+- Screen reader testing notes
+- Integration tests for ARIA presence
+
+**Scope**: Screen reader accessibility only. No keyboard, motion, or responsive work.
+
+#### Sprint 7.5: Responsive Review & Documentation
+
+Cross-device testing, responsive fixes, accessibility documentation.
+
+**Deliverables**:
+- Responsive testing matrix (6 device sizes: small mobile, large mobile, tablet, desktop, landscape, narrow)
+- Layout fixes for narrow screens
+- Accessibility checklist update
+- Testing procedures documentation
+- Known issues log
+- Accessibility section in README
+
+**Scope**: Validation and documentation only. No new accessibility features.
+
+### 11.3 Sprint 7 Accessibility Requirements
+
+#### Keyboard Navigation
 
 Required keyboard coverage:
 
-- Navigate primary routes.
-- Activate primary actions.
-- Open and close modals.
-- Use scanner fallback controls where possible.
-- Move through forms.
-- Use settings.
-- Recover from errors.
+- Navigate primary routes
+- Activate primary actions
+- Open and close modals
+- Use scanner fallback controls where possible
+- Move through forms
+- Use settings
+- Recover from errors
 
 Focus order must match visual and emotional order.
 
-### 11.3 Reduced Motion
+#### Reduced Motion
 
 Reduced motion must cover:
 
-- Page transitions.
-- Scanner transitions.
-- Pet idle animations.
-- Feeding sequence.
-- Reward presentation.
-- Evolution sequence.
-- Particles.
-- Hover and press effects.
+- Page transitions (fade-only fallback)
+- Scanner transitions
+- Pet idle animations (minimal breathing)
+- Feeding sequence
+- Reward presentation
+- Evolution sequence (before/after with text)
+- Particles (static or disabled)
+- Hover and press effects (color-only fallback)
 
 Reduced motion must preserve meaning. It must not simply remove feedback.
 
-### 11.4 Color Contrast
+#### Color Contrast
 
 Sprint 7 must audit:
 
-- Text.
-- Buttons.
-- Icons.
-- Focus rings.
-- Form errors.
-- Toasts.
-- HUD.
-- Scanner overlays.
-- Reward states.
-- Dark/night mode if present.
+- Text (4.5:1 minimum)
+- Buttons (4.5:1 text, 3:1 borders)
+- Icons (3:1 minimum)
+- Focus rings (visible on all backgrounds)
+- Form errors
+- Toasts
+- HUD
+- Scanner overlays
+- Reward states
+- Dark/night mode if present
 
 Warmth must not come at the cost of readability.
 
-### 11.5 Touch Targets
+#### Touch Targets
 
 All interactive targets must meet documented size and spacing:
 
-- Minimum 44x44px.
-- Primary actions preferably larger.
-- Bottom navigation comfortable for thumbs.
-- Pet interaction area forgiving.
-- Scanner controls reachable.
+- Minimum 44×44px
+- Primary actions preferably larger (48×48px)
+- Bottom navigation comfortable for thumbs
+- Pet interaction area forgiving (20% larger than sprite)
+- Scanner controls reachable
+- Minimum 8px spacing between targets
 
-### 11.6 Screen Readers
+#### Screen Readers
 
 Screen reader support must include:
 
-- Page landmarks.
-- Button names.
-- Form labels.
-- Error messages.
-- Loading updates.
-- Reward announcements where meaningful.
-- Pet state summaries where appropriate.
-- Scanner permission and fallback guidance.
+- Page landmarks (`nav`, `main`, `aside`, `section`)
+- Button names via `aria-label`
+- Form labels and associations
+- Error messages announced
+- Loading updates via `aria-live`
+- Reward announcements where meaningful
+- Pet state summaries where appropriate
+- Scanner permission and fallback guidance
+- Image `alt` text for all meaningful images
 
 The pet should not be reduced to noisy repeated announcements. Screen reader output must be warm and useful.
 
-### 11.7 Responsive Review
+#### Responsive Review
 
 Sprint 7 must test:
 
-- Small mobile.
-- Large mobile.
-- Tablet.
-- Desktop.
-- Landscape.
-- Tall screens.
-- Narrow screens.
+- Small mobile (320-375px)
+- Large mobile (375-428px)
+- Tablet (768-1024px)
+- Desktop (1024px+)
+- Landscape orientation
+- Tall screens (aspect ratio > 2:1)
+- Narrow screens (< 360px)
 
 Text must not overlap. The pet must remain central where relevant. Navigation must remain reachable.
 
-### 11.8 Sprint 7 Expected Outcome
+### 11.4 Sprint 7 Expected Outcome
 
-At the end of Sprint 7, Scan Chan should be comfortable to use across input methods, motion preferences, visual needs, and screen sizes.
+At the end of Sprint 7, Scan Chan should be comfortable to use across input methods, motion preferences, visual needs, and screen sizes. All five sub-sprints must be complete before Sprint 7 is considered done.
 
 ---
 

@@ -554,6 +554,230 @@ interface FoodCategoryDefinition {
 
 ---
 
-**Document Status**: This document will be expanded as implementation begins. Each system will have detailed specifications before development.
+## 10. Sprint 6 - Persistence Implementation
+
+**Guest Save** (Zustand persist middleware):
+- Already functional via `localStorage`
+- Versioned storage keys (`scan-chan-guest-{store}-state`)
+- Corruption recovery via version checking
+
+**Arashu Sync** (`src/services/sync/sync-service.ts`):
+- `syncToServer()` - Push local state to database
+- `loadFromServer()` - Pull server state to local
+- Server-wins conflict resolution
+- Offline queue with exponential backoff (max 3 retries)
+
+**Sync Repository** (`src/repositories/sync-repository.ts`):
+- `syncPetState()`, `syncGameState()`, `syncInventoryState()`, `syncSettingsState()`
+- `loadPetState()`, `loadGameState()`, `loadInventoryState()`, `loadSettingsState()`
+- Uses existing Prisma schema (Pet, PetStats, Progress, Inventory, Settings, SyncMetadata)
+
+**Offline Queue** (`src/lib/sync/queue.ts`):
+- `createSyncQueue()` for action buffering
+- Enqueue, dequeue, retry, remove operations
+- Unique action IDs with timestamps
+
+**Versioned Storage** (`src/lib/sync/storage.ts`):
+- `createVersionedStorage()` for localStorage wrapper
+- Version checking and corruption recovery
+- Guest/Arashu isolation
+
+---
+
+## 11. Sprint 7 - Accessibility Implementation
+
+Sprint 7 is decomposed into five focused sub-sprints for incremental validation and manageable scope.
+
+### 11.1 Sprint 7.1: Keyboard Navigation Foundation
+
+**Focus Management Hooks**:
+- `useFocusTrap(ref)` - Trap focus within modals/sheets
+- `useFocusVisible()` - Manage focus-visible state
+- `useKeyboard(key, callback)` - Key event handler
+
+**Escape Key System**:
+- Global escape handler for modals
+- Escape handler for sheets
+- Escape handler for dropdowns
+
+**Skip Navigation**:
+- Skip link component (`components/shared/skip-nav.tsx`)
+- Jump to main content
+- Keyboard shortcut documentation
+
+**Tab Order Validation**:
+- Home page tab order
+- Scanner page tab order
+- Collection page tab order
+- Settings page tab order
+
+**Focus Ring Visibility**:
+- Ensure `focus-visible:ring` on all interactive elements
+- Test focus indicators on all backgrounds
+- Document focus indicator standards
+
+**Modal Focus Trapping**:
+- Focus trap on modal open
+- Return focus on modal close
+- Focus first focusable element on open
+
+**Testing**:
+- Unit tests for focus utilities (10+ tests)
+- Integration tests for tab order
+- Manual keyboard navigation testing
+
+### 11.2 Sprint 7.2: Reduced Motion Support
+
+**CSS Media Query Utilities** (`src/styles/motion.css`):
+- `@media (prefers-reduced-motion: reduce)` variants
+- Motion utility classes
+- Animation variant system
+
+**Animation Variants**:
+- Page transitions: fade-only fallback
+- Pet idle animations: minimal breathing variant
+- Particles/bursts: static or disabled
+- Popups/modals: fade-only transition
+- Hover effects: color-only fallback
+- Scanner transitions: instant or fade
+
+**Settings Integration**:
+- Manual reduced motion toggle in settings store
+- Persist preference across sessions
+- Apply preference globally
+
+**Documentation**:
+- Document reduced motion behavior per component
+- Update UI Production Guide with motion variants
+- Create reduced motion testing checklist
+
+**Testing**:
+- Visual regression tests for reduced motion
+- Manual testing with OS-level reduced motion
+- Animation variant validation
+
+### 11.3 Sprint 7.3: Color Contrast & Touch Targets
+
+**Contrast Audit** (WCAG AA):
+- Text on backgrounds (4.5:1 minimum)
+- Button text (4.5:1 minimum)
+- Icons on backgrounds (3:1 minimum)
+- Focus rings (visible on all backgrounds)
+- Form errors (4.5:1 minimum)
+- Toasts/notifications (4.5:1 minimum)
+- HUD elements (4.5:1 minimum)
+- Scanner overlays (4.5:1 minimum)
+
+**Color Adjustments**:
+- Adjust colors where contrast fails
+- Document adjusted color tokens
+- Preserve brand warmth while meeting standards
+
+**Touch Target Validation**:
+- Audit all interactive elements (44×44px minimum)
+- Validate spacing between targets (8px minimum)
+- Pet tap area expansion (20% larger than sprite)
+- Button size review (48×48px preferred)
+- Bottom navigation thumb-zone validation
+
+**Documentation**:
+- Contrast audit report with measurements
+- Touch target validation report
+- Updated accessibility standards documentation
+
+**Testing**:
+- Automated contrast checking tools
+- Manual touch target measurement
+- Mobile device testing
+
+### 11.4 Sprint 7.4: Screen Reader Support
+
+**ARIA Labels** (50+ additions):
+- All buttons (`aria-label`)
+- All icon buttons (`aria-label`)
+- All links (`aria-label`)
+- All form controls (`aria-label` or associated `<label>`)
+- All navigation items (`aria-label`)
+
+**Navigation Landmarks**:
+- `<nav>` for navigation regions
+- `<main>` for main content
+- `<aside>` for sidebars
+- `<section>` for distinct content sections
+- `<header>` and `<footer>` where appropriate
+
+**Live Regions** (`aria-live`):
+- Pet state changes (hunger, mood, energy)
+- XP gain announcements
+- Level up announcements
+- Achievement unlock announcements
+- Error messages
+- Loading state updates
+
+**Form Field Labels**:
+- All inputs associated with `<label>`
+- Error messages linked via `aria-describedby`
+- Required fields marked with `aria-required`
+
+**Image Alt Text**:
+- Meaningful `alt` text for all images
+- Empty `alt=""` for decorative images
+- Pet sprite alt text that describes emotional state
+
+**Screen Reader Testing Notes**:
+- Document screen reader testing procedure
+- Test with NVDA (Windows)
+- Test with VoiceOver (macOS/iOS)
+- Document known issues
+
+**Testing**:
+- Integration tests for ARIA presence (15+ tests)
+- Manual screen reader testing
+- Automated accessibility scanning
+
+### 11.5 Sprint 7.5: Responsive Review & Documentation
+
+**Responsive Testing Matrix**:
+- Small mobile (320-375px)
+- Large mobile (375-428px)
+- Tablet (768-1024px)
+- Desktop (1024px+)
+- Landscape orientation
+- Tall screens (aspect ratio > 2:1)
+- Narrow screens (< 360px)
+
+**Layout Fixes**:
+- Text wrapping for narrow screens
+- Pet centering across all sizes
+- Navigation reachability on all devices
+- Touch target sizing on mobile
+- Overflow handling
+
+**Accessibility Checklist Update**:
+- Update Component Checklist in UI Production Guide
+- Add accessibility validation steps
+- Document testing procedures
+
+**Testing Procedures Documentation**:
+- Keyboard navigation testing steps
+- Screen reader testing steps
+- Reduced motion testing steps
+- Contrast validation steps
+- Touch target validation steps
+- Responsive testing steps
+
+**Known Issues Log**:
+- Document any unresolved accessibility issues
+- Risk assessment for each issue
+- Planned remediation timeline
+
+**README Update**:
+- Add accessibility section
+- Document supported assistive technologies
+- Link to testing procedures
+
+---
+
+**Document Status**: This document will be expanded as implementation continues. Sprint 7 accessibility implementation is now fully specified.
 
 **Document End**
