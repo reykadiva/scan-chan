@@ -33,7 +33,14 @@ export interface PetInteractionRecord {
 
 export type PetInteractionHistory = Partial<Record<PetInteractionType, PetInteractionRecord>>;
 
-export type FoodCategory = 'meal' | 'snack' | 'treat' | 'drink' | 'fresh' | 'unknown';
+export enum FoodCategory {
+  MEAL = 'meal',
+  SNACK = 'snack',
+  TREAT = 'treat',
+  BEVERAGE = 'beverage',
+  INGREDIENT = 'ingredient',
+  UNKNOWN = 'unknown',
+}
 
 export type FoodNutritionProfile = PetStatsState;
 

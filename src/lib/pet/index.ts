@@ -1,6 +1,6 @@
+import { FoodCategory } from '@/types/pet';
 import type {
   FeedingRecord,
-  FoodCategory,
   FoodModel,
   FoodNutritionProfile,
   PetLifecycleState,
@@ -61,12 +61,12 @@ export const initialPetStats: PetStatsState = {
 };
 
 export const FOOD_NUTRITION_PROFILES: Readonly<Record<FoodCategory, FoodNutritionProfile>> = {
-  meal: { hunger: 30, mood: 8, energy: 6, affection: 5, curiosity: 2 },
-  snack: { hunger: 20, mood: 10, energy: 5, affection: 5, curiosity: 4 },
-  treat: { hunger: 15, mood: 15, energy: 3, affection: 5, curiosity: 6 },
-  drink: { hunger: 15, mood: 5, energy: 8, affection: 5, curiosity: 5 },
-  fresh: { hunger: 25, mood: 8, energy: 10, affection: 5, curiosity: 10 },
-  unknown: { hunger: 15, mood: 5, energy: 0, affection: 5, curiosity: 12 },
+  [FoodCategory.MEAL]: { hunger: 30, mood: 8, energy: 6, affection: 5, curiosity: 2 },
+  [FoodCategory.SNACK]: { hunger: 20, mood: 10, energy: 5, affection: 5, curiosity: 4 },
+  [FoodCategory.TREAT]: { hunger: 15, mood: 15, energy: 3, affection: 5, curiosity: 6 },
+  [FoodCategory.BEVERAGE]: { hunger: 15, mood: 5, energy: 8, affection: 5, curiosity: 5 },
+  [FoodCategory.INGREDIENT]: { hunger: 25, mood: 8, energy: 10, affection: 5, curiosity: 10 },
+  [FoodCategory.UNKNOWN]: { hunger: 15, mood: 5, energy: 0, affection: 5, curiosity: 12 },
 };
 
 const PET_INTERACTION_COOLDOWNS: Readonly<Record<PetInteractionType, number>> = {
@@ -90,12 +90,12 @@ const PET_INTERACTION_RULES: Readonly<
 };
 
 const FOOD_PERSONALITY_TRAITS: Readonly<Record<FoodCategory, PetPersonalityTrait>> = {
-  meal: 'foodie',
-  snack: 'foodie',
-  treat: 'foodie',
-  drink: 'routine-loving',
-  fresh: 'adventurous',
-  unknown: 'adventurous',
+  [FoodCategory.MEAL]: 'foodie',
+  [FoodCategory.SNACK]: 'foodie',
+  [FoodCategory.TREAT]: 'foodie',
+  [FoodCategory.BEVERAGE]: 'routine-loving',
+  [FoodCategory.INGREDIENT]: 'adventurous',
+  [FoodCategory.UNKNOWN]: 'adventurous',
 };
 
 export function clampPetStat(stat: PetStatName, value: number): number {

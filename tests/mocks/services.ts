@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { FoodCategory } from '@/types/pet';
 import type {
   GameService,
   InventoryService,
@@ -59,7 +60,7 @@ export function createMockServices() {
           canFeed: true,
           qualityScore: 0,
           reasons: [],
-          food: { id: 'unknown', name: 'Mysterious find', category: 'unknown' as const, nutrition: initialPetStats, isNew: true },
+          food: { id: 'unknown', name: 'Mysterious find', category: FoodCategory.UNKNOWN, nutrition: initialPetStats, isNew: true },
         },
       })),
       lookupProduct: vi.fn(async () => ({

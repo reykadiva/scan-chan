@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { translateProductToFood } from '@/lib/product';
 import { DefaultScannerService } from '@/services/scanner';
 import { createMockRepositories } from '@tests/mocks';
+import { FoodCategory } from '@/types/pet';
 
 describe('product translation', () => {
   it('translates supported product metadata into feeding-compatible food', () => {
@@ -20,7 +21,7 @@ describe('product translation', () => {
       food: {
         id: '123',
         name: 'Berry Snack',
-        category: 'snack',
+        category: FoodCategory.SNACK,
       },
     });
     expect(result.food.nutrition.hunger).toBeGreaterThan(0);
@@ -32,7 +33,7 @@ describe('product translation', () => {
     expect(result).toMatchObject({
       status: 'unknown',
       canFeed: true,
-      food: { id: '999', name: 'Mysterious find', category: 'unknown', isNew: true },
+      food: { id: '999', name: 'Mysterious find', category: FoodCategory.UNKNOWN, isNew: true },
     });
   });
 
@@ -47,7 +48,7 @@ describe('product translation', () => {
       status: 'unsupported',
       canFeed: false,
       reasons: expect.arrayContaining(['unsupported-category']),
-      food: { id: 'unsupported-456', category: 'unknown' },
+      food: { id: 'unsupported-456', category: FoodCategory.UNKNOWN },
     });
     expect(result.food.nutrition).toMatchObject({ hunger: 0, mood: 0, energy: 0, affection: 0, curiosity: 0 });
   });
@@ -57,7 +58,7 @@ describe('product translation', () => {
 
     expect(service.translateProductToFood({ barcodeNumber: '321', productName: 'Milk', category: 'Dairy' }).data).toMatchObject({
       status: 'translated',
-      food: { category: 'fresh' },
+      food: { category: FoodCategory.INGREDIENT },
     });
   });
 });

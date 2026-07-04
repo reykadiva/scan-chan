@@ -1,18 +1,19 @@
 import { createFood } from '@/lib/pet';
-import type { FoodCategory, FoodModel } from '@/types/pet';
+import { FoodCategory } from '@/types/pet';
+import type { FoodModel } from '@/types/pet';
 import type { ProductTranslationInput, ProductTranslationStatus } from '@/types/product';
 
 const UNSUPPORTED_CATEGORIES = new Set(['personal care']);
 const CATEGORY_TO_FOOD: Readonly<Record<string, FoodCategory>> = {
-  snack: 'snack',
-  candy: 'treat',
-  biscuit: 'treat',
-  drink: 'drink',
-  dairy: 'fresh',
-  frozen: 'meal',
-  instant: 'meal',
-  seasoning: 'unknown',
-  other: 'unknown',
+  snack: FoodCategory.SNACK,
+  candy: FoodCategory.TREAT,
+  biscuit: FoodCategory.TREAT,
+  drink: FoodCategory.BEVERAGE,
+  dairy: FoodCategory.INGREDIENT,
+  frozen: FoodCategory.MEAL,
+  instant: FoodCategory.MEAL,
+  seasoning: FoodCategory.UNKNOWN,
+  other: FoodCategory.UNKNOWN,
 };
 
 export interface ProductTranslationResult {
@@ -43,14 +44,14 @@ export function translateProductToFood(product: ProductTranslationInput | null):
       food: createFood({
         id: `unsupported-${barcode || 'product'}`,
         name: name || 'Unsupported item',
-        category: 'unknown',
+        category: FoodCategory.UNKNOWN,
         nutrition: { hunger: 0, mood: 0, energy: 0, affection: 0, curiosity: 0 },
       }),
     };
   }
 
-  const category = rawCategory ? CATEGORY_TO_FOOD[rawCategory] ?? 'unknown' : 'unknown';
-  const status: ProductTranslationStatus = name && category !== 'unknown' ? 'translated' : 'unknown';
+  const category = rawCategory ? CATEGORY_TO_FOOD[rawCategory] ?? FoodCategory.UNKNOWN : FoodCategory.UNKNOWN;
+  const status: ProductTranslationStatus = name && category !== FoodCategory.UNKNOWN ? 'translated' : 'unknown';
 
   return {
     status,
@@ -72,7 +73,7 @@ function unknownProductFood(barcode: string): ProductTranslationResult {
     canFeed: true,
     qualityScore: 0,
     reasons: ['missing-product'],
-    food: createFood({ id: barcode, name: 'Mysterious find', category: 'unknown', isNew: true }),
+    food: createFood({ id: barcode, name: 'Mysterious find', category: FoodCategory.UNKNOWN, isNew: true }),
   };
 }
 

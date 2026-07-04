@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildHomeHubViewModel } from '@/lib/home-hub';
 import { initialPetPersonality, initialPetStats, normalizePetState } from '@/lib/pet';
+import { FoodCategory } from '@/types/pet';
 import type { HomeHubInput } from '@/types';
 
 const now = Date.parse('2026-07-03T12:00:00.000Z');
@@ -9,7 +10,7 @@ const createInput = (overrides: Partial<HomeHubInput> = {}): HomeHubInput => {
   const pet = normalizePetState({
     stats: initialPetStats,
     personality: initialPetPersonality,
-    feedings: [{ foodId: 'snack-1', category: 'snack', fedAt: now }],
+    feedings: [{ foodId: 'snack-1', category: FoodCategory.SNACK, fedAt: now }],
     memories: [{ id: 'memory-1', type: 'first-feed', title: 'First Feed', createdAt: new Date(now).toISOString() }],
   });
 

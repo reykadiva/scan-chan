@@ -23,6 +23,7 @@ import {
   transitionScannerState,
 } from '@/lib/scanner';
 import { normalizePetState } from '@/lib/pet';
+import { FoodCategory } from '@/types/pet';
 import { DefaultScannerService } from '@/services/scanner';
 import { createMockRepositories } from '@tests/mocks';
 
@@ -90,7 +91,7 @@ describe('scanner pipeline', () => {
       pet,
     });
 
-    expect(result.data?.food).toMatchObject({ category: 'fresh' });
+    expect(result.data?.food).toMatchObject({ category: FoodCategory.INGREDIENT });
   });
 
   it('keeps future mobile camera concerns in adapter extension points', () => {
