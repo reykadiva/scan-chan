@@ -12,7 +12,11 @@ import type {
 export function createMockRepositories() {
   return {
     pet: { domain: 'pet' } satisfies PetRepository,
-    game: { domain: 'game' } satisfies GameRepository,
+    game: {
+      domain: 'game',
+      getAchievementProgress: async () => ({}),
+      saveAchievementProgress: async () => {},
+    } satisfies GameRepository,
     scanner: { domain: 'scanner' } satisfies ScannerRepository,
     ui: { domain: 'ui' } satisfies UIRepository,
     inventory: {

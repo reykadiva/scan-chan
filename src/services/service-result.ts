@@ -9,6 +9,8 @@ export interface FutureOrchestrationPoint {
   readonly status: 'deferred';
 }
 
+export const ok = <T>(data: T): ServiceResult<T> => ({ ok: true, data });
+
 export const deferred = (feature: FutureOrchestrationPoint['feature']): ServiceResult<FutureOrchestrationPoint> => ({
   ok: true,
   data: { feature, status: 'deferred' },

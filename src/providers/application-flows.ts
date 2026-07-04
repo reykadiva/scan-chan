@@ -100,10 +100,7 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
       { name: 'pet.feeding', run: services.pet.prepareFeeding },
     ]),
     missionUpdate: flow('missionUpdate', [{ name: 'game.mission-pipeline', run: services.game.prepareMissionPipeline }]),
-    achievementUpdate: flow('achievementUpdate', [
-      { name: 'game.achievement-pipeline', run: services.game.prepareAchievementPipeline },
-      { name: 'game.reward-pipeline', run: services.game.prepareRewardPipeline },
-    ]),
+    achievementUpdate: flow('achievementUpdate', [{ name: 'game.reward-pipeline', run: services.game.prepareRewardPipeline }]),
     settingsLoad: flow('settingsLoad', [{ name: 'settings.load', run: services.settings.prepareSettingsLoad }]),
     settingsSave: flow('settingsSave', [{ name: 'settings.sync', run: services.settings.prepareSettingsSync }]),
     shutdownLifecycle: flow('shutdownLifecycle', [{ name: 'shared.sync-boundary', run: services.shared.prepareSyncBoundary }]),

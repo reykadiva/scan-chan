@@ -48,7 +48,7 @@ export function createMockServices() {
     game: {
       domain: 'game',
       prepareMissionPipeline: vi.fn(ok),
-      prepareAchievementPipeline: vi.fn(ok),
+      checkAchievements: vi.fn(() => ({ ok: true, data: { unlocked: [], progress: {} } })),
       prepareRewardPipeline: vi.fn(ok),
     } satisfies GameService,
     scanner: {

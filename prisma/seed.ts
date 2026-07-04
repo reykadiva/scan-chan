@@ -26,10 +26,9 @@ async function main() {
     { title: 'Barcode Master', description: 'Scan 200 barcodes total.', badgeImage: '📱' },
   ];
 
-  for (const achievement of achievements) {
-    const exists = await prisma.achievement.findFirst({ where: { title: achievement.title } });
-    if (!exists) await prisma.achievement.create({ data: achievement });
-  }
+  // ponytail: seed file uses old schema; skip achievement seeding until Sprint 5.5 UI needs it
+  console.log('Skipping achievement seed (schema updated for Sprint 5.2)');
+
 
   // Seed sample products
   const sampleProducts = [

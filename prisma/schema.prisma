@@ -170,19 +170,15 @@ model Mission {
 }
 
 model Achievement {
-  id          String    @id @default(uuid())
-  userId      String?   @map("user_id")
-  title       String    @db.VarChar(255)
-  description String?   @db.Text
-  category    String?   @db.VarChar(120)
-  threshold   Int?
-  xpReward    Int?      @map("xp_reward")
-  badgeImage  String?   @map("badge_image") @db.Text
-  unlockedAt  DateTime? @map("unlocked_at")
-  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  key        String    @db.VarChar(120)
+  progress   Int       @default(0)
+  unlockedAt DateTime? @map("unlocked_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, key], name: "userId_key")
   @@index([userId])
-  @@index([category])
   @@map("achievements")
 }
 

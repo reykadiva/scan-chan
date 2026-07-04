@@ -1,10 +1,22 @@
 import type { GameRepository } from '@/repositories';
-import { deferred, type FutureOrchestrationPoint, type ServiceResult } from '../service-result';
+import type { AchievementDefinition } from '@/types/content';
+import type { AchievementProgress, AchievementUnlockInput } from '@/types/achievement';
+import { checkAllAchievements } from '@/lib/game/achievement-engine';
+import { deferred, ok, type FutureOrchestrationPoint, type ServiceResult } from '../service-result';
+
+export interface AchievementCheckResult {
+  readonly unlocked: readonly string[];
+  readonly progress: Record<string, number>;
+}
 
 export interface GameService {
   readonly domain: 'game';
   prepareMissionPipeline: () => ServiceResult<FutureOrchestrationPoint>;
-  prepareAchievementPipeline: () => ServiceResult<FutureOrchestrationPoint>;
+  checkAchievements: (
+    achievements: readonly AchievementDefinition[],
+    input: AchievementUnlockInput,
+    currentProgress: Record<string, AchievementProgress>
+  ) => ServiceResult<AchievementCheckResult>;
   prepareRewardPipeline: () => ServiceResult<FutureOrchestrationPoint>;
 }
 
@@ -13,17 +25,20 @@ export class DefaultGameService implements GameService {
 
   constructor(readonly repository: GameRepository) {}
 
-  /** Future Sprint 2 extension point: mission progress orchestration after scan outcomes exist. */
   prepareMissionPipeline() {
     return deferred('missions');
   }
 
-  /** Future Sprint 2+ extension point: achievement orchestration after gameplay events exist. */
-  prepareAchievementPipeline() {
-    return deferred('achievements');
+  checkAchievements(
+    achievements: readonly AchievementDefinition[],
+    input: AchievementUnlockInput,
+    currentProgress: Record<string, AchievementProgress>
+  ) {
+    const progressMap = new Map(Object.entries(currentProgress));
+    const result = checkAllAchievements(achievements, input, progressMap);
+    return ok({ unlocked: result.unlocked, progress: Object.fromEntries(result.progress) });
   }
 
-  /** Future Sprint 2 extension point: reward queue orchestration without presentation logic. */
   prepareRewardPipeline() {
     return deferred('rewards');
   }
