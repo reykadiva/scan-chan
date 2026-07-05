@@ -12,6 +12,7 @@ interface ScanResultProps {
 
 export function ScanResult({ result, onScanAgain }: ScanResultProps) {
   const { found, product, scanLog } = result;
+  const titleId = found && product ? 'scan-result-found' : 'scan-result-notfound';
 
   return (
     <motion.div
@@ -21,7 +22,7 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
       className="absolute inset-0 bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center z-20 p-4"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="scan-result-title"
+      aria-labelledby={titleId}
     >
       <motion.div
         initial={{ scale: 0.5, opacity: 0, y: 100 }}
@@ -46,7 +47,7 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
               </motion.div>
               <div className="relative z-10">
                 <p className="text-emerald-900 text-xs font-nunito font-bold uppercase tracking-widest mb-1">Found It!</p>
-                <h3 id="scan-result-title" className="text-slate-800 font-fredoka font-bold text-xl leading-tight line-clamp-1">{product.productName}</h3>
+                <h3 id="scan-result-found" className="text-slate-800 font-fredoka font-bold text-xl leading-tight line-clamp-1">{product.productName}</h3>
               </div>
             </div>
 
@@ -124,7 +125,7 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
               </motion.div>
               <div className="relative z-10">
                 <p className="text-pink-900 text-xs font-nunito font-bold uppercase tracking-widest mb-1">New Item!</p>
-                <h3 id="scan-result-title" className="text-white font-fredoka font-bold text-xl leading-tight">Product Not Found</h3>
+                <h3 id="scan-result-notfound" className="text-white font-fredoka font-bold text-xl leading-tight">Product Not Found</h3>
               </div>
             </div>
 

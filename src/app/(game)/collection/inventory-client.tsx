@@ -109,7 +109,6 @@ export function InventoryClient() {
   const [sortBy, setSortBy] = React.useState<'type' | 'quantity' | 'itemKey' | 'id'>('itemKey');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('asc');
   const [selectedItemId, setSelectedItemId] = React.useState<string | null>(null);
-  const [isLoading, setIsLoading] = React.useState(false);
   const [feedbackMessage, setFeedbackMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -146,9 +145,9 @@ export function InventoryClient() {
       sortBy,
       sortOrder,
       selectedItemId,
-      isLoading,
+      isLoading: false,
     });
-  }, [storeItems, storeCapacity, searchQuery, filterType, sortBy, sortOrder, selectedItemId, isLoading]);
+  }, [storeItems, storeCapacity, searchQuery, filterType, sortBy, sortOrder, selectedItemId]);
 
   const handleUseItem = (item: InventoryItemViewModel) => {
     const action = item.type === 'food' || item.type === 'product' ? 'consume' : 'use';
