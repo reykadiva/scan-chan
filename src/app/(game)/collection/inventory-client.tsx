@@ -242,6 +242,7 @@ export function InventoryClient() {
       <SafeArea>
         <ResponsiveContainer>
           <SectionContainer>
+            <main>
             <Stack className="gap-6">
               
               {/* Header Title & Action controls */}
@@ -561,6 +562,7 @@ export function InventoryClient() {
               </div>
 
             </Stack>
+            </main>
           </SectionContainer>
         </ResponsiveContainer>
       </SafeArea>
