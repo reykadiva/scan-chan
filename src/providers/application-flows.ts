@@ -1,7 +1,5 @@
 import type {
   GameService,
-  InventoryService,
-  PetService,
   ProfileService,
   ScannerService,
   ServiceResult,
@@ -11,11 +9,9 @@ import type {
 } from '@/services';
 
 export interface ServiceBundle {
-  readonly pet: PetService;
   readonly game: GameService;
   readonly scanner: ScannerService;
   readonly ui: UIService;
-  readonly inventory: InventoryService;
   readonly profile: ProfileService;
   readonly settings: SettingsService;
   readonly shared: SharedService;
@@ -27,8 +23,6 @@ export type ApplicationFlowName =
   | 'arashuInitialization'
   | 'scannerSession'
   | 'productLookup'
-  | 'inventoryUpdate'
-  | 'petUpdate'
   | 'missionUpdate'
   | 'achievementUpdate'
   | 'settingsLoad'
@@ -38,8 +32,6 @@ export type ApplicationFlowName =
 export type FutureEventSequence =
   | 'scanSuccess'
   | 'scanFailure'
-  | 'feeding'
-  | 'evolution'
   | 'rewards'
   | 'synchronization';
 
@@ -65,10 +57,8 @@ function flow(name: ApplicationFlowName, steps: readonly FlowStep[]): Applicatio
 }
 
 export const futureEventSequences: Record<FutureEventSequence, readonly ApplicationFlowName[]> = {
-  scanSuccess: ['productLookup', 'inventoryUpdate', 'petUpdate', 'missionUpdate', 'achievementUpdate'],
+  scanSuccess: ['productLookup', 'missionUpdate', 'achievementUpdate'],
   scanFailure: ['scannerSession'],
-  feeding: ['petUpdate', 'inventoryUpdate'],
-  evolution: ['petUpdate'],
   rewards: ['missionUpdate', 'achievementUpdate'],
   synchronization: ['arashuInitialization', 'settingsSave', 'shutdownLifecycle'],
 };
@@ -82,7 +72,6 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
     ]),
     guestInitialization: flow('guestInitialization', [
       { name: 'profile.load', run: services.profile.prepareProfileLoad },
-      { name: 'inventory.read', run: services.inventory.prepareInventoryRead },
     ]),
     arashuInitialization: flow('arashuInitialization', [
       { name: 'profile.sync-identity', run: services.profile.prepareSyncIdentity },
@@ -92,12 +81,6 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
     productLookup: flow('productLookup', [
       { name: 'scanner.result-handling', run: services.scanner.prepareScanResultHandling },
       { name: 'product.translation', run: services.scanner.prepareProductTranslation },
-    ]),
-    inventoryUpdate: flow('inventoryUpdate', [{ name: 'inventory.item-mutation', run: services.inventory.prepareItemMutation }]),
-    petUpdate: flow('petUpdate', [
-      { name: 'pet.state', run: services.pet.preparePetState },
-      { name: 'pet.interaction', run: services.pet.preparePetInteraction },
-      { name: 'pet.feeding', run: services.pet.prepareFeeding },
     ]),
     missionUpdate: flow('missionUpdate', [{ name: 'game.mission-pipeline', run: services.game.prepareMissionPipeline }]),
     achievementUpdate: flow('achievementUpdate', [
@@ -109,5 +92,3 @@ export function createApplicationFlows(services: ServiceBundle): ApplicationFlow
     shutdownLifecycle: flow('shutdownLifecycle', [{ name: 'shared.sync-boundary', run: services.shared.prepareSyncBoundary }]),
   };
 }
-
-// ponytail: deterministic service sequencing only; add a richer event bus when real async workflows exist.

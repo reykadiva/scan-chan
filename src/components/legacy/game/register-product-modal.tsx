@@ -7,7 +7,6 @@ import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown } from 'luci
 import { CATEGORIES } from '@/types';
 import { useSound } from '@/hooks/use-sound';
 import { toast } from 'sonner';
-import { BarcodeScanner } from '@/components/scanner/barcode-scanner';
 import { WebcamCapture } from '@/components/legacy/product/webcam-capture';
 
 interface RegisterProductModalProps {
@@ -255,14 +254,16 @@ export function RegisterProductModal({
 
       {/* Barcode scanner sub-overlay */}
       {isScanningBarcode && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999]">
-          <BarcodeScanner
-            onClose={() => setIsScanningBarcode(false)}
-            onScanSuccess={(text) => {
-              setForm((prev) => ({ ...prev, barcodeNumber: text }));
-              setIsScanningBarcode(false);
-            }}
-          />
+        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
+          <div className="text-white text-center p-8">
+            <p className="mb-4">Scanner not available</p>
+            <button
+              onClick={() => setIsScanningBarcode(false)}
+              className="px-4 py-2 bg-white text-black rounded-lg"
+            >
+              Close
+            </button>
+          </div>
         </div>,
         document.body
       )}

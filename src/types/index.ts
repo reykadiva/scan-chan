@@ -19,61 +19,6 @@ export type {
   User,
 } from './database';
 export type { GameAchievement, MissionProgress } from './game';
-export type {
-  HomeHubDailySummary,
-  HomeHubGreetingState,
-  HomeHubInput,
-  HomeHubInventorySnapshot,
-  HomeHubLoadState,
-  HomeHubPetSnapshot,
-  HomeHubPetSummary,
-  HomeHubProfileSnapshot,
-  HomeHubRecommendedAction,
-  HomeHubScannerSnapshot,
-  HomeHubScannerState,
-  HomeHubSettingsSnapshot,
-  HomeHubStatusCard,
-  HomeHubStatusCardId,
-  HomeHubStatusCardState,
-  HomeHubViewModel,
-} from './home-hub';
-export type { InventoryDomainBoundary } from './inventory';
-export type {
-  MascotAnimationAdapterExtensionPoint,
-  MascotAnimationAdapterTarget,
-  MascotAnimationIntensity,
-  MascotAnimationIntent,
-  MascotAnimationIntentName,
-  MascotAttentionTarget,
-  MascotEmotion,
-  MascotExpression,
-  MascotGazeIntent,
-  MascotIdleBehavior,
-  MascotRuntimeEvent,
-  MascotRuntimeInput,
-  MascotRuntimePhase,
-  MascotRuntimeState,
-} from './mascot-runtime';
-export type {
-  FeedingRecord,
-  FoodCategory,
-  FoodModel,
-  FoodNutritionProfile,
-  PetDomainBoundary,
-  PetInteractionHistory,
-  PetInteractionRecord,
-  PetInteractionType,
-  PetLifecycleState,
-  PetMemory,
-  PetMemoryType,
-  PetPersonalityState,
-  PetPersonalityTrait,
-  PetStageName,
-  PetStateModel,
-  PetStatName,
-  PetStatsState,
-  PetStatus,
-} from './pet';
 export type { ProfileDomainBoundary } from './profile';
 export {
   CATEGORIES,

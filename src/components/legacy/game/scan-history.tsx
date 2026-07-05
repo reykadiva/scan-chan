@@ -7,7 +7,6 @@ import type { Product } from '@/types';
 import { PixelCat } from '@/components/legacy/pixel-cat';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getCategoryVariant } from '@/lib/legacy/game-utils';
-import { logger } from '@/lib/logger';
 
 export function ScanHistory() {
   const scanHistory = usePlayerStore((state) => state.scanHistory);
@@ -35,7 +34,7 @@ export function ScanHistory() {
           setProducts(productMap);
         }
       } catch (err) {
-        logger.error('Failed to load products for scan history', err);
+        console.error('Failed to load products for scan history', err);
       } finally {
         setLoading(false);
       }

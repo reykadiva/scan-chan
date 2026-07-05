@@ -1,5 +1,4 @@
 import type { Product } from './product';
-import type { FoodModel, PetStateModel } from './pet';
 import type { ProductTranslationInput, ProductTranslationStatus } from './product';
 
 export interface ScanLog {
@@ -218,7 +217,7 @@ export interface ProductLookupResult {
   readonly barcode: string;
   readonly status: ProductLookupStatus;
   readonly product: ProductTranslationInput | null;
-  readonly food: FoodModel | null;
+  readonly food: unknown;
   readonly translationStatus: ProductTranslationStatus | null;
   readonly fromCache: boolean;
   readonly attempts: number;
@@ -228,7 +227,7 @@ export interface ProductLookupResult {
 export interface ScannerGameplayResult {
   readonly barcode: string;
   readonly status: 'success' | 'failed';
-  readonly pet: PetStateModel;
+  readonly pet: unknown;
   readonly xpGain: number;
   readonly nextXp: number;
   readonly memoryCreated: boolean;
@@ -238,7 +237,7 @@ export interface ScannerGameplayResult {
 
 export interface ScanFeedFlowInput {
   readonly barcode: string;
-  readonly pet: PetStateModel;
+  readonly pet: unknown;
   readonly currentXp: number;
   readonly now: number;
 }
@@ -250,14 +249,14 @@ export interface ScanFeedFlowResult {
   // Lookup output
   readonly lookupStatus: ProductLookupStatus;
   readonly lookupProduct: ProductTranslationInput | null;
-  readonly lookupFood: FoodModel | null;
+  readonly lookupFood: unknown;
   readonly lookupFromCache: boolean;
   readonly lookupAttempts: number;
   readonly lookupCache: ReadonlyMap<string, ProductLookupCacheEntry>;
 
   // Gameplay output
   readonly gameplayStatus: 'success' | 'failed';
-  readonly pet: PetStateModel;
+  readonly pet: unknown;
   readonly xpGain: number;
   readonly nextXp: number;
   readonly memoryCreated: boolean;
@@ -325,8 +324,8 @@ export interface ScannerPipelineResult {
   readonly stages: readonly ScannerPipelineStage[];
   readonly product: ProductTranslationInput | null;
   readonly translationStatus: ProductTranslationStatus | null;
-  readonly food: FoodModel | null;
-  readonly pet: PetStateModel;
+  readonly food: unknown;
+  readonly pet: unknown;
   readonly error: ScannerPipelineError | null;
 }
 
