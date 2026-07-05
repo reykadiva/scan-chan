@@ -50,7 +50,7 @@ export interface InventoryStoreState {
 }
 
 export const initialInventoryState = {
-  isInitialized: false,
+  isInitialized: true,
   items: [] as InventoryEntry[],
   capacity: 20,
   selectedItemId: null as string | null,

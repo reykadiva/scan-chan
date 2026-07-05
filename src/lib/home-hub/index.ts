@@ -9,8 +9,6 @@ import type {
 import { buildMascotRuntime } from '@/lib/mascot-runtime';
 
 export const buildHomeHubViewModel = (input: HomeHubInput): HomeHubViewModel => {
-  // ponytail: Removed hasHydrated check - stores are always ready after mount
-  // The persist middleware will restore data before first render
   const isLoading = false;
   const isEmpty = !input.pet.isInitialized;
   const dailySummary = buildDailySummary(input);

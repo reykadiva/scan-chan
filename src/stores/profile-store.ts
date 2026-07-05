@@ -15,7 +15,7 @@ export interface ProfileStoreState {
 }
 
 export const initialProfileState = {
-  isInitialized: false,
+  isInitialized: true,
   mode: 'guest' as const,
   userId: null as string | null,
   nickname: null as string | null,

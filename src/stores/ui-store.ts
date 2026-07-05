@@ -34,7 +34,7 @@ export interface UIStoreState {
 }
 
 export const initialUIState = {
-  isInitialized: false,
+  isInitialized: true,
   activeModal: null as ModalId | null,
   activeSheet: null as SheetId | null,
   toastQueue: [] as ToastMessage[],

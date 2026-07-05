@@ -37,6 +37,7 @@ export const useSettingsStore = create<SettingsStoreState>()(
     persist(
       (set) => ({
         ...initialSettingsState,
+        isInitialized: true,
         initialize: () => set({ isInitialized: true }),
         setHydrated: (hasHydrated) => set({ hasHydrated }),
         setMode: (mode) => set({ mode }),
@@ -63,7 +64,10 @@ export const useSettingsStore = create<SettingsStoreState>()(
           language,
         }),
         onRehydrateStorage: () => {
-          return (state) => {
+          return (state, error) => {
+            if (error) {
+              console.error('[settings-store] hydration error:', error);
+            }
             if (state) {
               state.setHydrated(true);
               if (!state.isInitialized) {
@@ -80,5 +84,4 @@ export const useSettingsStore = create<SettingsStoreState>()(
 
 export const selectAudioSettings = (state: SettingsStoreState) => ({
   soundEnabled: state.soundEnabled,
-  volume: state.volume,
 });

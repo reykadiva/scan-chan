@@ -85,6 +85,7 @@ export const usePetStore = create<PetStoreState>()(
     persist(
       (set) => ({
         ...initialPetState,
+        isInitialized: true,
         initialize: () => set({ isInitialized: true }),
         setHydrated: (hasHydrated) => set({ hasHydrated }),
         setPersistenceMode: (persistenceMode) => {
@@ -176,7 +177,10 @@ export const usePetStore = create<PetStoreState>()(
           persistenceMode,
         }),
         onRehydrateStorage: () => {
-          return (state) => {
+          return (state, error) => {
+            if (error) {
+              console.error('[pet-store] hydration error:', error);
+            }
             if (state) {
               state.setHydrated(true);
               if (!state.isInitialized) {

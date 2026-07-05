@@ -39,12 +39,12 @@ test.describe('Home Hub', () => {
   });
 
   test('should display daily summary', async ({ page }) => {
-    const dailySummary = page.getByRole('region', { name: /today/i });
+    const dailySummary = page.locator('[aria-labelledby="daily-summary-title"]');
     await expect(dailySummary).toBeVisible();
   });
 
   test('should display recommendation card', async ({ page }) => {
-    const recommendation = page.getByRole('region', { name: /next gentle action/i });
+    const recommendation = page.locator('[aria-labelledby="recommendation-title"]');
     await expect(recommendation).toBeVisible();
   });
 

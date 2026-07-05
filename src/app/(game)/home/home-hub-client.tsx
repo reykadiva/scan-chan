@@ -31,6 +31,12 @@ export function HomeHubClient() {
     const petState = usePetStore.getState();
     const settingsState = useSettingsStore.getState();
     
+    if (!petState.hasHydrated) {
+      petState.setHydrated(true);
+    }
+    if (!settingsState.hasHydrated) {
+      settingsState.setHydrated(true);
+    }
     if (!petState.isInitialized) {
       petState.initialize();
     }

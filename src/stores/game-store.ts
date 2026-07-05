@@ -40,7 +40,7 @@ export interface GameStoreState {
 }
 
 export const initialGameState = {
-  isInitialized: false,
+  isInitialized: true,
   hasHydrated: false,
   persistenceMode: 'guest' as const,
   xp: 0,

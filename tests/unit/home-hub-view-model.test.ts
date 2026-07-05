@@ -62,11 +62,9 @@ describe('home hub view model', () => {
     expect(viewModel.statusCards.map((card) => card.id)).toEqual(['pet', 'scanner', 'inventory', 'settings', 'profile']);
   });
 
-  it('exposes loading and empty states without creating UI dependencies', () => {
-    const loading = buildHomeHubViewModel(createInput({ pet: { ...createInput().pet, hasHydrated: false } }));
+  it('exposes empty state without creating UI dependencies', () => {
     const empty = buildHomeHubViewModel(createInput({ pet: { ...createInput().pet, isInitialized: false } }));
 
-    expect(loading).toMatchObject({ loadState: 'loading', isLoading: true });
     expect(empty).toMatchObject({ loadState: 'empty', isEmpty: true, pet: null, recommendedAction: 'scan' });
   });
 

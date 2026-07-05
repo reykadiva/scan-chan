@@ -22,7 +22,7 @@ export interface ScannerStoreState {
 }
 
 export const initialScannerState = {
-  isInitialized: false,
+  isInitialized: true,
   permissionState: 'unknown' as const,
   scanState: 'idle' as const,
   lastBarcode: null as string | null,

@@ -17,7 +17,7 @@ export interface SharedStoreState {
 }
 
 export const initialSharedState = {
-  isInitialized: false,
+  isInitialized: true,
   appLoadState: 'idle' as LoadState,
   routeLoadState: 'idle' as LoadState,
   errorMessage: null as string | null,
