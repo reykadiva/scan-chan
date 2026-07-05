@@ -1,1 +1,2 @@
-export { LiveRegion, SrOnly } from "./accessibility"
+export * from "./accessibility"
+export { ErrorBoundary } from "./error-boundary"

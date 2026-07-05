@@ -28,7 +28,17 @@ async function main() {
 
   for (const achievement of achievements) {
     const exists = await prisma.achievement.findFirst({ where: { title: achievement.title } });
-    if (!exists) await prisma.achievement.create({ data: achievement });
+    if (!exists) {
+      await prisma.achievement.create({ 
+        data: {
+          title: achievement.title,
+          description: achievement.description,
+          badgeImage: achievement.badgeImage,
+          category: 'milestone',
+          xpReward: 50,
+        } 
+      });
+    }
   }
 
   // Seed sample products

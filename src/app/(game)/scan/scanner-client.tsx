@@ -42,7 +42,9 @@ import {
 } from "@/lib/scanner"
 
 import { ScanResult } from "@/components/scanner/scan-result"
-import type { BrowserCameraAdapter, BrowserCameraDeviceModel, CameraSessionCoordinator } from "@/types/scanner"
+import type { BrowserCameraAdapter, BrowserCameraDeviceModel, CameraSessionCoordinator, ScanFeedFlowResult } from "@/types/scanner"
+import { GAME_CONFIG } from "@/lib/game-config"
+import { logger } from "@/lib/logger"
 
 const scannerStates = {
   idle: "Ready",
@@ -98,10 +100,8 @@ export function ScannerClient() {
           }
         }
       } catch (err) {
-        console.error("Failed to list camera devices:", err)
-        if (active) {
-          setErrorMessage("camera-unavailable")
-        }
+        logger.error("Failed to initialize camera adapter", err)
+        setErrorMessage("camera-unavailable")
       }
     }
 
@@ -163,7 +163,7 @@ export function ScannerClient() {
         throw new Error("Could not acquire browser camera stream.")
       }
     } catch (err: unknown) {
-      console.error("Camera start error:", err)
+      logger.error("Camera start error", err)
       setPermissionState("denied")
       setScanState("error")
       const message = err instanceof Error ? err.message : "Camera access was denied or failed."
@@ -248,7 +248,7 @@ export function ScannerClient() {
                 const results = await detectorInstance.detect(video)
                 return results.map((r) => ({ rawValue: r.rawValue, format: r.format }))
               } catch (e) {
-                console.debug("Native BarcodeDetector failed, falling back:", e)
+                logger.debug("Native BarcodeDetector failed, falling back:", e)
               }
             }
             return []
@@ -308,7 +308,7 @@ export function ScannerClient() {
                       }
                     }
                   } catch (e) {
-                    console.error("Product lookup failed:", e)
+                    logger.error("Product lookup failed", e)
                   }
                   return null
                 }
@@ -345,7 +345,7 @@ export function ScannerClient() {
             }
           }
         } catch (error) {
-          console.debug("Frame decode attempt yielded no results:", error)
+          logger.debug("Frame decode attempt yielded no results", error)
         }
       }
 

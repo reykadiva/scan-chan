@@ -3,6 +3,7 @@ import { Fredoka, Nunito } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { Analytics } from '@vercel/analytics/next';
+import { ErrorBoundary } from '@/components/shared';
 
 const fredoka = Fredoka({
   subsets: ['latin'],
@@ -38,7 +39,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fredoka.variable} ${nunito.variable} font-nunito antialiased bg-mesh-soft min-h-[100dvh]`}>
-        {children}
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
         <Toaster richColors position="top-right" />
         <Analytics />
       </body>

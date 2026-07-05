@@ -8,6 +8,7 @@ import { ScanOverlay } from './scan-overlay';
 import { ScanResult } from './scan-result';
 import { useSound } from '@/hooks/use-sound';
 import { getDeviceType } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 import type { ScanResult as ScanResultType } from '@/types';
 
 interface BarcodeScannerProps {
@@ -31,7 +32,7 @@ export function BarcodeScanner({ onClose, fullscreen = false, onScanSuccess, onS
     navigator.mediaDevices.enumerateDevices().then(devices => {
       const videoDevices = devices.filter(d => d.kind === 'videoinput');
       setDevices(videoDevices);
-    }).catch(console.error);
+    }).catch(err => logger.error('Failed to enumerate camera devices', err));
   }, []);
 
   const switchCamera = () => {
