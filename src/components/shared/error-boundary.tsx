@@ -54,7 +54,7 @@ function DefaultErrorFallback({ error, reset }: { error: Error; reset: () => voi
         <div className="text-6xl">😿</div>
         <div className="grid gap-2">
           <Heading level={2}>Something went wrong</Heading>
-          <Text tone="muted">Scan Chan encountered an unexpected problem. Don't worry, your progress is safe!</Text>
+          <Text tone="muted">Scan Chan encountered an unexpected problem. Don&apos;t worry, your progress is safe!</Text>
         </div>
         {process.env.NODE_ENV === "development" && (
           <details className="rounded-xl bg-red-50 p-4 text-left text-sm">

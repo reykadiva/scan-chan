@@ -1,7 +1,0 @@
-interface:
-  display_name: "Scan Chan Core Rules"
-  short_description: "Permanent project engineering handbook"
-  default_prompt: "Use $scan-chan-core-rules to keep Scan Chan work aligned with project docs and core engineering rules."
-
-policy:
-  allow_implicit_invocation: true

@@ -1,1 +1,0 @@
-export { createTestAppContainer } from './bootstrap';
