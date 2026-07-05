@@ -20,11 +20,48 @@ const rendererTargets: readonly Extract<MascotAnimationAdapterTarget, "pixel-spr
 ]
 
 export function HomeHubClient() {
-  const pet = usePetStore()
-  const scanner = useScannerStore()
-  const inventory = useInventoryStore()
-  const settings = useSettingsStore()
-  const profile = useProfileStore()
+  // ponytail: narrow selectors prevent re-renders when unrelated state changes
+  const pet = usePetStore(state => ({
+    isInitialized: state.isInitialized,
+    hasHydrated: state.hasHydrated,
+    name: state.name,
+    stage: state.stage,
+    hunger: state.hunger,
+    mood: state.mood,
+    energy: state.energy,
+    affection: state.affection,
+    curiosity: state.curiosity,
+    personality: state.personality,
+    memories: state.memories,
+    lifecycle: state.lifecycle,
+    status: state.status,
+    feedings: state.feedings,
+  }))
+  
+  const scanner = useScannerStore(state => ({
+    isInitialized: state.isInitialized,
+    scanState: state.scanState,
+    lastBarcode: state.lastBarcode,
+    errorMessage: state.errorMessage,
+  }))
+  
+  const inventory = useInventoryStore(state => ({
+    isInitialized: state.isInitialized,
+    items: state.items,
+  }))
+  
+  const settings = useSettingsStore(state => ({
+    isInitialized: state.isInitialized,
+    hasHydrated: state.hasHydrated,
+    reducedMotion: state.reducedMotion,
+  }))
+  
+  const profile = useProfileStore(state => ({
+    isInitialized: state.isInitialized,
+    mode: state.mode,
+    nickname: state.nickname,
+  }))
+  
   const now = getHomeHubSnapshotTime(pet.feedings, pet.memories)
 
   React.useEffect(() => {

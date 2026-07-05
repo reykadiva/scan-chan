@@ -78,6 +78,9 @@ export function ScannerClient() {
   const coordinatorRef = useRef<CameraSessionCoordinator | null>(null)
   const lastScannedAtRef = useRef<number | null>(null)
   const decodingLoopRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // ponytail: simple Map cache, no TTL needed (products don't change during session)
+  const productCacheRef = useRef<Map<string, unknown>>(new Map())
 
   const blocked = permissionState === "denied"
   const unavailable = errorMessage === "camera-unavailable"
@@ -299,11 +302,16 @@ export function ScannerClient() {
                 currentXp: gameStore.xp,
                 now: Date.now(),
                 lookup: async (code) => {
+                  // ponytail: check cache first
+                  const cached = productCacheRef.current.get(code);
+                  if (cached) return cached;
+                  
                   try {
                     const response = await fetch(`/api/products/${code}`)
                     if (response.ok) {
                       const resJson = await response.json()
                       if (resJson.success && resJson.data) {
+                        productCacheRef.current.set(code, resJson.data);
                         return resJson.data
                       }
                     }
