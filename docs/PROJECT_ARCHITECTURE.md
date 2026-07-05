@@ -134,7 +134,7 @@ These patterns are **strictly forbidden** and must never appear in the Scan Chan
 ### 2.1 Root Structure
 
 ```
-barcode-adventure/
+scan-chan/
 ├── docs/                          # All project documentation (single source of truth)
 ├── prisma/                        # Database schema, migrations, seeds
 ├── public/                        # Static assets served at root

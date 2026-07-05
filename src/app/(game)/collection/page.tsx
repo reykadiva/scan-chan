@@ -7,7 +7,7 @@ const InventoryClient = dynamic(() => import('./inventory-client').then(mod => (
 });
 
 export const metadata = {
-  title: 'Inventory - Barcode Adventure',
+  title: 'Inventory - Scan Chan',
   description: 'Your collection of foods, decorations, products, and items gathered for Scan Chan.',
 };
 

@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
+### Changed
+
+- **Project rename to Scan Chan** - Finalized project rename cleanup. Updated legacy references: removed "Barcode Adventure" from collection page metadata (now "Inventory - Scan Chan"), removed "Barcode Adventure" fallback from E2E title test, updated folder structure example in PROJECT_ARCHITECTURE.md from `barcode-adventure/` to `scan-chan/`. Historical references in CHANGELOG.md v1.0.0 section and SPRINT_BOOK.md deprecated terminology table preserved for record. Git remote already pointed to `https://github.com/reykadiva/scan-chan.git`, package.json already named `scan-chan`, folder already renamed. All validation passes (lint, typecheck, test, build).
+
 ### Planned for v2.0.0
 
 - Complete game redesign as virtual pet experience

@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Application Launch', () => {
   test('should load the application successfully', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/Scan Chan|Barcode Adventure/);
+    await expect(page).toHaveTitle(/Scan Chan/);
     await expect(page.locator('body')).toBeVisible();
   });
 
