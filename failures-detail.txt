@@ -1,0 +1,280 @@
+﻿
+>   1) tests\e2e\03-scanner.spec.ts:24:7 ΓÇ║ Scanner Page ΓÇ║ should display scanner controls 
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('complementary', { name: /scanner controls/i })
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('complementary', { name: /scanner controls/i })
+  
+  
+        24 |   test('should display scanner controls', async ({ page }) => {
+        25 |     const controls = page.getByRole('complementary', { name: /scanner controls/i });
+>   2) tests\e2e\03-scanner.spec.ts:29:7 ΓÇ║ Scanner Page ΓÇ║ should have start camera button 
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('button', { name: /start camera/i })
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('button', { name: /start camera/i })
+  
+  
+        29 |   test('should have start camera button', async ({ page }) => {
+        30 |     const startButton = page.getByRole('button', { name: /start camera/i });
+>   3) tests\e2e\03-scanner.spec.ts:39:7 ΓÇ║ Scanner Page ΓÇ║ should have close scanner button 
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('button', { name: /close scanner/i })
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('button', { name: /close scanner/i })
+  
+  
+        39 |   test('should have close scanner button', async ({ page }) => {
+        40 |     const closeButton = page.getByRole('button', { name: /close scanner/i });
+>   4) tests\e2e\03-scanner.spec.ts:44:7 ΓÇ║ Scanner Page ΓÇ║ should navigate back to home when close button clicked 
+  
+      Test timeout of 30000ms exceeded.
+  
+      Error: locator.click: Test timeout of 30000ms exceeded.
+      Call log:
+        - waiting for getByRole('button', { name: /close scanner/i })
+  
+  
+        44 |   test('should navigate back to home when close button clicked', async ({ page }) => {
+        45 |     const closeButton = page.getByRole('button', { name: /close scanner/i });
+      > 46 |     await closeButton.click();
+           |                       ^
+        47 |     await page.waitForLoadState('networkidle');
+        48 |     
+        49 |     expect(page.url()).toContain('/home');
+>   5) tests\e2e\04-collection.spec.ts:29:7 ΓÇ║ Collection/Inventory Page ΓÇ║ should display search bar ΓöÇΓöÇ
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('searchbox', { name: /search items/i })
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('searchbox', { name: /search items/i })
+  
+  
+        29 |   test('should display search bar', async ({ page }) => {
+        30 |     const searchBox = page.getByRole('searchbox', { name: /search items/i });
+>   6) tests\e2e\04-collection.spec.ts:47:7 ΓÇ║ Collection/Inventory Page ΓÇ║ should display inventory grid 
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('grid', { name: /inventory items grid/i })
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('grid', { name: /inventory items grid/i })
+  
+  
+        47 |   test('should display inventory grid', async ({ page }) => {
+        48 |     const grid = page.getByRole('grid', { name: /inventory items grid/i });
+>   7) tests\e2e\04-collection.spec.ts:52:7 ΓÇ║ Collection/Inventory Page ΓÇ║ should display item details sidebar 
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('complementary', { name: /item details/i })
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('complementary', { name: /item details/i })
+  
+  
+        52 |   test('should display item details sidebar', async ({ page }) => {
+        53 |     const sidebar = page.getByRole('complementary', { name: /item details/i });
+>   8) tests\e2e\04-collection.spec.ts:57:7 ΓÇ║ Collection/Inventory Page ΓÇ║ should allow filtering by category 
+  
+      Error: expect(received).toBe(expected) // Object.is equality
+  
+      Expected: "true"
+      Received: "false"
+  
+        60 |     
+        61 |     const selected = await foodsTab.getAttribute('aria-selected');
+      > 62 |     expect(selected).toBe('true');
+           |                      ^
+        63 |   });
+        64 |
+        65 |   test('should allow searching items', async ({ page }) => {
+          at C:\Barcode Adventure\barcode-adventure\tests\e2e\04-collection.spec.ts:62:22
+  
+>   9) tests\e2e\04-collection.spec.ts:65:7 ΓÇ║ Collection/Inventory Page ΓÇ║ should allow searching items 
+  
+      Test timeout of 30000ms exceeded.
+  
+      Error: locator.fill: Test timeout of 30000ms exceeded.
+      Call log:
+        - waiting for getByRole('searchbox', { name: /search items/i })
+  
+  
+        65 |   test('should allow searching items', async ({ page }) => {
+        66 |     const searchBox = page.getByRole('searchbox', { name: /search items/i });
+      > 67 |     await searchBox.fill('apple');
+           |                     ^
+        68 |     await page.waitForTimeout(300);
+        69 |     
+        70 |     const value = await searchBox.inputValue();
+>   10) tests\e2e\05-achievements.spec.ts:39:7 ΓÇ║ Achievements Page ΓÇ║ should display achievement progress 
+  
+      Error: expect(locator).toBeVisible() failed
+  
+      Locator: getByRole('progressbar').first()
+      Expected: visible
+      Timeout: 5000ms
+      Error: element(s) not found
+  
+      Call log:
+        - Expect "toBeVisible" with timeout 5000ms
+        - waiting for getByRole('progressbar').first()
+  
+  
+        39 |   test('should display achievement progress', async ({ page }) => {
+        40 |     const progressBar = page.getByRole('progressbar').first();
+>   11) tests\e2e\05-achievements.spec.ts:44:7 ΓÇ║ Achievements Page ΓÇ║ should show lock/unlock status ΓöÇΓöÇ
+  
+      Error: expect(received).toBeTruthy()
+  
+      Received: false
+  
+        47 |     
+        48 |     const hasStatus = content?.includes('Locked') || content?.includes('Unlocked');
+      > 49 |     expect(hasStatus).toBeTruthy();
+           |                       ^
+        50 |   });
+        51 | });
+        52 |
+          at C:\Barcode Adventure\barcode-adventure\tests\e2e\05-achievements.spec.ts:49:23
+  
+      Error Context: test-results\05-achievements-Achievemen-c2a4c-uld-show-lock-unlock-status\error-context.md
+>   12) tests\e2e\08-persistence.spec.ts:20:7 ΓÇ║ State Persistence ΓÇ║ should persist pet stats in localStorage 
+  
+      Error: expect(received).toBeTruthy()
+  
+      Received: null
+  
+        26 |     });
+        27 |
+      > 28 |     expect(localStorage).toBeTruthy();
+           |                          ^
+        29 |     
+        30 |     const petStore = JSON.parse(localStorage || '{}');
+        31 |     expect(petStore.state).toBeDefined();
+          at C:\Barcode Adventure\barcode-adventure\tests\e2e\08-persistence.spec.ts:28:26
+  
+      Error Context: test-results\08-persistence-State-Persi-27db8-t-pet-stats-in-localStorage\error-context.md
+>   13) tests\e2e\08-persistence.spec.ts:34:7 ΓÇ║ State Persistence ΓÇ║ should persist game progress in localStorage 
+  
+      Error: expect(received).toBeTruthy()
+  
+      Received: null
+  
+        40 |     });
+        41 |
+      > 42 |     expect(localStorage).toBeTruthy();
+           |                          ^
+        43 |     
+        44 |     const gameStore = JSON.parse(localStorage || '{}');
+        45 |     expect(gameStore.state).toBeDefined();
+          at C:\Barcode Adventure\barcode-adventure\tests\e2e\08-persistence.spec.ts:42:26
+  
+      Error Context: test-results\08-persistence-State-Persi-27248-me-progress-in-localStorage\error-context.md
+>   14) tests\e2e\08-persistence.spec.ts:48:7 ΓÇ║ State Persistence ΓÇ║ should persist inventory in localStorage 
+  
+      Error: expect(received).toBeTruthy()
+  
+      Received: null
+  
+        54 |     });
+        55 |
+      > 56 |     expect(localStorage).toBeTruthy();
+           |                          ^
+        57 |     
+        58 |     const inventoryStore = JSON.parse(localStorage || '{}');
+        59 |     expect(inventoryStore.state).toBeDefined();
+          at C:\Barcode Adventure\barcode-adventure\tests\e2e\08-persistence.spec.ts:56:26
+  
+      Error Context: test-results\08-persistence-State-Persi-cd312-t-inventory-in-localStorage\error-context.md
+>   15) tests\e2e\10-keyboard-navigation.spec.ts:36:7 ΓÇ║ Keyboard Navigation ΓÇ║ should activate buttons with Enter 
+key 
+  
+      Test timeout of 30000ms exceeded.
+  
+      Error: locator.focus: Test timeout of 30000ms exceeded.
+      Call log:
+        - waiting for getByRole('button', { name: /start camera/i })
+  
+  
+        39 |
+        40 |     const startButton = page.getByRole('button', { name: /start camera/i });
+      > 41 |     await startButton.focus();
+           |                       ^
+        42 |     
+        43 |     const isFocused = await startButton.evaluate(el => el === document.activeElement);
+        44 |     expect(isFocused).toBeTruthy();
+>   16) tests\e2e\11-accessibility.spec.ts:44:7 ΓÇ║ Accessibility Smoke Tests ΓÇ║ should have aria-labels on 
+interactive elements 
+  
+      Test timeout of 30000ms exceeded.
+  
+      Error: locator.getAttribute: Test timeout of 30000ms exceeded.
+      Call log:
+        - waiting for getByRole('searchbox')
+  
+  
+        47 |
+        48 |     const searchBox = page.getByRole('searchbox');
+      > 49 |     const label = await searchBox.getAttribute('aria-label');
+           |                                   ^
+        50 |     expect(label).toBeTruthy();
+        51 |   });
+        52 |
+>   17) tests\e2e\11-accessibility.spec.ts:53:7 ΓÇ║ Accessibility Smoke Tests ΓÇ║ should have landmarks on all pages 
+  
+      Error: expect(received).toBeTruthy()
+  
+      Received: false
+  
+        60 |       const main = page.getByRole('main');
+        61 |       const isVisible = await main.isVisible().catch(() => false);
+      > 62 |       expect(isVisible).toBeTruthy();
+           |                         ^
+        63 |     }
+        64 |   });
+        65 |
+          at C:\Barcode Adventure\barcode-adventure\tests\e2e\11-accessibility.spec.ts:62:25
+  
+      Error Context: test-results\11-accessibility-Accessibi-9502a-have-landmarks-on-all-pages\error-context.md
+
+

@@ -429,12 +429,12 @@ export function ScannerClient() {
                   <Text tone="muted" className="text-sm">Offer Scan Chan a real-world find.</Text>
                 </div>
               </Cluster>
-              <Button asChild aria-label="Close scanner and return to home" variant="outline" size="icon">
-                <Link href="/home">
+              <Link href="/home">
+                <Button aria-label="Close scanner and return to home" variant="outline" size="icon">
                   <X className="size-4" />
                   <span className="sr-only">Close scanner</span>
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </header>
 
             <main className="grid flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]" aria-labelledby="scanner-title">

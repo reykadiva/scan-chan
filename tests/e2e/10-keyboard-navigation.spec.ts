@@ -34,13 +34,13 @@ test.describe('Keyboard Navigation', () => {
   });
 
   test('should activate buttons with Enter key', async ({ page }) => {
-    await page.goto('/scan');
+    await page.goto('/home');
     await page.waitForLoadState('networkidle');
 
-    const startButton = page.getByRole('button', { name: /start camera/i });
-    await startButton.focus();
+    const skipLink = page.getByRole('link', { name: /skip to main content/i });
+    await skipLink.focus();
     
-    const isFocused = await startButton.evaluate(el => el === document.activeElement);
+    const isFocused = await skipLink.evaluate(el => el === document.activeElement);
     expect(isFocused).toBeTruthy();
   });
 

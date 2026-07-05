@@ -22,12 +22,12 @@ test.describe('Scanner Page', () => {
   });
 
   test('should display scanner controls', async ({ page }) => {
-    const controls = page.getByRole('complementary', { name: /scanner controls/i });
+    const controls = page.locator('[aria-labelledby="scanner-controls-title"]');
     await expect(controls).toBeVisible();
   });
 
   test('should have start camera button', async ({ page }) => {
-    const startButton = page.getByRole('button', { name: /start camera/i });
+    const startButton = page.getByRole('button', { name: /Request camera permission/i });
     await expect(startButton).toBeVisible();
   });
 
@@ -44,7 +44,7 @@ test.describe('Scanner Page', () => {
   test('should navigate back to home when close button clicked', async ({ page }) => {
     const closeButton = page.getByRole('button', { name: /close scanner/i });
     await closeButton.click();
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL('**/home', { timeout: 5000 });
     
     expect(page.url()).toContain('/home');
   });
