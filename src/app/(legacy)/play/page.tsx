@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId } from '@/components/legacy/pixel-cat';
 import { usePlayerStore } from '@/stores/legacy/player-store';
@@ -136,12 +136,32 @@ export default function GameHubPage() {
 
   if (!mounted || mode === null) {
     return (
-      <div className="min-h-screen bg-mesh-soft flex items-center justify-center">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-          className="w-12 h-12 rounded-full border-4 border-brand-cyan border-t-transparent"
-        />
+      <div className="min-h-screen bg-mesh-soft pb-24 relative p-4 space-y-6 max-w-5xl mx-auto mt-8">
+        {/* Profile Card Skeleton */}
+        <div className="card-bubbly bg-white/60 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-slate-200 rounded-2xl" />
+            <div className="space-y-2">
+              <div className="h-6 w-32 bg-slate-200 rounded-full" />
+              <div className="h-4 w-20 bg-slate-200 rounded-full" />
+            </div>
+          </div>
+          <div className="h-12 w-full sm:w-48 bg-slate-200 rounded-full" />
+        </div>
+
+        {/* Tab Controls Skeleton */}
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-10 w-28 bg-white/60 rounded-full shrink-0 animate-pulse" />
+          ))}
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="space-y-4 animate-pulse">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="card-bubbly bg-white/60 p-6 h-24 w-full" />
+          ))}
+        </div>
       </div>
     );
   }

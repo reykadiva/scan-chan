@@ -178,6 +178,15 @@
   animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+@keyframes scan-line {
+  0%, 100% { top: 8%; }
+  50% { top: 88%; }
+}
+
+.animate-scan-line {
+  animation: scan-line 2s ease-in-out infinite;
+}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;
