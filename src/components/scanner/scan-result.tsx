@@ -19,6 +19,9 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="absolute inset-0 bg-black/60 backdrop-blur-md flex items-end sm:items-center justify-center z-20 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="scan-result-title"
     >
       <motion.div
         initial={{ scale: 0.5, opacity: 0, y: 100 }}
@@ -31,18 +34,19 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
           <>
             {/* Found header */}
             <div className="bg-brand-mint p-6 flex items-center gap-4 relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none" />
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none" aria-hidden="true" />
               <motion.div
                 initial={{ scale: 0, rotate: -45 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 400, bounce: 0.6 }}
                 className="w-14 h-14 bg-white rounded-[1.2rem] flex items-center justify-center shrink-0 shadow-sm"
+                aria-hidden="true"
               >
                 <Check className="w-8 h-8 text-emerald-500" strokeWidth={4} />
               </motion.div>
               <div className="relative z-10">
                 <p className="text-emerald-900 text-xs font-nunito font-bold uppercase tracking-widest mb-1">Found It!</p>
-                <h3 className="text-slate-800 font-fredoka font-bold text-xl leading-tight line-clamp-1">{product.productName}</h3>
+                <h3 id="scan-result-title" className="text-slate-800 font-fredoka font-bold text-xl leading-tight line-clamp-1">{product.productName}</h3>
               </div>
             </div>
 
@@ -57,6 +61,7 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
                     <motion.div
                       animate={{ y: [0, -5, 0] }}
                       transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                      aria-hidden="true"
                     >
                       <Package className="w-12 h-12 text-brand-cyan" strokeWidth={1.5} />
                     </motion.div>
@@ -88,15 +93,17 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
               <button
                 onClick={onScanAgain}
                 className="btn-bubbly flex-1 py-4 bg-slate-100 text-slate-700 hover:bg-slate-200 flex items-center justify-center gap-2 text-sm"
+                aria-label="Scan another barcode"
               >
-                <ScanLine className="w-5 h-5" />
+                <ScanLine className="w-5 h-5" aria-hidden="true" />
                 Scan Again
               </button>
               <Link
                 href={`/product/${product.barcodeNumber}`}
                 className="btn-bubbly flex-1 py-4 bg-brand-cyan text-white flex items-center justify-center gap-2 text-sm"
+                aria-label={`View details for ${product.productName}`}
               >
-                <Eye className="w-5 h-5" />
+                <Eye className="w-5 h-5" aria-hidden="true" />
                 Details
               </Link>
             </div>
@@ -105,18 +112,19 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
           <>
             {/* Not found header */}
             <div className="bg-brand-pink p-6 flex items-center gap-4 relative overflow-hidden">
-              <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-white/20 rounded-full blur-xl pointer-events-none" />
+              <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-white/20 rounded-full blur-xl pointer-events-none" aria-hidden="true" />
               <motion.div
                 initial={{ scale: 0, rotate: 45 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 400 }}
                 className="w-14 h-14 bg-white rounded-[1.2rem] flex items-center justify-center shrink-0 shadow-sm"
+                aria-hidden="true"
               >
                 <AlertTriangle className="w-8 h-8 text-pink-500" strokeWidth={3} />
               </motion.div>
               <div className="relative z-10">
                 <p className="text-pink-900 text-xs font-nunito font-bold uppercase tracking-widest mb-1">New Item!</p>
-                <h3 className="text-white font-fredoka font-bold text-xl leading-tight">Product Not Found</h3>
+                <h3 id="scan-result-title" className="text-white font-fredoka font-bold text-xl leading-tight">Product Not Found</h3>
               </div>
             </div>
 
@@ -136,15 +144,17 @@ export function ScanResult({ result, onScanAgain }: ScanResultProps) {
               <button
                 onClick={onScanAgain}
                 className="btn-bubbly flex-1 py-4 bg-slate-100 text-slate-700 flex items-center justify-center gap-2 text-sm"
+                aria-label="Try scanning another barcode"
               >
-                <ScanLine className="w-5 h-5" />
+                <ScanLine className="w-5 h-5" aria-hidden="true" />
                 Try Again
               </button>
               <Link
                 href={`/play?register=${scanLog.barcodeNumber}`}
                 className="btn-bubbly flex-1 py-4 bg-brand-pink text-white flex items-center justify-center gap-2 text-sm"
+                aria-label={`Register barcode ${scanLog.barcodeNumber}`}
               >
-                <Plus className="w-5 h-5" strokeWidth={3} />
+                <Plus className="w-5 h-5" strokeWidth={3} aria-hidden="true" />
                 Register
               </Link>
             </div>

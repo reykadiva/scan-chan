@@ -429,7 +429,7 @@ export function ScannerClient() {
                   <Text tone="muted" className="text-sm">Offer Scan Chan a real-world find.</Text>
                 </div>
               </Cluster>
-              <Button asChild aria-label="Close scanner" variant="outline" size="icon">
+              <Button asChild aria-label="Close scanner and return to home" variant="outline" size="icon">
                 <Link href="/home">
                   <X className="size-4" />
                   <span className="sr-only">Close scanner</span>
@@ -460,14 +460,14 @@ export function ScannerClient() {
                     </StatusChip>
                     <Cluster>
                       <IconButton
-                        label="Switch camera"
+                        label="Switch to next camera"
                         variant="outline"
                         onClick={handleSwitchCamera}
                         disabled={devices.length <= 1}
                       >
                         <RefreshCw className="size-4" />
                       </IconButton>
-                      <IconButton label="Flash placeholder" variant="outline" disabled>
+                      <IconButton label="Toggle flash (not yet available)" variant="outline" disabled>
                         <Flashlight className="size-4" />
                       </IconButton>
                     </Cluster>
@@ -485,24 +485,24 @@ export function ScannerClient() {
                 </div>
               </SectionContainer>
 
-              <aside className="rounded-[1.5rem] bg-white/80 p-4 shadow-sm" aria-label="Scanner controls">
+              <aside className="rounded-[1.5rem] bg-white/80 p-4 shadow-sm" aria-labelledby="scanner-controls-title">
                 <Stack>
                   <div>
-                    <Heading id="scanner-title" level={2} className="text-lg">Camera Controls</Heading>
+                    <Heading id="scanner-controls-title" level={2} className="text-lg">Camera Controls</Heading>
                     <Text tone="muted" className="text-sm">Start scanning or toggle settings below.</Text>
                   </div>
-                  <Button onClick={handleRequestCamera} disabled={scanState === "scanning"}>
+                  <Button onClick={handleRequestCamera} disabled={scanState === "scanning"} aria-label="Request camera permission and start scanning">
                     <Camera className="size-4" />
                     Start Camera
                   </Button>
-                  <Button variant="outline" onClick={() => { setPermissionState("granted"); setScanState("scanning"); setErrorMessage(null) }}>
+                  <Button variant="outline" onClick={() => { setPermissionState("granted"); setScanState("scanning"); setErrorMessage(null) }} aria-label="Force scanner into scanning mode for testing">
                     Force Scan Mode
                   </Button>
-                  <Button variant="outline" onClick={() => setScanState("success")}>Success Mock</Button>
-                  <Button variant="outline" onClick={() => { setScanState("error"); setErrorMessage("Try moving the item into softer light.") }}>
+                  <Button variant="outline" onClick={() => setScanState("success")} aria-label="Simulate successful scan for testing">Success Mock</Button>
+                  <Button variant="outline" onClick={() => { setScanState("error"); setErrorMessage("Try moving the item into softer light.") }} aria-label="Simulate scan failure for testing">
                     Failure Mock
                   </Button>
-                  <Button variant="ghost" onClick={handleReset}>Reset Scanner</Button>
+                  <Button variant="ghost" onClick={handleReset} aria-label="Reset scanner state and release camera">Reset Scanner</Button>
                 </Stack>
               </aside>
             </main>
@@ -515,7 +515,7 @@ export function ScannerClient() {
 
 function ScannerFrame({ state }: { state: keyof typeof scannerStates }) {
   return (
-    <div className="absolute inset-0 grid place-items-center p-6 pointer-events-none">
+    <div className="absolute inset-0 grid place-items-center p-6 pointer-events-none" aria-hidden="true">
       <div className="relative aspect-[4/3] w-full max-w-xl rounded-[1.5rem] border border-white/15 bg-black/20">
         {["left-4 top-4 border-l-4 border-t-4", "right-4 top-4 border-r-4 border-t-4", "bottom-4 left-4 border-b-4 border-l-4", "bottom-4 right-4 border-b-4 border-r-4"].map((corner) => (
           <span key={corner} className={cn("absolute size-12 rounded-sm border-brand-cyan", corner)} />

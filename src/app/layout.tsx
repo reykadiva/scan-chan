@@ -40,6 +40,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${fredoka.variable} ${nunito.variable} font-nunito antialiased bg-mesh-soft min-h-[100dvh]`}>
         <SkipNav />
+        <div id="announcer" role="status" aria-live="polite" aria-atomic="true" className="sr-only" />
         {children}
         <Toaster richColors position="top-right" />
         <Analytics />

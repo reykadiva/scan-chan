@@ -10,16 +10,18 @@ export default function MissionsPage() {
   const completedMissions = missions.filter(m => m.completed);
 
   return (
-    <div style={{ padding: '1rem' }}>
+    <main style={{ padding: '1rem' }}>
       <h1 style={{ marginBottom: '1rem' }}>Missions</h1>
       
       {activeMissions.length > 0 && (
-        <>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Active</h2>
-          <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }}>
+        <section aria-labelledby="active-missions">
+          <h2 id="active-missions" style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Active</h2>
+          <div style={{ display: 'grid', gap: '0.75rem', marginBottom: '1.5rem' }} role="list">
             {activeMissions.map(mission => (
               <div
                 key={mission.id}
+                role="listitem"
+                aria-label={`${mission.name}. ${mission.description}. Progress ${mission.progress} of ${mission.target}. Reward ${mission.rewardXp} XP`}
                 style={{
                   padding: '1rem',
                   border: '1px solid #ddd',
@@ -28,7 +30,7 @@ export default function MissionsPage() {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <h3 style={{ margin: 0, fontSize: '1.125rem' }}>{mission.name}</h3>
-                  <span style={{ fontSize: '0.875rem', color: '#666' }}>
+                  <span style={{ fontSize: '0.875rem', color: '#666' }} aria-label={mission.type === 'daily' ? 'Daily mission' : 'Weekly mission'}>
                     {mission.type === 'daily' ? '📅 Daily' : '📆 Weekly'}
                   </span>
                 </div>
@@ -42,16 +44,18 @@ export default function MissionsPage() {
               </div>
             ))}
           </div>
-        </>
+        </section>
       )}
 
       {completedMissions.length > 0 && (
-        <>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Completed</h2>
-          <div style={{ display: 'grid', gap: '0.75rem' }}>
+        <section aria-labelledby="completed-missions">
+          <h2 id="completed-missions" style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Completed</h2>
+          <div style={{ display: 'grid', gap: '0.75rem' }} role="list">
             {completedMissions.map(mission => (
               <div
                 key={mission.id}
+                role="listitem"
+                aria-label={`${mission.name}. Completed. ${mission.rewardXp} XP earned`}
                 style={{
                   padding: '1rem',
                   border: '1px solid #ddd',
@@ -68,7 +72,7 @@ export default function MissionsPage() {
               </div>
             ))}
           </div>
-        </>
+        </section>
       )}
 
       {activeMissions.length === 0 && completedMissions.length === 0 && (
@@ -76,6 +80,6 @@ export default function MissionsPage() {
           No missions available. Check back later!
         </p>
       )}
-    </div>
+    </main>
   );
 }

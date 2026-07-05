@@ -8,9 +8,9 @@ export default function AchievementsPage() {
   const unlockedAchievements = useGameStore(state => state.unlockedAchievements);
 
   return (
-    <div style={{ padding: '1rem' }}>
+    <main style={{ padding: '1rem' }}>
       <h1 style={{ marginBottom: '1rem' }}>Achievements</h1>
-      <div style={{ display: 'grid', gap: '0.75rem' }}>
+      <div style={{ display: 'grid', gap: '0.75rem' }} role="list">
         {BASE_ACHIEVEMENTS.map(achievement => {
           const progress = achievementProgress[achievement.key];
           const isUnlocked = unlockedAchievements.includes(achievement.key);
@@ -18,6 +18,8 @@ export default function AchievementsPage() {
           return (
             <div
               key={achievement.key}
+              role="listitem"
+              aria-label={`${achievement.name}: ${achievement.description}. Progress ${progress?.progress ?? 0} of ${achievement.threshold}. ${isUnlocked ? 'Unlocked' : 'Locked'}`}
               style={{
                 padding: '1rem',
                 border: '1px solid #ddd',
@@ -26,7 +28,7 @@ export default function AchievementsPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '2rem' }}>{achievement.emoji}</span>
+                <span style={{ fontSize: '2rem' }} aria-hidden="true">{achievement.emoji}</span>
                 <div style={{ flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '1.125rem' }}>{achievement.name}</h3>
                   <p style={{ margin: 0, fontSize: '0.875rem', color: '#666' }}>{achievement.description}</p>
@@ -40,6 +42,6 @@ export default function AchievementsPage() {
           );
         })}
       </div>
-    </div>
+    </main>
   );
 }

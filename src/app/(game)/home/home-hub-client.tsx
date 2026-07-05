@@ -135,22 +135,24 @@ function MascotPlaceholder({ viewModel }: { viewModel: HomeHubViewModel }) {
   const runtime = viewModel.mascotRuntime
 
   return (
-    <Panel aria-label="Mascot runtime placeholder" className="grid min-h-[22rem] place-items-center p-5 sm:min-h-[28rem]">
+    <Panel aria-label="Mascot display showing current emotion and animation state" className="grid min-h-[22rem] place-items-center p-5 sm:min-h-[28rem]">
       <div className="grid w-full max-w-md place-items-center gap-5 text-center">
         <div
           data-mascot-runtime-slot
           data-animation-intent={runtime?.animationIntent.name}
           data-expression={runtime?.expression}
           className="grid aspect-square w-44 place-items-center rounded-[2rem] border border-dashed border-primary/30 bg-primary/5 sm:w-56"
+          role="img"
+          aria-label={`${viewModel.pet?.name ?? "Pet"} is feeling ${runtime?.emotion ?? "content"} with ${runtime?.expression ?? "neutral"} expression`}
         >
-          <span className="font-heading text-lg font-semibold">Renderer attaches here</span>
+          <span className="font-heading text-lg font-semibold" aria-hidden="true">Renderer attaches here</span>
         </div>
         <Stack className="items-center gap-2">
           <Text tone="strong">{runtime?.emotion ?? "content"} / {runtime?.expression ?? "neutral"}</Text>
           <Text tone="muted">Intent: {runtime?.animationIntent.name ?? "idle"} ({runtime?.animationIntent.intensity ?? "ambient"})</Text>
-          <Cluster className="justify-center">
+          <Cluster className="justify-center" role="list" aria-label="Available renderer targets">
             {rendererTargets.map((target) => (
-              <StatusChip key={target} tone="neutral" data-renderer-target={target}>
+              <StatusChip key={target} tone="neutral" data-renderer-target={target} role="listitem">
                 {target}
               </StatusChip>
             ))}

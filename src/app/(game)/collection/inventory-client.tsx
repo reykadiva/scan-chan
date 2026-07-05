@@ -238,12 +238,6 @@ export function InventoryClient() {
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
   };
 
-  // Simulate loading state toggle for UX demonstration
-  const triggerSimulationLoading = () => {
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 800);
-  };
-
   return (
     <AppShell>
       <SafeArea>
@@ -252,16 +246,9 @@ export function InventoryClient() {
             <Stack className="gap-6">
               
               {/* Header Title & Action controls */}
-              <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <Heading level={1} id="inventory-title">Your Things</Heading>
-                  <Text tone="muted">Organize, customize, and view items scanned for Scan Chan.</Text>
-                </div>
-                <Cluster className="mt-2 md:mt-0">
-                  <Button variant="outline" size="sm" onClick={triggerSimulationLoading}>
-                    Simulate Load
-                  </Button>
-                </Cluster>
+              <header>
+                <Heading level={1} id="inventory-title">Your Things</Heading>
+                <Text tone="muted">Organize, customize, and view items scanned for Scan Chan.</Text>
               </header>
 
               {/* Feedback Message Banner */}
@@ -272,52 +259,55 @@ export function InventoryClient() {
               )}
 
               {/* Statistics & Capacity Dashboard Cards */}
-              <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Inventory Metrics">
-                <Panel className="flex flex-col justify-between p-4">
-                  <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Total Items</Text>
-                  <Text className="mt-2 text-3xl font-bold">{viewModel.statistics.totalItemsCount}</Text>
-                  <Text tone="muted" className="mt-1 text-xs">Sum of all item stacks</Text>
-                </Panel>
-                <Panel className="flex flex-col justify-between p-4">
-                  <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Unique Stacks</Text>
-                  <Text className="mt-2 text-3xl font-bold">{viewModel.statistics.totalStacksCount}</Text>
-                  <Text tone="muted" className="mt-1 text-xs">Active slots occupied</Text>
-                </Panel>
-                <Panel className="flex flex-col justify-between p-4">
-                  <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Food & Care</Text>
-                  <Text className="mt-2 text-3xl font-bold">{viewModel.statistics.typeCounts.food}</Text>
-                  <Text tone="muted" className="mt-1 text-xs">Ready for feeding Scan Chan</Text>
-                </Panel>
+              <section aria-labelledby="inventory-metrics-title">
+                <h2 id="inventory-metrics-title" className="sr-only">Inventory Metrics</h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  <Panel className="flex flex-col justify-between p-4" aria-label={`Total items: ${viewModel.statistics.totalItemsCount}`}>
+                    <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Total Items</Text>
+                    <Text className="mt-2 text-3xl font-bold">{viewModel.statistics.totalItemsCount}</Text>
+                    <Text tone="muted" className="mt-1 text-xs">Sum of all item stacks</Text>
+                  </Panel>
+                  <Panel className="flex flex-col justify-between p-4" aria-label={`Unique stacks: ${viewModel.statistics.totalStacksCount}`}>
+                    <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Unique Stacks</Text>
+                    <Text className="mt-2 text-3xl font-bold">{viewModel.statistics.totalStacksCount}</Text>
+                    <Text tone="muted" className="mt-1 text-xs">Active slots occupied</Text>
+                  </Panel>
+                  <Panel className="flex flex-col justify-between p-4" aria-label={`Food and care items: ${viewModel.statistics.typeCounts.food}`}>
+                    <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Food & Care</Text>
+                    <Text className="mt-2 text-3xl font-bold">{viewModel.statistics.typeCounts.food}</Text>
+                    <Text tone="muted" className="mt-1 text-xs">Ready for feeding Scan Chan</Text>
+                  </Panel>
 
-                {/* Capacity progress indicator */}
-                <Panel className="flex flex-col justify-between p-4">
-                  <Cluster className="justify-between">
-                    <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Slot Capacity</Text>
-                    {viewModel.capacitySummary.isFull && (
-                      <StatusChip tone="attention">Full</StatusChip>
-                    )}
-                  </Cluster>
-                  <div className="mt-2 flex items-baseline gap-1">
-                    <span className="text-3xl font-bold">{viewModel.capacitySummary.used}</span>
-                    <span className="text-sm tone-muted">/ {viewModel.capacitySummary.total}</span>
-                  </div>
-                  <div className="mt-2">
-                    <ProgressBar value={viewModel.capacitySummary.percentage} />
-                  </div>
-                </Panel>
+                  {/* Capacity progress indicator */}
+                  <Panel className="flex flex-col justify-between p-4" aria-label={`Capacity: ${viewModel.capacitySummary.used} of ${viewModel.capacitySummary.total} slots used`}>
+                    <Cluster className="justify-between">
+                      <Text tone="muted" className="text-xs font-semibold uppercase tracking-wider">Slot Capacity</Text>
+                      {viewModel.capacitySummary.isFull && (
+                        <StatusChip tone="attention">Full</StatusChip>
+                      )}
+                    </Cluster>
+                    <div className="mt-2 flex items-baseline gap-1">
+                      <span className="text-3xl font-bold">{viewModel.capacitySummary.used}</span>
+                      <span className="text-sm tone-muted">/ {viewModel.capacitySummary.total}</span>
+                    </div>
+                    <div className="mt-2">
+                      <ProgressBar value={viewModel.capacitySummary.percentage} label="Inventory capacity" />
+                    </div>
+                  </Panel>
+                </div>
               </section>
 
               {/* Filtering, Search & Sorting Controls bar */}
-              <Surface className="grid gap-4 p-4 md:grid-cols-[1fr_auto_auto]">
+              <Surface className="grid gap-4 p-4 md:grid-cols-[1fr_auto_auto]" role="search">
                 {/* Search query input */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
                     className="pl-9"
                     placeholder="Search by name..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    aria-label="Search items"
+                    aria-label="Search items by name"
                   />
                 </div>
 
@@ -327,7 +317,7 @@ export function InventoryClient() {
                     value={sortBy}
                     onValueChange={(val) => setSortBy(val as 'type' | 'quantity' | 'itemKey' | 'id')}
                   >
-                    <SelectTrigger className="w-[140px]" aria-label="Sort by">
+                    <SelectTrigger className="w-[140px]" aria-label="Sort items by">
                       <SelectValue placeholder="Sort key" />
                     </SelectTrigger>
                     <SelectContent>
@@ -340,7 +330,7 @@ export function InventoryClient() {
                   <IconButton
                     variant="outline"
                     onClick={handleToggleSortOrder}
-                    label="Toggle sort order"
+                    label={`Toggle sort order, current: ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
                   >
                     <ArrowUpDown className="h-4 w-4" />
                   </IconButton>
@@ -358,7 +348,7 @@ export function InventoryClient() {
 
               {/* Category selector tabs */}
               <nav aria-label="Filter items by category">
-                <Cluster className="gap-2">
+                <Cluster className="gap-2" role="tablist">
                   {[
                     { value: 'all', label: 'All Things' },
                     { value: 'food', label: 'Foods' },
@@ -373,9 +363,12 @@ export function InventoryClient() {
                         key={tab.value}
                         variant={isActive ? 'default' : 'outline'}
                         size="sm"
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-controls="inventory-grid"
                         onClick={() => {
                           setFilterType(tab.value as InventoryItemType | 'all');
-                          setSelectedItemId(null); // Clear selected item on tab change
+                          setSelectedItemId(null);
                         }}
                       >
                         {tab.label}
@@ -403,12 +396,14 @@ export function InventoryClient() {
                   ) : (
                     /* The Grid representation */
                     <div
+                      id="inventory-grid"
                       className="grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-5"
                       data-dnd-container="inventory-grid"
+                      role="grid"
+                      aria-label="Inventory items grid"
                     >
                       {viewModel.items.map((item) => {
                         const isSelected = selectedItemId === item.id;
-                        // Select palette based on cat variant mappings
                         const catVariant = (item.type === 'food' ? 'calico' : item.type === 'furniture' ? 'tabby' : 'cyan') as CatVariantId;
                         
                         return (
@@ -417,6 +412,7 @@ export function InventoryClient() {
                             data-dnd-draggable-id={item.dragAndDropData.dragId}
                             onClick={() => setSelectedItemId(isSelected ? null : item.id)}
                             className="group relative cursor-pointer"
+                            role="gridcell"
                           >
                             <Card
                               className={`aspect-square overflow-hidden border-2 transition-all hover:shadow-md ${
@@ -425,10 +421,10 @@ export function InventoryClient() {
                                   : 'border-transparent'
                               }`}
                               style={{ backgroundColor: '#FFFDF9' }}
+                              aria-label={`${item.displayName}, quantity ${item.quantity}, ${item.type}`}
                             >
                               <CardContent className="flex h-full flex-col items-center justify-center p-3 text-center">
-                                {/* Cat mascot decoration representation */}
-                                <div className="h-16 w-16 transition-transform group-hover:scale-105">
+                                <div className="h-16 w-16 transition-transform group-hover:scale-105" aria-hidden="true">
                                   <PixelCat variant={catVariant} action={item.type === 'food' ? 'rewards' : 'none'} />
                                 </div>
                                 <span className="mt-2 block truncate text-xs font-semibold text-slate-700 w-full">
@@ -438,7 +434,7 @@ export function InventoryClient() {
                             </Card>
 
                             {/* Stacking Quantity Indicator Badge */}
-                            <div className="absolute right-2 top-2">
+                            <div className="absolute right-2 top-2" aria-hidden="true">
                               <span className="rounded-full bg-slate-800/90 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                                 {item.stackSizeDescription}
                               </span>
@@ -452,8 +448,10 @@ export function InventoryClient() {
                         <div
                           key={`empty-slot-${i}`}
                           className="flex aspect-square items-center justify-center rounded-[20px] border-2 border-dashed border-slate-200 bg-slate-50/50 text-slate-300"
+                          role="gridcell"
+                          aria-label="Empty inventory slot"
                         >
-                          <Plus className="h-5 w-5" />
+                          <Plus className="h-5 w-5" aria-hidden="true" />
                         </div>
                       ))}
                     </div>
@@ -461,16 +459,17 @@ export function InventoryClient() {
                 </div>
 
                 {/* Selected Item Detail Sidebar Panel */}
-                <aside aria-label="Item details panel">
+                <aside aria-labelledby="item-details-title">
                   {viewModel.selectedItem ? (
                     <Surface className="grid gap-4 p-5">
                       <div className="flex items-start justify-between">
                         <div>
-                          <Heading level={3}>{viewModel.selectedItem.displayName}</Heading>
+                          <Heading id="item-details-title" level={3}>{viewModel.selectedItem.displayName}</Heading>
                           <Cluster className="mt-1">
                             <span
                               className="inline-block h-3 w-3 rounded-full"
                               style={{ backgroundColor: viewModel.selectedItem.rarityColor }}
+                              aria-hidden="true"
                             />
                             <span className="text-xs font-semibold capitalize text-slate-500">
                               {viewModel.selectedItem.type}
@@ -483,7 +482,7 @@ export function InventoryClient() {
                       </div>
 
                       {/* Mascot visual preview */}
-                      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 p-4">
+                      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 p-4" aria-hidden="true">
                         <div className="h-28 w-28">
                           <PixelCat
                             variant={viewModel.selectedItem.type === 'food' ? 'calico' : 'tabby'}
@@ -511,6 +510,7 @@ export function InventoryClient() {
                             className="flex-1"
                             disabled={!viewModel.selectedItem.canUse}
                             onClick={() => handleUseItem(viewModel.selectedItem!)}
+                            aria-label={viewModel.selectedItem.type === 'food' || viewModel.selectedItem.type === 'product' ? `Feed ${viewModel.selectedItem.displayName} to pet` : `Use ${viewModel.selectedItem.displayName}`}
                           >
                             {viewModel.selectedItem.type === 'food' || viewModel.selectedItem.type === 'product' ? 'Feed' : 'Use'}
                           </Button>
@@ -519,6 +519,7 @@ export function InventoryClient() {
                             size="sm"
                             className="flex-1"
                             onClick={() => handleInspectItem(viewModel.selectedItem!)}
+                            aria-label={`Inspect ${viewModel.selectedItem.displayName}`}
                           >
                             Inspect
                           </Button>
@@ -529,6 +530,7 @@ export function InventoryClient() {
                             size="sm"
                             className="flex-1"
                             onClick={() => handleFavoriteItem(viewModel.selectedItem!)}
+                            aria-label={`Mark ${viewModel.selectedItem.displayName} as favorite`}
                           >
                             Favorite
                           </Button>
@@ -538,6 +540,7 @@ export function InventoryClient() {
                             className="flex-1"
                             disabled={!viewModel.selectedItem.canDiscard}
                             onClick={() => handleDiscardItem(viewModel.selectedItem!)}
+                            aria-label={`Discard ${viewModel.selectedItem.displayName}`}
                           >
                             Discard
                           </Button>
@@ -547,7 +550,7 @@ export function InventoryClient() {
                   ) : (
                     /* Inviting panel fallback details when selection is empty */
                     <Surface className="flex flex-col items-center justify-center p-8 text-center min-h-[16rem]">
-                      <HelpCircle className="h-10 w-10 text-slate-300 mb-2" />
+                      <HelpCircle className="h-10 w-10 text-slate-300 mb-2" aria-hidden="true" />
                       <Text tone="strong" className="text-sm">No item selected</Text>
                       <Text tone="muted" className="text-xs mt-1 max-w-[14rem]">
                         Tap any grid slot or card item to view its details, statistics, and usable actions here.
