@@ -175,7 +175,16 @@ export const usePetStore = create<PetStoreState>()(
           furniture,
           persistenceMode,
         }),
-        onRehydrateStorage: () => (state) => state?.setHydrated(true),
+        onRehydrateStorage: () => {
+          return (state) => {
+            if (state) {
+              state.setHydrated(true);
+              if (!state.isInitialized) {
+                state.initialize();
+              }
+            }
+          };
+        },
       },
     ),
     { name: 'scan-chan-pet-store' },

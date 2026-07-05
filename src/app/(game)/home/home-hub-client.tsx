@@ -27,6 +27,18 @@ export function HomeHubClient() {
   const profile = useProfileStore()
   const now = getHomeHubSnapshotTime(pet.feedings, pet.memories)
 
+  React.useEffect(() => {
+    const petState = usePetStore.getState();
+    const settingsState = useSettingsStore.getState();
+    
+    if (!petState.isInitialized) {
+      petState.initialize();
+    }
+    if (!settingsState.isInitialized) {
+      settingsState.initialize();
+    }
+  }, []);
+
   const viewModel = React.useMemo(
     () =>
       buildHomeHubViewModel({
@@ -222,11 +234,11 @@ function StatusCards({ viewModel }: { viewModel: HomeHubViewModel }) {
 
 function HomeHubEmptyState() {
   return (
-    <main aria-labelledby="home-empty-title" className="grid min-h-[70dvh] place-items-center">
+    <div aria-labelledby="home-empty-title" className="grid min-h-[70dvh] place-items-center">
       <EmptyState
         title="A quiet room is ready."
         description="Scan Chan has a place to appear once setup initializes the pet state. Nothing is broken; this is the first calm empty state."
       />
-    </main>
+    </div>
   )
 }

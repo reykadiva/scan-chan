@@ -3,7 +3,9 @@ import { test, expect } from '@playwright/test';
 test.describe('Home Hub', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/home');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForSelector('main', { state: 'visible' });
+    await page.waitForTimeout(500);
   });
 
   test('should render home hub page', async ({ page }) => {

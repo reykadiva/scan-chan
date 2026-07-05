@@ -62,7 +62,16 @@ export const useSettingsStore = create<SettingsStoreState>()(
           theme,
           language,
         }),
-        onRehydrateStorage: () => (state) => state?.setHydrated(true),
+        onRehydrateStorage: () => {
+          return (state) => {
+            if (state) {
+              state.setHydrated(true);
+              if (!state.isInitialized) {
+                state.initialize();
+              }
+            }
+          };
+        },
       },
     ),
     { name: 'scan-chan-settings-store' },
@@ -71,5 +80,5 @@ export const useSettingsStore = create<SettingsStoreState>()(
 
 export const selectAudioSettings = (state: SettingsStoreState) => ({
   soundEnabled: state.soundEnabled,
-  musicEnabled: state.musicEnabled,
+  volume: state.volume,
 });

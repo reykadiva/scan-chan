@@ -36,7 +36,6 @@ export default function LandingPage() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const bentoRef = useRef<HTMLDivElement>(null);
 
-  // Mouse parallax for the floating game items
   useEffect(() => {
     const handleMouse = (e: MouseEvent) => {
       setMousePos({
@@ -48,7 +47,6 @@ export default function LandingPage() {
     return () => window.removeEventListener('mousemove', handleMouse);
   }, []);
 
-  // GSAP scroll animations for Bento Grid
   useEffect(() => {
     const ctx = gsap.context(() => {
       gsap.from('.bento-cell', {

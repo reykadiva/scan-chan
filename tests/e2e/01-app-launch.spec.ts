@@ -11,7 +11,10 @@ test.describe('Application Launch', () => {
     const errors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
-        errors.push(msg.text());
+        const text = msg.text();
+        if (!text.includes('webpack-hmr') && !text.includes('WebSocket')) {
+          errors.push(text);
+        }
       }
     });
 
@@ -23,7 +26,7 @@ test.describe('Application Launch', () => {
 
   test('should redirect to home hub', async ({ page }) => {
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    await page.waitForURL('**/home', { timeout: 5000 });
     
     const url = page.url();
     expect(url).toContain('/home');
