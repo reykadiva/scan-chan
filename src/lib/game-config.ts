@@ -34,7 +34,8 @@ export const GAME_CONFIG = {
     collectionPageSize: 12,
   },
   levelFormula: (level: number): number => {
-    return (level - 1) * 150 + 100;
+    // ponytail: medium-hard scaling (quadratic)
+    return (level - 1) * (level - 1) * 100 + 200;
   },
   dailyMissionsCount: 4,
 };

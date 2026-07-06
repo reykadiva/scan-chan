@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId } from '@/components/legacy/pixel-cat';
-import { usePlayerStore } from '@/stores/legacy/player-store';
+import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
 import { GameMode } from '@/lib/game-config';
 import { NicknameSetup } from '@/components/legacy/game/nickname-setup';
 import { RegisterProductModal } from '@/components/legacy/game/register-product-modal';
@@ -19,6 +19,7 @@ import { GameAchievements } from '@/components/legacy/game/game-achievements';
 import { AchievementPopup } from '@/components/legacy/game/achievement-popup';
 import { createClient } from '@/lib/supabase/client';
 import { PetPanel } from '@/components/legacy/game/pet-panel';
+import { LevelRoadmap } from '@/components/legacy/game/level-roadmap';
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void }) {
@@ -36,7 +37,7 @@ function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void })
   return null;
 }
 
-type Tab = 'missions' | 'stats' | 'history' | 'achievements' | 'products';
+type Tab = 'missions' | 'stats' | 'roadmap' | 'history' | 'achievements' | 'products';
 
 export default function GameHubPage() {
   const router = useRouter();
@@ -52,6 +53,8 @@ export default function GameHubPage() {
   const registerProduct = usePlayerStore((state) => state.registerProduct);
   const unregisterProduct = usePlayerStore((state) => state.unregisterProduct);
   const checkDailyReset = usePlayerStore((state) => state.checkDailyReset);
+  const selectedBorder = usePlayerStore((state) => state.selectedBorder);
+  const selectedTheme = usePlayerStore((state) => state.selectedTheme);
 
   const [activeTab, setActiveTab] = useState<Tab>('missions');
   const [showSetup, setShowSetup] = useState(false);
@@ -167,8 +170,33 @@ export default function GameHubPage() {
     );
   }
 
+  const borderClasses = 
+    selectedBorder === 'bronze' ? 'border-4 border-[#cd7f32] shadow-[0_0_10px_rgba(205,127,50,0.5)]' :
+    selectedBorder === 'silver' ? 'border-4 border-[#c0c0c0] shadow-[0_0_12px_rgba(192,192,192,0.6)]' :
+    selectedBorder === 'gold' ? 'border-4 border-[#ffd700] shadow-[0_0_15px_rgba(255,215,0,0.7)] border-double' :
+    selectedBorder === 'holographic' ? 'border-4 border-transparent bg-gradient-to-tr from-cyan-400 via-pink-400 to-yellow-400 shadow-[0_0_20px_rgba(34,211,238,0.8)] animate-pulse' :
+    'border-2 border-white shadow-md';
+
+  const theme = {
+    bg: selectedTheme === 'kawaii' 
+      ? 'bg-gradient-to-br from-pink-100 via-rose-50 to-pink-100 min-h-screen text-slate-800'
+      : selectedTheme === 'cyberpunk'
+      ? 'bg-slate-950 text-slate-100 min-h-screen'
+      : 'bg-mesh-soft min-h-screen text-slate-800',
+    header: selectedTheme === 'cyberpunk'
+      ? 'bg-slate-900/60 border-b border-indigo-500/30'
+      : 'bg-white/30 border-b border-white/20',
+    card: selectedTheme === 'cyberpunk'
+      ? 'bg-slate-900/90 border border-indigo-500/30 text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+      : selectedTheme === 'kawaii'
+      ? 'bg-white/90 border border-pink-100 shadow-[0_4px_20px_rgba(244,114,182,0.15)] text-slate-850'
+      : 'bg-white text-slate-800 shadow-md',
+    text: selectedTheme === 'cyberpunk' ? 'text-slate-100' : 'text-slate-800',
+    subtext: selectedTheme === 'cyberpunk' ? 'text-slate-400' : 'text-slate-500',
+  };
+
   return (
-    <main className="min-h-screen bg-mesh-soft pb-24 relative">
+    <main className={`pb-24 relative ${theme.bg}`}>
       {/* Handles ?register=<barcode> query param from scanner — must be in Suspense */}
       <Suspense fallback={null}>
         <RegisterParamHandler onBarcode={handleRegisterParam} />
@@ -191,18 +219,18 @@ export default function GameHubPage() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="px-4 md:px-8 py-5 sticky top-0 bg-white/30 backdrop-blur-md z-40 border-b border-white/20">
+      <header className={`px-4 md:px-8 py-5 sticky top-0 backdrop-blur-md z-40 ${theme.header}`}>
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Pixel cat logo */}
             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center card-bubbly shadow-sm overflow-hidden">
               <PixelCat variant="calico" size={32} aria-label="Scan Chan logo" />
             </div>
-            <span className="font-fredoka font-bold text-xl text-slate-800 tracking-tight">Game Hub</span>
+            <span className={`font-fredoka font-bold text-xl tracking-tight ${theme.text}`}>Game Hub</span>
           </div>
           <button
             onClick={handleExit}
-            className="flex items-center gap-2 px-4 py-1.5 bg-white/80 hover:bg-white text-slate-600 rounded-full font-fredoka font-semibold text-sm card-bubbly hover:scale-105 transition-transform overflow-hidden"
+            className="flex items-center gap-2 px-4 py-1.5 bg-white/80 hover:bg-white text-slate-600 rounded-full font-fredoka font-semibold text-sm card-bubbly hover:scale-105 transition-transform overflow-hidden animate-fade-in"
           >
             <PixelCat variant="gray" action="exit" size={24} aria-hidden="true" />
             Exit
@@ -212,16 +240,16 @@ export default function GameHubPage() {
 
       <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
         {/* Profile Card */}
-        <div className="card-bubbly bg-white p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        <div className={`card-bubbly p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 ${theme.card}`}>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-brand-cyan/10 to-brand-pink/10 rounded-2xl flex items-center justify-center select-none border-2 border-white shadow-md overflow-hidden">
+            <div className={`w-16 h-16 bg-gradient-to-br from-brand-cyan/10 to-brand-pink/10 rounded-2xl flex items-center justify-center select-none overflow-hidden transition-all ${borderClasses}`}>
               {mode === GameMode.ARASHU
                 ? <PixelCat variant="arashu-smiling" size={52} aria-label="Arashu profile avatar" />
                 : <PixelCat variant={(avatar as CatVariantId) || 'calico'} size={52} />}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="font-fredoka text-xl font-bold text-slate-800">
+                <h2 className={`font-fredoka text-xl font-bold ${theme.text}`}>
                   {mode === GameMode.ARASHU ? "Arashu's" : nickname || 'Guest Player'}
                 </h2>
                 {streak > 0 && (
@@ -230,11 +258,26 @@ export default function GameHubPage() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="bg-brand-cyan/20 text-cyan-800 text-xs font-fredoka font-bold px-2.5 py-0.5 rounded-full">
-                  LVL {level}
-                </span>
-                <span className="text-slate-500 font-nunito text-xs font-semibold">{xp} XP</span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="bg-brand-cyan/20 text-cyan-800 text-xs font-fredoka font-bold px-2.5 py-0.5 rounded-full">
+                    LVL {level}
+                  </span>
+                  <span className={`font-nunito text-xs font-bold ${theme.subtext}`}>
+                    {xp - xpForLevel(level)} / {xpForLevel(level + 1) - xpForLevel(level)} XP
+                  </span>
+                </div>
+                <div className="w-40 bg-slate-100/80 rounded-full h-1.5 border border-slate-200/30 overflow-hidden mt-1">
+                  <div
+                    className="bg-brand-cyan h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        ((xp - xpForLevel(level)) / (xpForLevel(level + 1) - xpForLevel(level))) * 100
+                      )}%`,
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -265,6 +308,7 @@ export default function GameHubPage() {
           {([
             { id: 'missions', label: 'Missions', action: 'missions', variant: 'tabby' },
             { id: 'stats', label: 'Stats', action: 'stats', variant: 'cyan' },
+            { id: 'roadmap', label: 'Roadmap', action: 'play', variant: 'black' },
             { id: 'history', label: 'History', action: 'history', variant: 'gray' },
             { id: 'achievements', label: 'Achievements', action: 'achievements', variant: 'calico' },
             { id: 'products', label: 'Products', action: 'items', variant: 'pink' },
@@ -274,8 +318,8 @@ export default function GameHubPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-full font-fredoka font-semibold text-sm whitespace-nowrap transition-all tab-bubbly flex items-center gap-2 focus:outline-none focus:ring-0 active:scale-95 ${
                 activeTab === tab.id
-                  ? 'bg-slate-800 text-white hover:bg-slate-700'
-                  : 'bg-white text-slate-600 hover:bg-slate-50'
+                  ? 'bg-slate-800 text-white hover:bg-slate-700 font-bold scale-105 shadow-sm'
+                  : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100'
               }`}
             >
               <PixelCat variant={tab.variant} action={tab.action} size={24} />
@@ -291,6 +335,9 @@ export default function GameHubPage() {
           )}
           {activeTab === 'stats' && (
             <GameStats />
+          )}
+          {activeTab === 'roadmap' && (
+            <LevelRoadmap />
           )}
           {activeTab === 'history' && (
             <ScanHistory />

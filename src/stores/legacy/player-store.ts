@@ -31,6 +31,8 @@ export interface PlayerState {
   petHunger: number;
   petAffection: number;
   foodInventory: Record<string, number>; // ponytail: tracks quantity of available food items
+  selectedBorder: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic';
+  selectedTheme: 'default' | 'kawaii' | 'cyberpunk';
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -49,6 +51,8 @@ export interface PlayerActions {
   // ponytail: virtual pet actions
   feedPet: (barcode: string, category: string) => void;
   renamePet: (name: string) => void;
+  selectBorder: (border: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic') => void;
+  selectTheme: (theme: 'default' | 'kawaii' | 'cyberpunk') => void;
 }
 
 export type PlayerStore = PlayerState & PlayerActions;
@@ -108,6 +112,8 @@ const initialStoreState: PlayerState = {
   petHunger: 50,
   petAffection: 10,
   foodInventory: {},
+  selectedBorder: 'none',
+  selectedTheme: 'default',
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -378,6 +384,9 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
       },
+
+      selectBorder: (border) => set({ selectedBorder: border }),
+      selectTheme: (theme) => set({ selectedTheme: theme }),
 
       renamePet: (name: string) => {
         set({ petName: name });
