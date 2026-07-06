@@ -94,6 +94,13 @@ export function PetPanel() {
 
   const catVariant = STAGE_AVATARS[petStage] || 'calico';
 
+  const getIdleAction = (): CatActionId => {
+    if (catAction !== 'none') return catAction;
+    if (petHunger < 30) return 'starving';
+    if (petHunger < 70) return 'hungry';
+    return 'full';
+  };
+
   return (
     <div className="space-y-6">
       {/* Main Pet Display Card */}
@@ -117,7 +124,7 @@ export function PetPanel() {
 
         {/* Big Pixel Cat View */}
         <div className="relative group w-36 h-36 bg-gradient-to-br from-brand-cyan/10 to-brand-pink/10 rounded-[2.5rem] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden shrink-0">
-          <PixelCat variant={catVariant} action={catAction} size={110} />
+          <PixelCat variant={catVariant} action={getIdleAction()} size={110} />
         </div>
 
         {/* Pet details and progress bars */}
@@ -167,15 +174,15 @@ export function PetPanel() {
               <div className="font-nunito text-[10px] text-slate-400 font-semibold mt-1">
                 {petHunger < 30 ? (
                   <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="gray" size={14} /> Sangat lapar! Beri makan segera.
+                    <PixelCat variant="gray" action="starving" size={16} /> Sangat lapar! Beri makan segera.
                   </span>
                 ) : petHunger < 70 ? (
                   <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="tabby" size={14} /> Agak lapar.
+                    <PixelCat variant="tabby" action="hungry" size={16} /> Agak lapar.
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="cyan" size={14} /> Kenyang dan senang!
+                    <PixelCat variant="cyan" action="full" size={16} /> Kenyang dan senang!
                   </span>
                 )}
               </div>

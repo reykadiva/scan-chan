@@ -22,7 +22,12 @@ export type CatActionId =
   | 'history'
   | 'achievements'
   | 'rewards'
-  | 'exit';
+  | 'exit'
+  // ponytail: new pet emotions and streak actions
+  | 'hungry'
+  | 'starving'
+  | 'full'
+  | 'fire-streak';
 
 interface Palette {
   fur: string;
@@ -109,6 +114,32 @@ export function PixelCat({
       let color: string | null = null;
       let isEye = false;
       let isEar = false;
+
+      // ponytail: hungry / starving / full face overrides
+      if (action === 'hungry') {
+        // Tired eyes: top half is fur
+        if (rIdx === 7 && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
+        // Droopy mouth
+        if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'K';
+        if (rIdx === 11 && (cIdx === 7 || cIdx === 8)) char = 'K';
+      } else if (action === 'starving') {
+        // dead/X eyes
+        if (rIdx === 7 && (cIdx === 3 || cIdx === 12)) char = 'K';
+        else if (rIdx === 8 && (cIdx === 4 || cIdx === 11)) char = 'K';
+        else if ((rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
+        // Frowning mouth
+        if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'F';
+        if (rIdx === 11 && (cIdx === 7 || cIdx === 8)) char = 'K';
+      } else if (action === 'full') {
+        // Happy arch eyes
+        if (rIdx === 6 && cIdx === 3) char = 'K';
+        else if (rIdx === 7 && (cIdx === 2 || cIdx === 4)) char = 'K';
+        else if (rIdx === 6 && cIdx === 12) char = 'K';
+        else if (rIdx === 7 && (cIdx === 11 || cIdx === 13)) char = 'K';
+        else if ((rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
+        // Sweet mouth
+        if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'P';
+      }
 
       // 1. Overrides for arashu-smiling (princess pink cat)
       if (variant === 'arashu-smiling') {
@@ -415,6 +446,22 @@ export function PixelCat({
         }
       });
     });
+  } else if (action === 'fire-streak') {
+    // ponytail: orange, red, yellow flame pixels surrounding the cat
+    const flamePixels = [
+      // Left side flames
+      { x: 2, y: 10, c: '#ef4444' }, { x: 1, y: 11, c: '#f97316' }, { x: 2, y: 12, c: '#facc15' },
+      { x: 2, y: 14, c: '#ef4444' }, { x: 3, y: 15, c: '#f97316' }, { x: 2, y: 16, c: '#facc15' },
+      { x: 1, y: 7, c: '#ef4444' }, { x: 2, y: 8, c: '#f97316' }, { x: 3, y: 9, c: '#facc15' },
+      // Right side flames
+      { x: 21, y: 10, c: '#ef4444' }, { x: 22, y: 11, c: '#f97316' }, { x: 21, y: 12, c: '#facc15' },
+      { x: 21, y: 14, c: '#ef4444' }, { x: 20, y: 15, c: '#f97316' }, { x: 21, y: 16, c: '#facc15' },
+      { x: 22, y: 7, c: '#ef4444' }, { x: 21, y: 8, c: '#f97316' }, { x: 20, y: 9, c: '#facc15' },
+      // Top head flames
+      { x: 10, y: 4, c: '#ef4444' }, { x: 11, y: 3, c: '#f97316' }, { x: 12, y: 4, c: '#facc15' },
+      { x: 13, y: 3, c: '#ef4444' }, { x: 14, y: 4, c: '#f97316' },
+    ];
+    flamePixels.forEach(p => setPixel(p.x, p.y, p.c, 'flame-pixel'));
   }
 
   return (
@@ -432,6 +479,14 @@ export function PixelCat({
         .pixel-cat-svg {
           display: inline-block;
           overflow: visible;
+        }
+        /* Fire flame animation */
+        .flame-pixel {
+          animation: flameFlicker 0.4s ease-in-out infinite alternate;
+        }
+        @keyframes flameFlicker {
+          0% { opacity: 0.7; transform: translateY(0); }
+          100% { opacity: 1; transform: translateY(-1px); }
         }
         /* Ears twitching animation */
         .cat-ear {

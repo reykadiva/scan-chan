@@ -225,8 +225,8 @@ export default function GameHubPage() {
                   {mode === GameMode.ARASHU ? "Arashu's" : nickname || 'Guest Player'}
                 </h2>
                 {streak > 0 && (
-                  <span className="inline-flex items-center gap-1 text-sm text-orange-500 font-semibold" title={`${streak}-day streak`}>
-                    <PixelCat variant="tabby" size={16} /> {streak}
+                  <span className="inline-flex items-center gap-1.5 text-sm text-orange-600 font-semibold" title={`${streak}-day streak`}>
+                    <PixelCat variant="tabby" action="fire-streak" size={24} /> {streak}
                   </span>
                 )}
               </div>
