@@ -23,11 +23,14 @@ export type CatActionId =
   | 'achievements'
   | 'rewards'
   | 'exit'
-  // ponytail: new pet emotions and streak actions
+  // ponytail: pet emotions and streak actions
   | 'hungry'
   | 'starving'
   | 'full'
-  | 'fire-streak';
+  | 'fire-streak'
+  | 'sleeping'
+  | 'excited'
+  | 'say-hi';
 
 interface Palette {
   fur: string;
@@ -115,7 +118,7 @@ export function PixelCat({
       let isEye = false;
       let isEar = false;
 
-      // ponytail: hungry / starving / full face overrides
+      // ponytail: hungry / starving / full / sleeping face overrides
       if (action === 'hungry') {
         // Tired eyes: top half is fur
         if (rIdx === 7 && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
@@ -130,7 +133,7 @@ export function PixelCat({
         // Frowning mouth
         if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'F';
         if (rIdx === 11 && (cIdx === 7 || cIdx === 8)) char = 'K';
-      } else if (action === 'full') {
+      } else if (action === 'full' || action === 'excited' || action === 'say-hi') {
         // Happy arch eyes
         if (rIdx === 6 && cIdx === 3) char = 'K';
         else if (rIdx === 7 && (cIdx === 2 || cIdx === 4)) char = 'K';
@@ -139,6 +142,12 @@ export function PixelCat({
         else if ((rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
         // Sweet mouth
         if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'P';
+      } else if (action === 'sleeping') {
+        // Closed flat eyes
+        if (rIdx === 7 && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'K';
+        else if (rIdx === 8 && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
+        // Relaxed mouth
+        if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'F';
       }
 
       // 1. Overrides for arashu-smiling (princess pink cat)
@@ -462,6 +471,47 @@ export function PixelCat({
       { x: 13, y: 3, c: '#ef4444' }, { x: 14, y: 4, c: '#f97316' },
     ];
     flamePixels.forEach(p => setPixel(p.x, p.y, p.c, 'flame-pixel'));
+  } else if (action === 'say-hi') {
+    // ponytail: waving paw pixels on the right side of the face
+    const pawColors: Record<string, string> = {
+      F: palette.fur,
+      K: '#1a1a1a',
+      L: palette.light,
+    };
+    const pawUp = [
+      '.KK.',
+      'KLLK',
+      'KFFK',
+      '.KK.',
+    ];
+    pawUp.forEach((row, r) => {
+      row.split('').forEach((char, c) => {
+        if (char !== '.') {
+          setPixel(18 + c, 9 + r, pawColors[char], 'waving-paw');
+        }
+      });
+    });
+  } else if (action === 'sleeping') {
+    // ponytail: floating Zzz pixels above the head
+    const zColors: Record<string, string> = {
+      Z: '#3b82f6',
+      B: '#1e293b',
+    };
+    // Let's render two Z's at different positions
+    const z1Grid = [
+      'ZZZZ',
+      '..Z.',
+      '.Z..',
+      'ZZZZ',
+    ];
+    z1Grid.forEach((row, r) => {
+      row.split('').forEach((char, c) => {
+        if (char === 'Z') {
+          setPixel(16 + c, 2 + r, '#3b82f6', 'sleep-z z1');
+          setPixel(19 + c, 0 + r, '#60a5fa', 'sleep-z z2');
+        }
+      });
+    });
   }
 
   return (
@@ -479,6 +529,44 @@ export function PixelCat({
         .pixel-cat-svg {
           display: inline-block;
           overflow: visible;
+        }
+        /* Discrete breathing/squashing idle animation */
+        .cat-idle-anim {
+          transform-origin: 12px 24px;
+          animation: catBreath 2.2s steps(1) infinite;
+        }
+        @keyframes catBreath {
+          0%, 100% { transform: scaleY(1) translateY(0); }
+          50% { transform: scaleY(0.94) translateY(1px); }
+        }
+        /* Discrete excited hopping animation */
+        .cat-excited-anim {
+          transform-origin: 12px 24px;
+          animation: catExcited 0.5s steps(1) infinite;
+        }
+        @keyframes catExcited {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+        /* Waving paw steps animation */
+        .waving-paw {
+          transform-origin: 18px 12px;
+          animation: wavePaw 0.6s steps(2) infinite;
+        }
+        @keyframes wavePaw {
+          0% { transform: rotate(0deg) translateY(0); }
+          100% { transform: rotate(-30deg) translateY(-2px); }
+        }
+        /* Sleeping Zzz animation */
+        .sleep-z {
+          animation: floatZ 1.6s steps(2) infinite;
+        }
+        .z1 { animation-delay: 0s; }
+        .z2 { animation-delay: 0.8s; }
+        @keyframes floatZ {
+          0% { opacity: 0; transform: translateY(0) scale(0.8); }
+          50% { opacity: 1; transform: translateY(-2px) scale(1); }
+          100% { opacity: 0; transform: translateY(-4px) scale(0.8); }
         }
         /* Fire flame animation */
         .flame-pixel {
@@ -515,17 +603,25 @@ export function PixelCat({
           50% { opacity: 1; fill: #f87171; }
         }
       `}</style>
-      {pixels.map((p, idx) => (
-        <rect
-          key={idx}
-          x={p.x}
-          y={p.y}
-          width={1}
-          height={1}
-          fill={p.color}
-          className={p.className}
-        />
-      ))}
+      <g className={
+        action === 'none' || action === 'hungry' || action === 'starving' || action === 'full' || action === 'sleeping'
+          ? 'cat-idle-anim'
+          : action === 'excited' || action === 'say-hi'
+          ? 'cat-excited-anim'
+          : undefined
+      }>
+        {pixels.map((p, idx) => (
+          <rect
+            key={idx}
+            x={p.x}
+            y={p.y}
+            width={1}
+            height={1}
+            fill={p.color}
+            className={p.className}
+          />
+        ))}
+      </g>
     </svg>
   );
 }

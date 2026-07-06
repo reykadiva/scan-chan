@@ -92,6 +92,50 @@ export function PetPanel() {
     }, 1500);
   };
 
+  // ponytail: 8-bit chip-tune meow synthesizer
+  const playMeow = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const oscillator = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      oscillator.type = 'triangle';
+      oscillator.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      
+      oscillator.frequency.setValueAtTime(450, now);
+      oscillator.frequency.exponentialRampToValueAtTime(850, now + 0.12);
+      oscillator.frequency.exponentialRampToValueAtTime(750, now + 0.3);
+      
+      gainNode.gain.setValueAtTime(0.01, now);
+      gainNode.gain.linearRampToValueAtTime(0.15, now + 0.08);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+    } catch {}
+  };
+
+  const handleCatClick = () => {
+    playMeow();
+    const actions: CatActionId[] = ['say-hi', 'excited', 'sleeping'];
+    const randomAction = actions[Math.floor(Math.random() * actions.length)];
+    setCatAction(randomAction);
+
+    const meows = ['Meow! 🐾', 'Nyaaa~ 😸', 'Purrr... 🐈', '*Wiggle* ✨', 'Hi human! 👋'];
+    const randomMeow = meows[Math.floor(Math.random() * meows.length)];
+    const id = Date.now();
+    setFedPopups((prev) => [...prev, { id, text: randomMeow }]);
+
+    setTimeout(() => setCatAction('none'), 1800);
+    setTimeout(() => {
+      setFedPopups((prev) => prev.filter((p) => p.id !== id));
+    }, 1800);
+  };
+
   const catVariant = STAGE_AVATARS[petStage] || 'calico';
 
   const getIdleAction = (): CatActionId => {
@@ -123,7 +167,11 @@ export function PetPanel() {
         </div>
 
         {/* Big Pixel Cat View */}
-        <div className="relative group w-36 h-36 bg-gradient-to-br from-brand-cyan/10 to-brand-pink/10 rounded-[2.5rem] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden shrink-0">
+        <div 
+          onClick={handleCatClick}
+          className="relative group w-36 h-36 bg-gradient-to-br from-brand-cyan/10 to-brand-pink/10 rounded-[2.5rem] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden shrink-0 cursor-pointer active:scale-95 transition-all hover:shadow-2xl"
+          title="Click me to play!"
+        >
           <PixelCat variant={catVariant} action={getIdleAction()} size={110} />
         </div>
 
