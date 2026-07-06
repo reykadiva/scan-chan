@@ -26,7 +26,10 @@ export default function ArashuLoginPage() {
     if (loading) return;
     setLoading(true);
 
-    if (email === 'tester@scanchan.com' && password === 'password123') {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
+    if (cleanEmail === 'tester@scanchan.com' && cleanPassword === 'password123') {
       setMode(GameMode.ARASHU);
       initializePlayer('Arashu Tester', '👑');
       setMode(GameMode.ARASHU);
