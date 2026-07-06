@@ -59,6 +59,7 @@ export interface PlayerActions {
   selectAccessory: (accessory: 'none' | 'cowboy' | 'wizard' | 'shades') => void;
   selectTitle: (title: string) => void;
   petCat: () => void;
+  loadProfile: () => Promise<void>;
 }
 
 export type PlayerStore = PlayerState & PlayerActions;
@@ -431,6 +432,30 @@ export const usePlayerStore = create<PlayerStore>()(
       renamePet: (name: string) => {
         set({ petName: name });
       },
+
+      loadProfile: async () => {
+        try {
+          const res = await fetch('/api/profile');
+          const data = await res.json();
+          if (data.success && data.data) {
+            set({
+              xp: data.data.xp,
+              level: data.data.level,
+              streak: data.data.streak,
+              petName: data.data.petName,
+              petStage: data.data.petStage,
+              petHunger: data.data.petHunger,
+              petAffection: data.data.petAffection,
+              selectedTheme: data.data.selectedTheme,
+              selectedBorder: data.data.selectedBorder,
+              selectedAccessory: data.data.selectedAccessory,
+              selectedTitle: data.data.selectedTitle,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to load profile from database', err);
+        }
+      },
     }),
     {
       name: 'scan-chan-player-state',
@@ -442,3 +467,39 @@ export const usePlayerStore = create<PlayerStore>()(
     }
   )
 );
+
+const saveProfile = async (state: any) => {
+  if (state.mode !== GameMode.ARASHU) return;
+  try {
+    await fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        xp: state.xp,
+        level: state.level,
+        streak: state.streak,
+        petName: state.petName,
+        petStage: state.petStage,
+        petHunger: state.petHunger,
+        petAffection: state.petAffection,
+        selectedTheme: state.selectedTheme,
+        selectedBorder: state.selectedBorder,
+        selectedAccessory: state.selectedAccessory,
+        selectedTitle: state.selectedTitle,
+      }),
+    });
+  } catch (err) {
+    console.error('Failed to sync profile with database', err);
+  }
+};
+
+if (typeof window !== 'undefined') {
+  let saveTimeout: any = null;
+  usePlayerStore.subscribe((state) => {
+    if (state.mode !== GameMode.ARASHU) return;
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      saveProfile(state);
+    }, 1500);
+  });
+}

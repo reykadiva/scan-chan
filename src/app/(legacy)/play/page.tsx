@@ -56,6 +56,7 @@ export default function GameHubPage() {
   const checkDailyReset = usePlayerStore((state) => state.checkDailyReset);
   const selectedBorder = usePlayerStore((state) => state.selectedBorder);
   const selectedTheme = usePlayerStore((state) => state.selectedTheme);
+  const loadProfile = usePlayerStore((state) => state.loadProfile);
   const selectedTitle = usePlayerStore((state) => state.selectedTitle);
 
   const [activeTab, setActiveTab] = useState<Tab>('missions');
@@ -166,6 +167,13 @@ export default function GameHubPage() {
 
     verifySession();
   }, [mounted, mode, router, resetPlayer]);
+
+  // Sync state on load for Arashu's Mode
+  useEffect(() => {
+    if (mounted && mode === GameMode.ARASHU) {
+      loadProfile();
+    }
+  }, [mounted, mode, loadProfile]);
 
   // Handle ?register=<barcode> from scanner "Register" button
   // This is in a separate component because useSearchParams needs Suspense
