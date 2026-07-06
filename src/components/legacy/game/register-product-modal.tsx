@@ -96,7 +96,7 @@ interface RegisterProductModalProps {
   initialBarcode?: string;
   creatorId: string;
   onClose: () => void;
-  onSuccess: (barcode: string) => void;
+  onSuccess: (barcode: string, category: string) => void;
 }
 
 export function RegisterProductModal({
@@ -166,7 +166,7 @@ export function RegisterProductModal({
 
       playSound('success');
       toast.success('Product registered!', { description: form.productName });
-      onSuccess(form.barcodeNumber);
+      onSuccess(form.barcodeNumber, form.category);
     } catch (err) {
       playSound('error');
       toast.error(err instanceof Error ? err.message : 'Something went wrong');

@@ -30,6 +30,7 @@ export interface PlayerState {
   petStage: 'KITTEN' | 'YOUNG_CAT' | 'ADULT_CAT' | 'WISE_CAT' | 'LEGENDARY_CAT';
   petHunger: number;
   petAffection: number;
+  foodInventory: Record<string, number>; // ponytail: tracks quantity of available food items
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ export interface PlayerActions {
   setMode: (mode: GameMode | null) => void;
   addXP: (amount: number) => void;
   recordScan: (barcode: string, isNewProduct: boolean, category: string) => void;
-  registerProduct: (barcode: string) => void;
+  registerProduct: (barcode: string, category: string) => void;
   unregisterProduct: (barcode: string) => void;
   checkDailyReset: (localDateString: string) => void;
   clearPendingXpGain: () => void;
@@ -106,6 +107,7 @@ const initialStoreState: PlayerState = {
   petStage: 'KITTEN',
   petHunger: 50,
   petAffection: 10,
+  foodInventory: {},
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -180,6 +182,13 @@ export const usePlayerStore = create<PlayerStore>()(
             unlockedAchievements: state.unlockedAchievements,
           });
 
+          // ponytail: add consumable food item to inventory
+          const isConsumable = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy'].includes(category);
+          const updatedFoodInventory = { ...state.foodInventory };
+          if (isConsumable) {
+            updatedFoodInventory[barcode] = (updatedFoodInventory[barcode] || 0) + 1;
+          }
+
           return {
             scanHistory,
             xp: newXp,
@@ -189,11 +198,12 @@ export const usePlayerStore = create<PlayerStore>()(
             dailyMissions: updatedMissions,
             unlockedAchievements: [...state.unlockedAchievements, ...newlyUnlocked],
             lastScanTime: { ...state.lastScanTime, [barcode]: now },
+            foodInventory: updatedFoodInventory,
           };
         });
       },
 
-      registerProduct: (barcode: string) => {
+      registerProduct: (barcode: string, category: string) => {
         const baseXpGain = GAME_CONFIG.xp.registerProduct;
 
         set((state) => {
@@ -219,6 +229,13 @@ export const usePlayerStore = create<PlayerStore>()(
             unlockedAchievements: state.unlockedAchievements,
           });
 
+          // ponytail: add consumable food item to inventory
+          const isConsumable = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy'].includes(category);
+          const updatedFoodInventory = { ...state.foodInventory };
+          if (isConsumable) {
+            updatedFoodInventory[barcode] = (updatedFoodInventory[barcode] || 0) + 1;
+          }
+
           return {
             registeredBarcodes,
             lastRegisterTime: Date.now(),
@@ -228,6 +245,7 @@ export const usePlayerStore = create<PlayerStore>()(
             pendingAchievementUnlocks: [...state.pendingAchievementUnlocks, ...newlyUnlocked],
             dailyMissions: updatedMissions,
             unlockedAchievements: [...state.unlockedAchievements, ...newlyUnlocked],
+            foodInventory: updatedFoodInventory,
           };
         });
       },
@@ -275,11 +293,11 @@ export const usePlayerStore = create<PlayerStore>()(
 
         const newMissions = generateDailyMissions(localDateString);
 
-        // ponytail: daily pet hunger decay (decay by 15 per day)
+        // ponytail: daily pet hunger decay (decay by 25 per day)
         // if hunger becomes 0, affection decreases by 5
         const currentHunger = get().petHunger;
         const currentAffection = get().petAffection;
-        const nextHunger = Math.max(0, currentHunger - 15);
+        const nextHunger = Math.max(0, currentHunger - 25);
         const nextAffection = nextHunger === 0 ? Math.max(0, currentAffection - 5) : currentAffection;
 
         // ponytail: adjust stage based on decay
@@ -315,6 +333,16 @@ export const usePlayerStore = create<PlayerStore>()(
       // ponytail: virtual pet feed actions
       feedPet: (barcode: string, category: string) => {
         set((state) => {
+          // Check if food is in inventory and has quantity
+          const currentQty = state.foodInventory[barcode] || 0;
+          if (currentQty <= 0) return {}; // ponytail: no food left, do nothing
+
+          const updatedFoodInventory = { ...state.foodInventory };
+          updatedFoodInventory[barcode] = currentQty - 1;
+          if (updatedFoodInventory[barcode] <= 0) {
+            delete updatedFoodInventory[barcode];
+          }
+
           // Food values based on category
           let feedValue = 10;
           if (category === 'Snack') feedValue = 15;
@@ -346,6 +374,7 @@ export const usePlayerStore = create<PlayerStore>()(
             xp: newXp,
             level: newLevel,
             pendingXpGain: xpGain,
+            foodInventory: updatedFoodInventory,
           };
         });
       },

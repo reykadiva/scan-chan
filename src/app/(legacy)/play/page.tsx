@@ -114,8 +114,8 @@ export default function GameHubPage() {
     setShowRegisterModal(true);
   }, []);
 
-  const handleRegisterSuccess = useCallback((barcode: string) => {
-    registerProduct(barcode);
+  const handleRegisterSuccess = useCallback((barcode: string, category: string) => {
+    registerProduct(barcode, category);
     setShowRegisterModal(false);
     setActiveTab('products');
   }, [registerProduct]);

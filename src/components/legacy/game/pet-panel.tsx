@@ -26,7 +26,7 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export function PetPanel() {
-  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, scanHistory } = usePlayerStore();
+  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory } = usePlayerStore();
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(petName);
   const [foodItems, setFoodItems] = useState<Product[]>([]);
@@ -34,24 +34,21 @@ export function PetPanel() {
   const [catAction, setCatAction] = useState<CatActionId>('none');
   const [fedPopups, setFedPopups] = useState<{ id: number; text: string }[]>([]);
 
-  // Fetch product details for scan history to list available food
+  // Fetch product details for food inventory to list available food
   useEffect(() => {
     async function loadFood() {
-      if (scanHistory.length === 0) {
+      const foodBarcodes = Object.keys(foodInventory);
+      if (foodBarcodes.length === 0) {
+        setFoodItems([]);
         setLoadingFood(false);
         return;
       }
       setLoadingFood(true);
       try {
-        const uniqueBarcodes = Array.from(new Set(scanHistory));
-        const res = await fetch(`/api/products?limit=50&barcodes=${uniqueBarcodes.join(',')}`);
+        const res = await fetch(`/api/products?limit=50&barcodes=${foodBarcodes.join(',')}`);
         const data = await res.json();
         if (data.success) {
-          // Filter to consumable categories
-          const consumables = data.data.filter((p: Product) =>
-            p.category && ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy'].includes(p.category)
-          );
-          setFoodItems(consumables);
+          setFoodItems(data.data);
         }
       } catch {
         toast.error('Failed to load food inventory');
@@ -60,7 +57,7 @@ export function PetPanel() {
       }
     }
     loadFood();
-  }, [scanHistory]);
+  }, [foodInventory]);
 
   const handleRename = () => {
     const trimmed = newName.trim();
@@ -290,9 +287,14 @@ export function PetPanel() {
                     <h5 className="font-fredoka font-bold text-slate-800 text-sm truncate leading-tight">
                       {item.productName}
                     </h5>
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-brand-pink/10 text-brand-pink rounded-full text-[10px] font-fredoka font-semibold">
-                      {item.category}
-                    </span>
+                    <div className="flex gap-2 items-center mt-1">
+                      <span className="inline-block px-2 py-0.5 bg-brand-pink/10 text-brand-pink rounded-full text-[10px] font-fredoka font-semibold">
+                        {item.category}
+                      </span>
+                      <span className="text-[10px] font-nunito font-bold text-slate-500">
+                        Qty: {foodInventory[item.barcodeNumber] || 0}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <button
