@@ -18,6 +18,7 @@ import { DailyMissions } from '@/components/legacy/game/daily-missions';
 import { GameAchievements } from '@/components/legacy/game/game-achievements';
 import { AchievementPopup } from '@/components/legacy/game/achievement-popup';
 import { createClient } from '@/lib/supabase/client';
+import { PetPanel } from '@/components/legacy/game/pet-panel';
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void }) {
@@ -35,7 +36,7 @@ function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void })
   return null;
 }
 
-type Tab = 'missions' | 'stats' | 'history' | 'achievements' | 'products';
+type Tab = 'missions' | 'stats' | 'history' | 'achievements' | 'products' | 'pet';
 
 export default function GameHubPage() {
   const router = useRouter();
@@ -260,6 +261,7 @@ export default function GameHubPage() {
         <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none">
           {([
             { id: 'missions', label: 'Missions', action: 'missions', variant: 'tabby' },
+            { id: 'pet', label: 'Pet 🐾', action: 'play', variant: 'black' },
             { id: 'stats', label: 'Stats', action: 'stats', variant: 'cyan' },
             { id: 'history', label: 'History', action: 'history', variant: 'gray' },
             { id: 'achievements', label: 'Achievements', action: 'achievements', variant: 'calico' },
@@ -284,6 +286,9 @@ export default function GameHubPage() {
         <div className="min-h-[300px]">
           {activeTab === 'missions' && (
             <DailyMissions />
+          )}
+          {activeTab === 'pet' && (
+            <PetPanel />
           )}
           {activeTab === 'stats' && (
             <GameStats />

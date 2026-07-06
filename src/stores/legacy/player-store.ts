@@ -25,6 +25,11 @@ export interface PlayerState {
   // XP popup trigger — set to xpAmount when XP is awarded, then cleared by UI
   pendingXpGain: number;
   pendingAchievementUnlocks: string[];
+  // ponytail: virtual pet states
+  petName: string;
+  petStage: 'KITTEN' | 'YOUNG_CAT' | 'ADULT_CAT' | 'WISE_CAT' | 'LEGENDARY_CAT';
+  petHunger: number;
+  petAffection: number;
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -40,6 +45,9 @@ export interface PlayerActions {
   clearPendingXpGain: () => void;
   clearPendingAchievementUnlocks: () => void;
   resetPlayer: () => void;
+  // ponytail: virtual pet actions
+  feedPet: (barcode: string, category: string) => void;
+  renamePet: (name: string) => void;
 }
 
 export type PlayerStore = PlayerState & PlayerActions;
@@ -93,6 +101,11 @@ const initialStoreState: PlayerState = {
   lastDeleteTime: 0,
   pendingXpGain: 0,
   pendingAchievementUnlocks: [],
+  // ponytail: pet defaults
+  petName: 'Scan-chan Jr.',
+  petStage: 'KITTEN',
+  petHunger: 50,
+  petAffection: 10,
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -144,8 +157,8 @@ export const usePlayerStore = create<PlayerStore>()(
           }
 
           const baseXpGain = isNewProduct
-            ? GAME_CONFIG.xp.scanNew
-            : GAME_CONFIG.xp.scanExisting;
+             ? GAME_CONFIG.xp.scanNew
+             : GAME_CONFIG.xp.scanExisting;
 
           // 1. Evaluate daily missions
           const { updatedMissions, xpEarned: missionXp } = evaluateMissions(
@@ -262,10 +275,28 @@ export const usePlayerStore = create<PlayerStore>()(
 
         const newMissions = generateDailyMissions(localDateString);
 
+        // ponytail: daily pet hunger decay (decay by 15 per day)
+        // if hunger becomes 0, affection decreases by 5
+        const currentHunger = get().petHunger;
+        const currentAffection = get().petAffection;
+        const nextHunger = Math.max(0, currentHunger - 15);
+        const nextAffection = nextHunger === 0 ? Math.max(0, currentAffection - 5) : currentAffection;
+
+        // ponytail: adjust stage based on decay
+        let nextStage = get().petStage;
+        if (nextAffection < 25) nextStage = 'KITTEN';
+        else if (nextAffection < 50) nextStage = 'YOUNG_CAT';
+        else if (nextAffection < 75) nextStage = 'ADULT_CAT';
+        else if (nextAffection < 95) nextStage = 'WISE_CAT';
+        else nextStage = 'LEGENDARY_CAT';
+
         set({
           lastActiveDate: localDateString,
           streak: nextStreak,
           dailyMissions: newMissions,
+          petHunger: nextHunger,
+          petAffection: nextAffection,
+          petStage: nextStage,
         });
       },
 
@@ -279,6 +310,48 @@ export const usePlayerStore = create<PlayerStore>()(
 
       resetPlayer: () => {
         set({ ...initialStoreState });
+      },
+
+      // ponytail: virtual pet feed actions
+      feedPet: (barcode: string, category: string) => {
+        set((state) => {
+          // Food values based on category
+          let feedValue = 10;
+          if (category === 'Snack') feedValue = 15;
+          if (category === 'Drink') feedValue = 12;
+          if (category === 'Candy') feedValue = 8;
+          if (category === 'Biscuit') feedValue = 14;
+          if (category === 'Dairy') feedValue = 20;
+
+          const nextHunger = Math.min(100, state.petHunger + feedValue);
+          const nextAffection = Math.min(100, state.petAffection + 3);
+
+          // evolution stages based on affection
+          let nextStage: typeof state.petStage = 'KITTEN';
+          if (nextAffection < 25) nextStage = 'KITTEN';
+          else if (nextAffection < 50) nextStage = 'YOUNG_CAT';
+          else if (nextAffection < 75) nextStage = 'ADULT_CAT';
+          else if (nextAffection < 95) nextStage = 'WISE_CAT';
+          else nextStage = 'LEGENDARY_CAT';
+
+          // reward XP for caring
+          const xpGain = 10;
+          const newXp = state.xp + xpGain;
+          const newLevel = levelFromXp(newXp);
+
+          return {
+            petHunger: nextHunger,
+            petAffection: nextAffection,
+            petStage: nextStage,
+            xp: newXp,
+            level: newLevel,
+            pendingXpGain: xpGain,
+          };
+        });
+      },
+
+      renamePet: (name: string) => {
+        set({ petName: name });
       },
     }),
     {
