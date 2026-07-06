@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Product, ScanHistory, Prisma } from '@prisma/client';
 import { serializeProduct } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,11 +26,30 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
     const search = searchParams.get('search') ?? '';
 
-    const where: Prisma.ScanHistoryWhereInput = {};
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        userId = user.id;
+      }
+    } catch (e) {
+      console.warn('Could not read user auth session in history route', e);
+    }
+
+    const where: Prisma.ScanHistoryWhereInput = {
+      userId,
+    };
+
     if (search) {
-      where.OR = [
-        { barcodeNumber: { contains: search } },
-        { product: { productName: { contains: search, mode: 'insensitive' } } },
+      where.AND = [
+        { userId },
+        {
+          OR: [
+            { barcodeNumber: { contains: search } },
+            { product: { productName: { contains: search, mode: 'insensitive' } } },
+          ]
+        }
       ];
     }
 

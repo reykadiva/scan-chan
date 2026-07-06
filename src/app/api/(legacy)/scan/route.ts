@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { scanRequestSchema } from '@/lib/validations/scan';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,12 +71,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let userId: string | null = null;
+    try {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        userId = user.id;
+      }
+    } catch (e) {
+      console.warn('Could not read user auth session in scan route', e);
+    }
+
     // Log the scan
     const scanHistory = await prisma.scanHistory.create({
       data: {
         barcodeNumber,
         productId: product?.id ?? null,
         deviceType: deviceType ?? null,
+        userId,
       },
     });
 
