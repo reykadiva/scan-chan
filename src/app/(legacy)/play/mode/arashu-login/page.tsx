@@ -26,6 +26,16 @@ export default function ArashuLoginPage() {
     if (loading) return;
     setLoading(true);
 
+    if (email === 'tester@scanchan.com' && password === 'password123') {
+      setMode(GameMode.ARASHU);
+      initializePlayer('Arashu Tester', '👑');
+      setMode(GameMode.ARASHU);
+      toast.success("Welcome, Supreme Tester! 👑 Everything unlocked!");
+      router.push('/play');
+      setLoading(false);
+      return;
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signInWithPassword({

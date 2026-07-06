@@ -615,6 +615,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
 const saveProfile = async (state: any) => {
   if (state.mode !== GameMode.ARASHU) return;
+  if (state.nickname === 'Arashu Tester') return; // Skip database save for mocked dev account
   try {
     await fetch('/api/profile', {
       method: 'POST',
