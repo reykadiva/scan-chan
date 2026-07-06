@@ -36,6 +36,15 @@ export interface PlayerState {
   selectedAccessory: 'none' | 'cowboy' | 'wizard' | 'shades';
   selectedTitle: string;
   lastPetTime: number;
+  // Feature #1: Daily Login Calendar
+  loginCalendar: string[]; // dates (YYYY-MM-DD) where reward was claimed
+  // Feature #2: Custom Room Backgrounds
+  selectedRoom: 'cozy' | 'cyberpunk-cafe' | 'outer-space' | 'kawaii-garden';
+  // Feature #3: Bounty Hunt
+  activeBounty: { category: string; description: string; expiresAt: number; xpBonus: number } | null;
+  // Feature #4: Category Master Badges
+  categoryScans: Record<string, number>;
+  nightScans: number;
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -60,6 +69,13 @@ export interface PlayerActions {
   selectTitle: (title: string) => void;
   petCat: () => void;
   loadProfile: () => Promise<void>;
+  // Feature #1: Daily Login Calendar
+  claimLoginReward: (dateStr: string) => { xp: number; food: boolean; affection: number; border: string | null };
+  // Feature #2: Room Backgrounds
+  selectRoom: (room: 'cozy' | 'cyberpunk-cafe' | 'outer-space' | 'kawaii-garden') => void;
+  // Feature #3: Bounty Hunt
+  generateBounty: () => void;
+  completeBounty: () => void;
 }
 
 export type PlayerStore = PlayerState & PlayerActions;
@@ -124,6 +140,11 @@ const initialStoreState: PlayerState = {
   selectedAccessory: 'none',
   selectedTitle: '',
   lastPetTime: 0,
+  loginCalendar: [],
+  selectedRoom: 'cozy',
+  activeBounty: null,
+  categoryScans: {},
+  nightScans: 0,
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -205,16 +226,38 @@ export const usePlayerStore = create<PlayerStore>()(
             updatedFoodInventory[barcode] = (updatedFoodInventory[barcode] || 0) + 1;
           }
 
+          // Feature #4: Category Master tracking
+          const updatedCategoryScans = { ...state.categoryScans };
+          if (category && category !== 'Other') {
+            updatedCategoryScans[category] = (updatedCategoryScans[category] || 0) + 1;
+          }
+          const hour = new Date().getHours();
+          const isNight = hour >= 23 || hour < 5;
+
+          // Feature #3: Bounty completion check
+          let bountyXpBonus = 0;
+          let updatedBounty = state.activeBounty;
+          if (updatedBounty && updatedBounty.category === category && Date.now() < updatedBounty.expiresAt) {
+            bountyXpBonus = updatedBounty.xpBonus;
+            updatedBounty = null; // consumed
+          }
+
+          const finalXp = newXp + bountyXpBonus;
+          const finalLevel = levelFromXp(finalXp);
+
           return {
             scanHistory,
-            xp: newXp,
-            level: newLevel,
-            pendingXpGain: totalXpGain,
+            xp: finalXp,
+            level: finalLevel,
+            pendingXpGain: totalXpGain + bountyXpBonus,
             pendingAchievementUnlocks: [...state.pendingAchievementUnlocks, ...newlyUnlocked],
             dailyMissions: updatedMissions,
             unlockedAchievements: [...state.unlockedAchievements, ...newlyUnlocked],
             lastScanTime: { ...state.lastScanTime, [barcode]: now },
             foodInventory: updatedFoodInventory,
+            categoryScans: updatedCategoryScans,
+            nightScans: isNight ? state.nightScans + 1 : state.nightScans,
+            activeBounty: updatedBounty,
           };
         });
       },
@@ -433,6 +476,104 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ petName: name });
       },
 
+      // Feature #1: Daily Login Calendar & Streak Rewards
+      claimLoginReward: (dateStr: string) => {
+        const state = get();
+        if (state.loginCalendar.includes(dateStr)) {
+          return { xp: 0, food: false, affection: 0, border: null };
+        }
+
+        const newCalendar = [...state.loginCalendar, dateStr];
+
+        // Count consecutive days ending at dateStr
+        let consecutiveDays = 0;
+        const today = new Date(dateStr);
+        for (let i = 0; i < 30; i++) {
+          const checkDate = new Date(today);
+          checkDate.setDate(checkDate.getDate() - i);
+          const checkStr = checkDate.toLocaleDateString('en-CA');
+          if (newCalendar.includes(checkStr)) {
+            consecutiveDays++;
+          } else {
+            break;
+          }
+        }
+
+        let xpReward = 20;
+        let giveFood = false;
+        let affectionBoost = 0;
+        let borderReward: string | null = null;
+
+        // Day 1-3: +20 XP & random food
+        if (consecutiveDays <= 3) {
+          giveFood = true;
+        }
+        // Day 5: +15 affection boost
+        if (consecutiveDays >= 5) {
+          affectionBoost = 15;
+          xpReward = 30;
+        }
+        // Day 7: unlock Streak Master border
+        if (consecutiveDays >= 7) {
+          borderReward = 'holographic';
+          xpReward = 50;
+        }
+
+        const newXp = state.xp + xpReward;
+        const newLevel = levelFromXp(newXp);
+        const newAffection = Math.min(100, state.petAffection + affectionBoost);
+
+        // Auto-generate a food item
+        const updatedFoodInventory = { ...state.foodInventory };
+        if (giveFood) {
+          const randomFoodKey = `login-reward-${dateStr}`;
+          updatedFoodInventory[randomFoodKey] = (updatedFoodInventory[randomFoodKey] || 0) + 1;
+        }
+
+        set({
+          loginCalendar: newCalendar,
+          xp: newXp,
+          level: newLevel,
+          pendingXpGain: xpReward,
+          petAffection: newAffection,
+          foodInventory: updatedFoodInventory,
+        });
+
+        return { xp: xpReward, food: giveFood, affection: affectionBoost, border: borderReward };
+      },
+
+      // Feature #2: Room Backgrounds
+      selectRoom: (room) => {
+        set({ selectedRoom: room });
+      },
+
+      // Feature #3: Bounty Hunt
+      generateBounty: () => {
+        const categories = ['Drink', 'Snack', 'Candy', 'Biscuit', 'Dairy'];
+        const descriptions: Record<string, string> = {
+          Drink: '🥤 "I\'m so thirsty~ Scan any drink for me!"',
+          Snack: '🍿 "Something crunchy please! Scan a snack!"',
+          Candy: '🍬 "Sweets! I want candy! Scan one now~"',
+          Biscuit: '🍪 "Cookie time! Scan any biscuit!"',
+          Dairy: '🥛 "Milk please~ Scan any dairy product!"',
+        };
+        const cat = categories[Math.floor(Math.random() * categories.length)];
+        const twoHoursMs = 2 * 60 * 60 * 1000;
+
+        set({
+          activeBounty: {
+            category: cat,
+            description: descriptions[cat],
+            expiresAt: Date.now() + twoHoursMs,
+            xpBonus: 30,
+          },
+        });
+      },
+
+      completeBounty: () => {
+        set({ activeBounty: null });
+      },
+
       loadProfile: async () => {
         try {
           const res = await fetch('/api/profile');
@@ -450,6 +591,10 @@ export const usePlayerStore = create<PlayerStore>()(
               selectedBorder: data.data.selectedBorder,
               selectedAccessory: data.data.selectedAccessory,
               selectedTitle: data.data.selectedTitle,
+              selectedRoom: data.data.selectedRoom || 'cozy',
+              loginCalendar: data.data.loginCalendar || [],
+              categoryScans: data.data.categoryScans || {},
+              nightScans: data.data.nightScans || 0,
             });
           }
         } catch (err) {
@@ -486,6 +631,10 @@ const saveProfile = async (state: any) => {
         selectedBorder: state.selectedBorder,
         selectedAccessory: state.selectedAccessory,
         selectedTitle: state.selectedTitle,
+        selectedRoom: state.selectedRoom,
+        loginCalendar: state.loginCalendar,
+        categoryScans: state.categoryScans,
+        nightScans: state.nightScans,
       }),
     });
   } catch (err) {

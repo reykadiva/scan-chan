@@ -21,6 +21,9 @@ import { AchievementPopup } from '@/components/legacy/game/achievement-popup';
 import { createClient } from '@/lib/supabase/client';
 import { PetPanel } from '@/components/legacy/game/pet-panel';
 import { LevelRoadmap } from '@/components/legacy/game/level-roadmap';
+import { LoginCalendar } from '@/components/legacy/game/login-calendar';
+import { BountyHunt } from '@/components/legacy/game/bounty-hunt';
+import { CategoryBadges } from '@/components/legacy/game/category-badges';
 
 // Separate component so useSearchParams is inside a Suspense boundary
 function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void }) {
@@ -38,7 +41,7 @@ function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void })
   return null;
 }
 
-type Tab = 'missions' | 'stats' | 'roadmap' | 'history' | 'achievements' | 'products';
+type Tab = 'missions' | 'stats' | 'roadmap' | 'history' | 'achievements' | 'products' | 'login' | 'bounty' | 'badges';
 
 export default function GameHubPage() {
   const router = useRouter();
@@ -392,8 +395,11 @@ export default function GameHubPage() {
         <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none">
           {([
             { id: 'missions', label: 'Missions', action: 'missions', variant: 'tabby' },
+            { id: 'login', label: 'Login', action: 'achievements', variant: 'calico' },
+            { id: 'bounty', label: 'Bounty', action: 'scan', variant: 'tabby' },
             { id: 'stats', label: 'Stats', action: 'stats', variant: 'cyan' },
             { id: 'roadmap', label: 'Roadmap', action: 'play', variant: 'black' },
+            { id: 'badges', label: 'Badges', action: 'achievements', variant: 'pink' },
             { id: 'history', label: 'History', action: 'history', variant: 'gray' },
             { id: 'achievements', label: 'Achievements', action: 'achievements', variant: 'calico' },
             { id: 'products', label: 'Products', action: 'items', variant: 'pink' },
@@ -418,11 +424,20 @@ export default function GameHubPage() {
           {activeTab === 'missions' && (
             <DailyMissions />
           )}
+          {activeTab === 'login' && (
+            <LoginCalendar />
+          )}
+          {activeTab === 'bounty' && (
+            <BountyHunt />
+          )}
           {activeTab === 'stats' && (
             <GameStats />
           )}
           {activeTab === 'roadmap' && (
             <LevelRoadmap />
+          )}
+          {activeTab === 'badges' && (
+            <CategoryBadges />
           )}
           {activeTab === 'history' && (
             <ScanHistory />

@@ -7,6 +7,7 @@ import { PixelCat, type CatVariantId, type CatActionId } from '@/components/lega
 import { Edit2, Check, Loader2, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
+import { getRoomGradient, RoomSelector } from '@/components/legacy/game/room-selector';
 
 // ponytail: map evolution stages to cute pixel cat variants
 const STAGE_AVATARS: Record<string, CatVariantId> = {
@@ -27,6 +28,7 @@ const STAGE_LABELS: Record<string, string> = {
 
 export function PetPanel() {
   const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, petCat } = usePlayerStore();
+  const selectedRoom = usePlayerStore((s) => s.selectedRoom);
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(petName);
   const [foodItems, setFoodItems] = useState<Product[]>([]);
@@ -161,7 +163,7 @@ export function PetPanel() {
   return (
     <div className="space-y-6">
       {/* Main Pet Display Card */}
-      <div className="card-bubbly bg-white p-6 relative overflow-hidden flex flex-col md:flex-row items-center gap-8">
+      <div className={`card-bubbly p-6 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 bg-gradient-to-br ${getRoomGradient(selectedRoom)}`}>
         {/* Floating popups */}
         <div className="absolute top-4 left-4 z-10 pointer-events-none">
           <AnimatePresence>
@@ -332,6 +334,9 @@ export function PetPanel() {
           </div>
         )}
       </div>
+
+      {/* Room Background Selector */}
+      <RoomSelector />
     </div>
   );
 }

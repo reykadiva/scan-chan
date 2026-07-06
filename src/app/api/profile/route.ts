@@ -53,7 +53,7 @@ export async function GET() {
           },
           settings: {
             create: {
-              theme: 'default:none:none:',
+              theme: 'default:none:none::cozy::{}',
               sound: true,
             },
           },
@@ -68,8 +68,22 @@ export async function GET() {
       });
     }
 
-    const themeString = dbUser.settings?.theme || 'default:none:none:';
-    const [t, b, a, titleVal] = themeString.split(':');
+    const themeString = dbUser.settings?.theme || 'default:none:none::cozy::{}';
+    const [t, b, a, titleVal, room, calendarStr, categoriesStr, nightStr] = themeString.split(':');
+
+    let loginCalendar: string[] = [];
+    if (calendarStr) {
+      loginCalendar = calendarStr.split(',');
+    }
+
+    let categoryScans: Record<string, number> = {};
+    if (categoriesStr) {
+      try {
+        categoryScans = JSON.parse(categoriesStr.replace(/;/g, ':'));
+      } catch {}
+    }
+
+    const nightScans = nightStr ? parseInt(nightStr) : 0;
 
     return NextResponse.json({
       success: true,
@@ -87,6 +101,10 @@ export async function GET() {
         selectedBorder: b || 'none',
         selectedAccessory: a || 'none',
         selectedTitle: titleVal || '',
+        selectedRoom: room || 'cozy',
+        loginCalendar,
+        categoryScans,
+        nightScans,
       },
     });
   } catch (error) {
@@ -117,9 +135,16 @@ export async function POST(request: NextRequest) {
       selectedBorder,
       selectedAccessory,
       selectedTitle,
+      selectedRoom,
+      loginCalendar,
+      categoryScans,
+      nightScans,
     } = body;
 
-    const themeString = `${selectedTheme || 'default'}:${selectedBorder || 'none'}:${selectedAccessory || 'none'}:${selectedTitle || ''}`;
+    const calendarStr = Array.isArray(loginCalendar) ? loginCalendar.join(',') : '';
+    const categoriesStr = categoryScans ? JSON.stringify(categoryScans).replace(/:/g, ';') : '{}';
+
+    const themeString = `${selectedTheme || 'default'}:${selectedBorder || 'none'}:${selectedAccessory || 'none'}:${selectedTitle || ''}:${selectedRoom || 'cozy'}:${calendarStr}:${categoriesStr}:${nightScans || 0}`;
 
     await prisma.user.upsert({
       where: { id: user.id },

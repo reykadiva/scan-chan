@@ -109,4 +109,63 @@ describe('Player Store & Virtual Pet Mechanics', () => {
     store.petCat();
     expect(usePlayerStore.getState().petAffection).toBe(initialAffection + 5);
   });
+
+  it('should claim daily login rewards and increment calendar', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const reward = store.claimLoginReward(todayStr);
+
+    const state = usePlayerStore.getState();
+    expect(state.loginCalendar).toContain(todayStr);
+    expect(reward.xp).toBeGreaterThan(0);
+    expect(reward.food).toBe(true); // Day 1-3 gives food reward
+
+    // Claiming again today should yield no rewards
+    const secondReward = store.claimLoginReward(todayStr);
+    expect(secondReward.xp).toBe(0);
+  });
+
+  it('should select room backgrounds', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+    expect(store.selectedRoom).toBe('cozy');
+
+    store.selectRoom('cyberpunk-cafe');
+    expect(usePlayerStore.getState().selectedRoom).toBe('cyberpunk-cafe');
+  });
+
+  it('should generate and complete bounty hunts on recordScan', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+    expect(store.activeBounty).toBeNull();
+
+    // Generate bounty
+    store.generateBounty();
+    const activeBounty = usePlayerStore.getState().activeBounty;
+    expect(activeBounty).not.toBeNull();
+    const category = activeBounty!.category;
+
+    // Scan a product matching the category
+    store.recordScan('barcode123', true, category);
+
+    // Bounty should be completed and rewards given
+    const state = usePlayerStore.getState();
+    expect(state.activeBounty).toBeNull();
+    expect(state.xp).toBeGreaterThan(0);
+  });
+
+  it('should track category scans', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+
+    store.recordScan('barcode1', true, 'Snack');
+    store.recordScan('barcode2', true, 'Snack');
+    store.recordScan('barcode3', true, 'Drink');
+
+    const state = usePlayerStore.getState();
+    expect(state.categoryScans['Snack']).toBe(2);
+    expect(state.categoryScans['Drink']).toBe(1);
+  });
 });
