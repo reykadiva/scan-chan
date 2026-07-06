@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { usePlayerStore } from '@/stores/legacy/player-store';
 
 export type CatVariantId =
   | 'calico'
@@ -86,6 +87,7 @@ interface PixelCatProps {
   size?: number;
   className?: string;
   'aria-label'?: string;
+  accessory?: 'none' | 'cowboy' | 'wizard' | 'shades';
 }
 
 export function PixelCat({
@@ -94,7 +96,11 @@ export function PixelCat({
   size = 64,
   className,
   'aria-label': ariaLabel,
+  accessory,
 }: PixelCatProps) {
+  const storeAccessory = usePlayerStore((state) => state.selectedAccessory);
+  const activeAccessory = accessory ?? storeAccessory;
+
   const palette = CAT_PALETTES[variant] || CAT_PALETTES.calico;
   const pixels: Pixel[] = [];
 
@@ -538,6 +544,45 @@ export function PixelCat({
     tailFur.forEach((p) => {
       setPixel(p.x, p.y, palette.fur, 'wagging-tail-pixel');
     });
+  }
+
+  // Draw accessory overlays dynamically
+  if (activeAccessory === 'cowboy') {
+    // Brim
+    for (let x = 5; x <= 19; x++) setPixel(x, 10, '#78350f', 'cat-accessory');
+    // Red band
+    for (let x = 7; x <= 17; x++) setPixel(x, 9, '#ef4444', 'cat-accessory');
+    // Top
+    for (let x = 8; x <= 16; x++) setPixel(x, 8, '#78350f', 'cat-accessory');
+    for (let x = 9; x <= 15; x++) setPixel(x, 7, '#78350f', 'cat-accessory');
+  } else if (activeAccessory === 'wizard') {
+    // Brim
+    for (let x = 6; x <= 18; x++) setPixel(x, 10, '#4338ca', 'cat-accessory');
+    // Crown
+    for (let x = 8; x <= 16; x++) setPixel(x, 9, '#4338ca', 'cat-accessory');
+    for (let x = 9; x <= 15; x++) setPixel(x, 8, '#4338ca', 'cat-accessory');
+    setPixel(12, 8, '#eab308', 'cat-accessory');
+    for (let x = 10; x <= 14; x++) setPixel(x, 7, '#4338ca', 'cat-accessory');
+    for (let x = 11; x <= 13; x++) setPixel(x, 6, '#4338ca', 'cat-accessory');
+    setPixel(12, 5, '#eab308', 'cat-accessory');
+  } else if (activeAccessory === 'shades') {
+    // Left glass
+    for (let x = 6; x <= 9; x++) {
+      setPixel(x, 13, '#111827', 'cat-accessory');
+      setPixel(x, 14, '#111827', 'cat-accessory');
+    }
+    // Right glass
+    for (let x = 14; x <= 17; x++) {
+      setPixel(x, 13, '#111827', 'cat-accessory');
+      setPixel(x, 14, '#111827', 'cat-accessory');
+    }
+    // Bridge
+    for (let x = 9; x <= 14; x++) {
+      setPixel(x, 13, '#111827', 'cat-accessory');
+    }
+    // Glare
+    setPixel(7, 13, '#ffffff', 'cat-accessory');
+    setPixel(15, 13, '#ffffff', 'cat-accessory');
   }
 
   return (

@@ -26,13 +26,29 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export function PetPanel() {
-  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory } = usePlayerStore();
+  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, petCat } = usePlayerStore();
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(petName);
   const [foodItems, setFoodItems] = useState<Product[]>([]);
   const [loadingFood, setLoadingFood] = useState(true);
   const [catAction, setCatAction] = useState<CatActionId>('none');
   const [fedPopups, setFedPopups] = useState<{ id: number; text: string }[]>([]);
+
+  const handlePetClick = () => {
+    petCat();
+    playMeow();
+    setCatAction('excited');
+
+    const reactionText = ['Purrr~ 💖', '*purrs softly*', 'So happy! ✨', 'Meow! 🐾', 'Happy kitten! 🥰'];
+    const randomText = reactionText[Math.floor(Math.random() * reactionText.length)];
+    const id = Date.now();
+    setFedPopups((prev) => [...prev, { id, text: randomText }]);
+
+    setTimeout(() => setCatAction('none'), 1800);
+    setTimeout(() => {
+      setFedPopups((prev) => prev.filter((p) => p.id !== id));
+    }, 1800);
+  };
 
   // Fetch product details for food inventory to list available food
   useEffect(() => {
@@ -198,9 +214,17 @@ export function PetPanel() {
               </div>
             )}
 
-            <span className="bg-slate-800 text-white text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0">
-              {STAGE_LABELS[petStage]}
-            </span>
+            <div className="flex gap-2">
+              <span className="bg-slate-800 text-white text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0">
+                {STAGE_LABELS[petStage]}
+              </span>
+              <button
+                onClick={handlePetClick}
+                className="bg-brand-pink text-white text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0 hover:brightness-105 active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
+              >
+                💖 Pet Cat
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

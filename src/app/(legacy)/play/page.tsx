@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AnimatePresence } from 'motion/react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId } from '@/components/legacy/pixel-cat';
 import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
@@ -55,12 +56,74 @@ export default function GameHubPage() {
   const checkDailyReset = usePlayerStore((state) => state.checkDailyReset);
   const selectedBorder = usePlayerStore((state) => state.selectedBorder);
   const selectedTheme = usePlayerStore((state) => state.selectedTheme);
+  const selectedTitle = usePlayerStore((state) => state.selectedTitle);
 
   const [activeTab, setActiveTab] = useState<Tab>('missions');
   const [showSetup, setShowSetup] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [registerInitialBarcode, setRegisterInitialBarcode] = useState('');
   const [mounted, setMounted] = useState(false);
+
+  const [isMuted, setIsMuted] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('scan-chan-muted') === 'true';
+    }
+    return false;
+  });
+
+  const [lastLevel, setLastLevel] = useState(level);
+
+  const toggleMute = () => {
+    setIsMuted((prev) => {
+      const next = !prev;
+      localStorage.setItem('scan-chan-muted', String(next));
+      return next;
+    });
+  };
+
+  const playFanfare = () => {
+    if (typeof window === 'undefined') return;
+    const isMutedSetting = localStorage.getItem('scan-chan-muted') === 'true';
+    if (isMutedSetting) return;
+
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      
+      const playNote = (freq: number, start: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, start);
+        
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.12, start + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+
+      playNote(261.63, now, 0.15); // C4
+      playNote(329.63, now + 0.12, 0.15); // E4
+      playNote(392.00, now + 0.24, 0.15); // G4
+      playNote(523.25, now + 0.36, 0.45); // C5
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (level > lastLevel) {
+      playFanfare();
+      toast.success(`🎉 LEVEL UP! You reached Level ${level}!`, {
+        description: 'New titles or pet accessories unlocked. Check the Roadmap tab!',
+      });
+      setLastLevel(level);
+    }
+  }, [level, lastLevel, mounted]);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 0);
@@ -228,13 +291,22 @@ export default function GameHubPage() {
             </div>
             <span className={`font-fredoka font-bold text-xl tracking-tight ${theme.text}`}>Game Hub</span>
           </div>
-          <button
-            onClick={handleExit}
-            className="flex items-center gap-2 px-4 py-1.5 bg-white/80 hover:bg-white text-slate-600 rounded-full font-fredoka font-semibold text-sm card-bubbly hover:scale-105 transition-transform overflow-hidden animate-fade-in"
-          >
-            <PixelCat variant="gray" action="exit" size={24} aria-hidden="true" />
-            Exit
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleMute}
+              className="p-2 bg-white/80 hover:bg-white text-slate-600 rounded-full card-bubbly hover:scale-105 transition-transform flex items-center justify-center cursor-pointer"
+              title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
+            >
+              {isMuted ? <VolumeX className="w-5 h-5 text-rose-500 animate-pulse" /> : <Volume2 className="w-5 h-5 text-brand-cyan" />}
+            </button>
+            <button
+              onClick={handleExit}
+              className="flex items-center gap-2 px-4 py-1.5 bg-white/80 hover:bg-white text-slate-600 rounded-full font-fredoka font-semibold text-sm card-bubbly hover:scale-105 transition-transform overflow-hidden animate-fade-in"
+            >
+              <PixelCat variant="gray" action="exit" size={24} aria-hidden="true" />
+              Exit
+            </button>
+          </div>
         </div>
       </header>
 
@@ -258,6 +330,11 @@ export default function GameHubPage() {
                   </span>
                 )}
               </div>
+              {selectedTitle && (
+                <div className="text-[10px] font-fredoka font-bold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full inline-block mb-1.5 uppercase tracking-wide">
+                  👑 {selectedTitle}
+                </div>
+              )}
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <span className="bg-brand-cyan/20 text-cyan-800 text-xs font-fredoka font-bold px-2.5 py-0.5 rounded-full">

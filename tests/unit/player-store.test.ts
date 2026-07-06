@@ -76,4 +76,37 @@ describe('Player Store & Virtual Pet Mechanics', () => {
     expect(state.petHunger).toBe(15); // 40 - 25 = 15
     expect(state.petAffection).toBe(30); // hunger not 0, affection stays same
   });
+
+  it('should handle customized titles and pet accessories', () => {
+    const store = usePlayerStore.getState();
+    expect(store.selectedTitle).toBe('');
+    expect(store.selectedAccessory).toBe('none');
+
+    store.selectTitle('Soda King');
+    store.selectAccessory('wizard');
+
+    const state = usePlayerStore.getState();
+    expect(state.selectedTitle).toBe('Soda King');
+    expect(state.selectedAccessory).toBe('wizard');
+  });
+
+  it('should increase affection and xp when petting the cat', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+
+    const initialAffection = store.petAffection; // 10
+    const initialXp = store.xp; // 0
+
+    // Pet the cat
+    store.petCat();
+
+    const state = usePlayerStore.getState();
+    expect(state.petAffection).toBe(initialAffection + 5); // 15
+    expect(state.xp).toBe(initialXp + 5); // 5
+    expect(state.lastPetTime).toBeGreaterThan(0);
+
+    // Petting again immediately during 3s cooldown should not change affection
+    store.petCat();
+    expect(usePlayerStore.getState().petAffection).toBe(initialAffection + 5);
+  });
 });
