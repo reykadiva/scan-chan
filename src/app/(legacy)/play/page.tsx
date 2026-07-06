@@ -36,7 +36,7 @@ function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void })
   return null;
 }
 
-type Tab = 'missions' | 'stats' | 'history' | 'achievements' | 'products' | 'pet';
+type Tab = 'missions' | 'stats' | 'history' | 'achievements' | 'products';
 
 export default function GameHubPage() {
   const router = useRouter();
@@ -257,11 +257,13 @@ export default function GameHubPage() {
           </div>
         </div>
 
+        {/* Pet Panel is now Main Showcase Hero Content */}
+        <PetPanel />
+
         {/* Tab controls */}
         <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-none">
           {([
             { id: 'missions', label: 'Missions', action: 'missions', variant: 'tabby' },
-            { id: 'pet', label: 'Pet 🐾', action: 'play', variant: 'black' },
             { id: 'stats', label: 'Stats', action: 'stats', variant: 'cyan' },
             { id: 'history', label: 'History', action: 'history', variant: 'gray' },
             { id: 'achievements', label: 'Achievements', action: 'achievements', variant: 'calico' },
@@ -286,9 +288,6 @@ export default function GameHubPage() {
         <div className="min-h-[300px]">
           {activeTab === 'missions' && (
             <DailyMissions />
-          )}
-          {activeTab === 'pet' && (
-            <PetPanel />
           )}
           {activeTab === 'stats' && (
             <GameStats />

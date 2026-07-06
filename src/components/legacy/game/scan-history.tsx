@@ -124,8 +124,8 @@ export function ScanHistory() {
 
                 <div>
                   {product ? (
-                    <span className="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-fredoka font-bold border border-green-200">
-                      ✓ Found
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-fredoka font-bold border border-green-200">
+                      <PixelCat variant="cyan" size={16} /> Found
                     </span>
                   ) : (
                     <Link href={`/play?register=${barcode}`}>
