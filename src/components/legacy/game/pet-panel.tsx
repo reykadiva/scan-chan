@@ -63,11 +63,34 @@ export function PetPanel() {
       }
       setLoadingFood(true);
       try {
-        const res = await fetch(`/api/products?limit=50&barcodes=${foodBarcodes.join(',')}`);
-        const data = await res.json();
-        if (data.success) {
-          setFoodItems(data.data);
+        const dbBarcodes = foodBarcodes.filter((b) => !b.startsWith('login-reward-'));
+        let dbProducts: Product[] = [];
+        if (dbBarcodes.length > 0) {
+          const res = await fetch(`/api/products?limit=50&barcodes=${dbBarcodes.join(',')}`);
+          const data = await res.json();
+          if (data.success) {
+            dbProducts = data.data;
+          }
         }
+        
+        // Append mocked products for login rewards
+        const allItems = [...dbProducts];
+        for (const barcode of foodBarcodes) {
+          if (barcode.startsWith('login-reward-')) {
+            allItems.push({
+              id: barcode,
+              barcodeNumber: barcode,
+              productName: '🍱 Delicious Login Bento',
+              category: 'Snack',
+              brand: 'Scan-chan Bakery',
+              description: 'A special tasty lunch box given to loyal players!',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            } as any);
+          }
+        }
+
+        setFoodItems(allItems);
       } catch {
         toast.error('Failed to load food inventory');
       } finally {
