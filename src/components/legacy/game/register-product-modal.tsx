@@ -224,7 +224,7 @@ export function RegisterProductModal({
               value={form.barcodeNumber}
               onChange={(e) => setForm({ ...form, barcodeNumber: e.target.value })}
               placeholder="e.g. 8991234567890"
-              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-sm font-mono"
+              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-base md:text-sm font-mono"
             />
           </div>
 
@@ -240,7 +240,7 @@ export function RegisterProductModal({
               value={form.productName}
               onChange={(e) => setForm({ ...form, productName: e.target.value })}
               placeholder="e.g. Oreo Double Stuf"
-              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-sm"
+              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-base md:text-sm"
             />
           </div>
 
@@ -254,7 +254,7 @@ export function RegisterProductModal({
                 value={form.brand}
                 onChange={(e) => setForm({ ...form, brand: e.target.value })}
                 placeholder="e.g. Nabisco"
-                className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-sm"
+                className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-base md:text-sm"
               />
             </div>
             <div>
@@ -263,7 +263,7 @@ export function RegisterProductModal({
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="appearance-none w-full pl-4 pr-10 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-sm bg-white"
+                  className="appearance-none w-full pl-4 pr-10 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-semibold text-slate-800 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-base md:text-sm bg-white"
                 >
                   <option value="">Select...</option>
                   {CATEGORIES.map((cat) => (
@@ -284,7 +284,7 @@ export function RegisterProductModal({
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="Brief product description..."
               rows={3}
-              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-sm resize-none"
+              className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 font-nunito font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-brand-cyan focus:ring-4 focus:ring-brand-cyan/10 transition-all text-base md:text-sm resize-none"
             />
           </div>
 
