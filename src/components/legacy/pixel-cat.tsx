@@ -157,17 +157,28 @@ export function PixelCat({
         // Crown base
         else if (rIdx === 2 && (cIdx >= 6 && cIdx <= 10)) char = 'C';
         
-        // Smiling arch eyes: Left eye
-        else if (rIdx === 6 && cIdx === 3) char = 'K';
-        else if (rIdx === 7 && (cIdx === 2 || cIdx === 4)) char = 'K';
-        // Smiling arch eyes: Right eye
-        else if (rIdx === 6 && cIdx === 12) char = 'K';
-        else if (rIdx === 7 && (cIdx === 11 || cIdx === 13)) char = 'K';
-        // Clear default eyes (turn them into fur color)
-        else if ((rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
+        // Crown Diamonds (White/Cyan gems on top of peaks)
+        else if (rIdx === 0 && (cIdx === 6 || cIdx === 8 || cIdx === 10)) char = 'M';
 
-        // Smiling mouth
-        else if (rIdx === 11 && (cIdx === 6 || cIdx === 9)) char = 'K';
+        // Pink blush cheeks (widened, brighter pink)
+        else if (rIdx === 9 && (cIdx === 2 || cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12 || cIdx === 13)) {
+          char = 'B';
+        }
+
+        // Smiling face default behavior (only apply if not overridden by dynamic action states)
+        if (action !== 'hungry' && action !== 'starving' && action !== 'sleeping') {
+          // Smiling arch eyes: Left eye
+          if (rIdx === 6 && cIdx === 3) char = 'K';
+          else if (rIdx === 7 && (cIdx === 2 || cIdx === 4)) char = 'K';
+          // Smiling arch eyes: Right eye
+          else if (rIdx === 6 && cIdx === 12) char = 'K';
+          else if (rIdx === 7 && (cIdx === 11 || cIdx === 13)) char = 'K';
+          // Clear default eyes (turn them into fur color)
+          else if ((rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
+
+          // Smiling mouth
+          else if (rIdx === 11 && (cIdx === 6 || cIdx === 9)) char = 'K';
+        }
       }
 
       if (char === 'K') color = '#1a1a1a';
@@ -176,6 +187,8 @@ export function PixelCat({
       else if (char === 'P') color = '#f9a8d4'; // pink inner ear / cheek
       else if (char === 'L') color = palette.light;
       else if (char === 'C') color = '#eab308'; // Gold crown
+      else if (char === 'M') color = '#22d3ee'; // Cyan Diamond
+      else if (char === 'B') color = '#f43f5e'; // Bright Blush Pink
 
       // Class classifications for CSS keyframe target animations
       if (char === 'K' && (rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) {
@@ -514,6 +527,25 @@ export function PixelCat({
     });
   }
 
+  // ponytail: draw love aura hearts for Arashu-smiling
+  if (variant === 'arashu-smiling') {
+    const heartPixels = [
+      // Left heart
+      { x: 1, y: 3 }, { x: 3, y: 3 },
+      { x: 0, y: 4 }, { x: 1, y: 4 }, { x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 },
+      { x: 1, y: 5 }, { x: 2, y: 5 }, { x: 3, y: 5 },
+      { x: 2, y: 6 },
+      // Right heart
+      { x: 19, y: 3 }, { x: 21, y: 3 },
+      { x: 18, y: 4 }, { x: 19, y: 4 }, { x: 20, y: 4 }, { x: 21, y: 4 }, { x: 22, y: 4 },
+      { x: 19, y: 5 }, { x: 20, y: 5 }, { x: 21, y: 5 },
+      { x: 20, y: 6 },
+    ];
+    heartPixels.forEach((p) => {
+      setPixel(p.x, p.y, '#f43f5e', 'love-heart-pixel');
+    });
+  }
+
   return (
     <svg
       width={size}
@@ -575,6 +607,14 @@ export function PixelCat({
         @keyframes flameFlicker {
           0% { opacity: 0.7; transform: translateY(0); }
           100% { opacity: 1; transform: translateY(-1px); }
+        }
+        /* Love heart pulsing animation */
+        .love-heart-pixel {
+          animation: heartBeat 1s ease-in-out infinite alternate;
+        }
+        @keyframes heartBeat {
+          0% { opacity: 0.6; transform: scale(0.9) translateY(0); }
+          100% { opacity: 1; transform: scale(1.1) translateY(-1px); }
         }
         /* Ears twitching animation */
         .cat-ear {
