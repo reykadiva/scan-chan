@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown, Flashlight, FlashlightOff } from 'lucide-react';
 import { CATEGORIES } from '@/types';
 import { useSound } from '@/hooks/use-sound';
-import { useZxing } from 'react-zxing';
+import { useZxing, type BarcodeFormat } from 'react-zxing';
 import { GAME_CONFIG } from '@/lib/game-config';
 import { toast } from 'sonner';
 import { WebcamCapture } from '@/components/legacy/product/webcam-capture';
@@ -25,6 +25,7 @@ function BarcodeScannerOverlay({
     paused,
     timeBetweenDecodingAttempts: GAME_CONFIG.scanner.fallbackIntervalMs,
     constraints: { video: { facingMode: 'environment' } },
+    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] as BarcodeFormat[],
     onDecodeResult: (decoded) => {
       const barcode = decoded.rawValue;
       if (barcode) {

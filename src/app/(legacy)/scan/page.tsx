@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { useZxing } from 'react-zxing';
+import { useZxing, type BarcodeFormat } from 'react-zxing';
 import { ArrowLeft, Flashlight, FlashlightOff, Keyboard, X, Search } from 'lucide-react';
 import { PixelCat } from '@/components/legacy/pixel-cat';
 import { usePlayerStore } from '@/stores/legacy/player-store';
@@ -93,6 +93,7 @@ export default function ScanPage() {
     paused,
     timeBetweenDecodingAttempts: GAME_CONFIG.scanner.fallbackIntervalMs,
     constraints: { video: { facingMode: 'environment' } },
+    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] as BarcodeFormat[],
     onDecodeResult: (decoded) => {
       handleBarcode(decoded.rawValue);
     },
