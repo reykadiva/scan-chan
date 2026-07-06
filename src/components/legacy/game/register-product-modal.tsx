@@ -3,11 +3,94 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown } from 'lucide-react';
+import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown, Flashlight, FlashlightOff } from 'lucide-react';
 import { CATEGORIES } from '@/types';
 import { useSound } from '@/hooks/use-sound';
+import { useZxing } from 'react-zxing';
+import { GAME_CONFIG } from '@/lib/game-config';
 import { toast } from 'sonner';
 import { WebcamCapture } from '@/components/legacy/product/webcam-capture';
+
+function BarcodeScannerOverlay({
+  onScan,
+  onClose,
+}: {
+  onScan: (barcode: string) => void;
+  onClose: () => void;
+}) {
+  const { playSound } = useSound();
+  const [paused, setPaused] = useState(false);
+
+  const { ref: videoRef, torch } = useZxing({
+    paused,
+    timeBetweenDecodingAttempts: GAME_CONFIG.scanner.fallbackIntervalMs,
+    constraints: { video: { facingMode: 'environment' } },
+    onDecodeResult: (decoded) => {
+      const barcode = decoded.rawValue;
+      if (barcode) {
+        setPaused(true);
+        playSound('beep');
+        onScan(barcode);
+      }
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col animate-pop-in">
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 z-30 p-4 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <span className="font-fredoka font-bold text-white text-lg drop-shadow-lg">Scan Barcode</span>
+
+        <div className="flex gap-2">
+          {torch.isAvailable && (
+            <button
+              type="button"
+              onClick={() => torch.isOn ? torch.off() : torch.on()}
+              className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+            >
+              {torch.isOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Video stream */}
+      <div className="flex-1 relative overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+        />
+
+        {/* Viewfinder overlay */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="relative w-72 h-48 sm:w-80 sm:h-56">
+            <div className="absolute inset-0 bg-transparent rounded-2xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.4)' }} />
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-brand-cyan rounded-tl-xl" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-brand-cyan rounded-tr-xl" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-brand-cyan rounded-bl-xl" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-brand-cyan rounded-br-xl" />
+            <div className="absolute left-2 right-2 h-0.5 bg-brand-cyan/80 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.6)] animate-scan-line" />
+          </div>
+          <p className="absolute bottom-8 text-white/70 font-nunito text-sm font-medium">
+            Point camera at the product barcode
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface RegisterProductModalProps {
   initialBarcode?: string;
@@ -254,17 +337,13 @@ export function RegisterProductModal({
 
       {/* Barcode scanner sub-overlay */}
       {isScanningBarcode && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
-          <div className="text-white text-center p-8">
-            <p className="mb-4">Scanner not available</p>
-            <button
-              onClick={() => setIsScanningBarcode(false)}
-              className="px-4 py-2 bg-white text-black rounded-lg"
-            >
-              Close
-            </button>
-          </div>
-        </div>,
+        <BarcodeScannerOverlay
+          onScan={(barcode) => {
+            setForm((prev) => ({ ...prev, barcodeNumber: barcode }));
+            setIsScanningBarcode(false);
+          }}
+          onClose={() => setIsScanningBarcode(false)}
+        />,
         document.body
       )}
 
