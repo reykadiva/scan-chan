@@ -207,7 +207,7 @@ export function PetPanel() {
             {/* Hunger Progress */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs font-fredoka font-bold text-slate-500">
-                <span>Hunger (Kekenyangan)</span>
+                <span>Hunger</span>
                 <span>{petHunger}%</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-3 border border-slate-200/50 overflow-hidden">
@@ -219,15 +219,15 @@ export function PetPanel() {
               <div className="font-nunito text-[10px] text-slate-400 font-semibold mt-1">
                 {petHunger < 30 ? (
                   <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="gray" action="starving" size={16} /> Sangat lapar! Beri makan segera.
+                    <PixelCat variant="gray" action="starving" size={16} /> Starving! Feed immediately.
                   </span>
                 ) : petHunger < 70 ? (
                   <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="tabby" action="hungry" size={16} /> Agak lapar.
+                    <PixelCat variant="tabby" action="hungry" size={16} /> Slightly hungry.
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="cyan" action="full" size={16} /> Kenyang dan senang!
+                    <PixelCat variant="cyan" action="full" size={16} /> Full and happy!
                   </span>
                 )}
               </div>
@@ -236,7 +236,7 @@ export function PetPanel() {
             {/* Affection Progress */}
             <div className="space-y-1.5">
               <div className="flex justify-between items-center text-xs font-fredoka font-bold text-slate-500">
-                <span>Affection (Kasih Sayang)</span>
+                <span>Affection</span>
                 <span>{petAffection}%</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-3 border border-slate-200/50 overflow-hidden">
@@ -246,7 +246,7 @@ export function PetPanel() {
                 />
               </div>
               <p className="font-nunito text-[10px] text-slate-400 font-semibold">
-                Tingkatkan terus untuk evolusi berikutnya!
+                Keep caring for your pet to trigger the next evolution!
               </p>
             </div>
           </div>
@@ -257,10 +257,10 @@ export function PetPanel() {
       <div className="space-y-3">
         <h4 className="font-fredoka text-slate-800 text-lg font-bold flex items-center gap-2">
           <Apple className="w-5 h-5 text-brand-pink animate-bounce" />
-          Beri Makan (Food Inventory)
+          Feed Pet (Food Inventory)
         </h4>
         <p className="font-nunito text-xs text-slate-400 font-medium">
-          Daftar makanan yang berhasil Anda kumpulkan dari hasil scan belanjaan Anda (Kategori Snack, Drink, Candy, Biscuit, Dairy).
+          Food items collected from scanning products (Snack, Drink, Candy, Biscuit, Dairy).
         </p>
 
         {loadingFood ? (
@@ -269,7 +269,7 @@ export function PetPanel() {
           </div>
         ) : foodItems.length === 0 ? (
           <div className="card-bubbly bg-white p-8 text-center text-slate-400 font-nunito font-semibold">
-            Kamu belum mempunyai makanan di riwayat scan. Yuk, scan produk snack atau minuman terlebih dahulu!
+            You don't have any food in your inventory yet. Go scan some snacks or beverages first!
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -301,7 +301,7 @@ export function PetPanel() {
                   onClick={() => handleFeed(item)}
                   className="btn-bubbly bg-brand-pink text-white w-full py-2 text-xs flex items-center justify-center gap-1.5"
                 >
-                  Suapi {petName}
+                  Feed {petName}
                 </button>
               </motion.div>
             ))}
