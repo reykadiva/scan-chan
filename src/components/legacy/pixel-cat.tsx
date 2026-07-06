@@ -519,22 +519,24 @@ export function PixelCat({
     });
   }
 
-  // ponytail: draw love aura hearts for Arashu-smiling
+  // ponytail: draw wagging tail on the left side for Arashu-smiling
   if (variant === 'arashu-smiling') {
-    const heartPixels = [
-      // Left heart
-      { x: 1, y: 3 }, { x: 3, y: 3 },
-      { x: 0, y: 4 }, { x: 1, y: 4 }, { x: 2, y: 4 }, { x: 3, y: 4 }, { x: 4, y: 4 },
-      { x: 1, y: 5 }, { x: 2, y: 5 }, { x: 3, y: 5 },
-      { x: 2, y: 6 },
-      // Right heart
-      { x: 19, y: 3 }, { x: 21, y: 3 },
-      { x: 18, y: 4 }, { x: 19, y: 4 }, { x: 20, y: 4 }, { x: 21, y: 4 }, { x: 22, y: 4 },
-      { x: 19, y: 5 }, { x: 20, y: 5 }, { x: 21, y: 5 },
-      { x: 20, y: 6 },
+    const tailOutline = [
+      { x: 3, y: 17 }, { x: 2, y: 17 }, { x: 2, y: 16 }, { x: 1, y: 16 },
+      { x: 1, y: 15 }, { x: 0, y: 15 }, { x: 0, y: 14 }, { x: 0, y: 13 },
+      { x: 1, y: 12 }, { x: 2, y: 12 }, { x: 3, y: 13 }, { x: 3, y: 14 },
+      { x: 2, y: 15 }, { x: 3, y: 16 }
     ];
-    heartPixels.forEach((p) => {
-      setPixel(p.x, p.y, '#f43f5e', 'love-heart-pixel');
+    const tailFur = [
+      { x: 2, y: 16 }, { x: 1, y: 15 }, { x: 1, y: 14 }, { x: 1, y: 13 },
+      { x: 2, y: 13 }, { x: 2, y: 14 }
+    ];
+
+    tailOutline.forEach((p) => {
+      setPixel(p.x, p.y, palette.dark, 'wagging-tail-pixel');
+    });
+    tailFur.forEach((p) => {
+      setPixel(p.x, p.y, palette.fur, 'wagging-tail-pixel');
     });
   }
 
@@ -600,13 +602,14 @@ export function PixelCat({
           0% { opacity: 0.7; transform: translateY(0); }
           100% { opacity: 1; transform: translateY(-1px); }
         }
-        /* Love heart pulsing animation */
-        .love-heart-pixel {
-          animation: heartBeat 1s ease-in-out infinite alternate;
+        /* Wagging tail animation pivoting from tail base */
+        .wagging-tail-pixel {
+          transform-origin: 3px 18px;
+          animation: tailWag 0.5s ease-in-out infinite alternate;
         }
-        @keyframes heartBeat {
-          0% { opacity: 0.6; transform: scale(0.9) translateY(0); }
-          100% { opacity: 1; transform: scale(1.1) translateY(-1px); }
+        @keyframes tailWag {
+          0% { transform: rotate(-5deg) translateY(0); }
+          100% { transform: rotate(15deg) translateY(-0.5px); }
         }
         /* Ears twitching animation */
         .cat-ear {
