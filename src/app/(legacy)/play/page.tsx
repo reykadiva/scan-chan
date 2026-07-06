@@ -175,26 +175,7 @@ export default function GameHubPage() {
   // Sync state on load for Arashu's Mode
   useEffect(() => {
     if (mounted && mode === GameMode.ARASHU) {
-      if (nickname === 'Arashu Tester') {
-        usePlayerStore.setState({
-          xp: 1500, // Level 10+
-          level: 10,
-          streak: 99,
-          petName: 'Scan-chan God 👑',
-          petStage: 'LEGENDARY_CAT',
-          petHunger: 100,
-          petAffection: 100,
-          selectedTheme: 'cyberpunk',
-          selectedBorder: 'holographic',
-          selectedAccessory: 'wizard',
-          selectedTitle: 'Barcode Hero',
-          selectedRoom: 'outer-space',
-          loginCalendar: ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06', '2026-07-07'],
-          categoryScans: { Snack: 50, Drink: 50, Candy: 50, Dairy: 50, Biscuit: 50 },
-          nightScans: 10,
-        });
-        return;
-      }
+      if (nickname === 'Arashu Tester') return;
       loadProfile();
     }
   }, [mounted, mode, loadProfile, nickname]);
