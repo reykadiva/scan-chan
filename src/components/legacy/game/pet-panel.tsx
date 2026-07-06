@@ -18,11 +18,11 @@ const STAGE_AVATARS: Record<string, CatVariantId> = {
 };
 
 const STAGE_LABELS: Record<string, string> = {
-  KITTEN: 'Kitten 🍼',
-  YOUNG_CAT: 'Young Cat 🎒',
-  ADULT_CAT: 'Adult Cat 🎩',
-  WISE_CAT: 'Wise Cat 🎓',
-  LEGENDARY_CAT: 'Legendary Cat 👑',
+  KITTEN: 'Kitten',
+  YOUNG_CAT: 'Young Cat',
+  ADULT_CAT: 'Adult Cat',
+  WISE_CAT: 'Wise Cat',
+  LEGENDARY_CAT: 'Legendary Cat',
 };
 
 export function PetPanel() {
@@ -73,7 +73,7 @@ export function PetPanel() {
 
   const handleFeed = (product: Product) => {
     if (petHunger >= 100) {
-      toast.info(`${petName} is full! 😺`);
+      toast.info(`${petName} is full!`);
       return;
     }
     
@@ -82,7 +82,7 @@ export function PetPanel() {
     setTimeout(() => setCatAction('none'), 1500);
 
     feedPet(product.barcodeNumber, product.category || 'Other');
-    toast.success(`Fed ${product.productName} to ${petName}! 🐟`);
+    toast.success(`Fed ${product.productName} to ${petName}!`);
     
     // Add a floating text animation
     const id = Date.now();
@@ -164,9 +164,21 @@ export function PetPanel() {
                   style={{ width: `${petHunger}%` }}
                 />
               </div>
-              <p className="font-nunito text-[10px] text-slate-400 font-semibold">
-                {petHunger < 30 ? '😿 Sangat lapar! Beri makan segera.' : petHunger < 70 ? '😺 Agak lapar.' : '😸 Kenyang dan senang!'}
-              </p>
+              <div className="font-nunito text-[10px] text-slate-400 font-semibold mt-1">
+                {petHunger < 30 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <PixelCat variant="gray" size={14} /> Sangat lapar! Beri makan segera.
+                  </span>
+                ) : petHunger < 70 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <PixelCat variant="tabby" size={14} /> Agak lapar.
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <PixelCat variant="cyan" size={14} /> Kenyang dan senang!
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Affection Progress */}
@@ -232,7 +244,7 @@ export function PetPanel() {
                   onClick={() => handleFeed(item)}
                   className="btn-bubbly bg-brand-pink text-white w-full py-2 text-xs flex items-center justify-center gap-1.5"
                 >
-                  Suapi {petName} 🥣
+                  Suapi {petName}
                 </button>
               </motion.div>
             ))}
