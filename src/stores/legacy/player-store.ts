@@ -156,6 +156,20 @@ export const usePlayerStore = create<PlayerStore>()(
 
       initializePlayer: (nickname: string, avatar: string) => {
         const todayStr = new Date().toLocaleDateString('en-CA');
+        const state = get();
+
+        // If Guest player already has progress accumulated, preserve it rather than resetting to defaults!
+        if (state.xp > 0 || state.petAffection > 10) {
+          set({
+            nickname,
+            avatar,
+            mode: GameMode.GUEST,
+            lastActiveDate: todayStr,
+          });
+          return;
+        }
+
+        // Clean slate for brand-new users
         set({
           ...initialStoreState,
           nickname,
