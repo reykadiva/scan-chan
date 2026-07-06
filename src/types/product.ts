@@ -50,14 +50,14 @@ export const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export const CATEGORY_EMOJIS: Record<string, string> = {
-  Snack: 'ðŸ¿',
-  Drink: 'ðŸ¥¤',
-  Candy: 'ðŸ¬',
-  Biscuit: 'ðŸª',
-  Dairy: 'ðŸ¥›',
-  Frozen: 'ðŸ§Š',
-  Instant: 'ðŸœ',
-  Seasoning: 'ðŸ§‚',
-  'Personal Care': 'ðŸ§´',
-  Other: 'ðŸ“¦',
+  Snack: '🍿',
+  Drink: '🥤',
+  Candy: '🍬',
+  Biscuit: '🍪',
+  Dairy: '🥛',
+  Frozen: '🧊',
+  Instant: '🍜',
+  Seasoning: '🧂',
+  'Personal Care': '🧴',
+  Other: '📦',
 };
