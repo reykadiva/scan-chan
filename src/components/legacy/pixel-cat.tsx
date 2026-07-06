@@ -160,24 +160,16 @@ export function PixelCat({
         // Crown Diamonds (White/Cyan gems on top of peaks)
         else if (rIdx === 0 && (cIdx === 6 || cIdx === 8 || cIdx === 10)) char = 'M';
 
-        // Pink blush cheeks (widened, brighter pink)
-        else if (rIdx === 9 && (cIdx === 2 || cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12 || cIdx === 13)) {
+        // Pink blush cheeks matching the reference (2 pixels wide on outer cheek edges, Row 9)
+        else if (rIdx === 9 && (cIdx === 2 || cIdx === 3 || cIdx === 12 || cIdx === 13)) {
           char = 'B';
         }
 
-        // Smiling face default behavior (only apply if not overridden by dynamic action states)
+        // Cute centered mouth/nose matching the reference
         if (action !== 'hungry' && action !== 'starving' && action !== 'sleeping') {
-          // Smiling arch eyes: Left eye
-          if (rIdx === 6 && cIdx === 3) char = 'K';
-          else if (rIdx === 7 && (cIdx === 2 || cIdx === 4)) char = 'K';
-          // Smiling arch eyes: Right eye
-          else if (rIdx === 6 && cIdx === 12) char = 'K';
-          else if (rIdx === 7 && (cIdx === 11 || cIdx === 13)) char = 'K';
-          // Clear default eyes (turn them into fur color)
-          else if ((rIdx === 7 || rIdx === 8) && (cIdx === 3 || cIdx === 4 || cIdx === 11 || cIdx === 12)) char = 'F';
-
-          // Smiling mouth
-          else if (rIdx === 11 && (cIdx === 6 || cIdx === 9)) char = 'K';
+          // Keep the default 2x2 square eyes from BASE_CAT_BITMAP (do NOT make arch eyes)
+          // Cute small cat mouth at row 10
+          if (rIdx === 10 && (cIdx === 7 || cIdx === 8)) char = 'K';
         }
       }
 
