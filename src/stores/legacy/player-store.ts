@@ -659,11 +659,48 @@ const saveProfile = async (state: any) => {
 
 if (typeof window !== 'undefined') {
   let saveTimeout: any = null;
+  
+  // Debounced save every 500ms (faster than 1.5s)
   usePlayerStore.subscribe((state) => {
     if (state.mode !== GameMode.ARASHU) return;
     if (saveTimeout) clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
       saveProfile(state);
-    }, 1500);
+    }, 500); // Reduced from 1500ms to 500ms
+  });
+  
+  // CRITICAL: Save immediately before page unload/refresh
+  window.addEventListener('beforeunload', () => {
+    const state = usePlayerStore.getState();
+    if (state.mode === GameMode.ARASHU && state.nickname !== 'Arashu Tester') {
+      // Use sendBeacon for reliable delivery even during page unload
+      const payload = JSON.stringify({
+        xp: state.xp,
+        level: state.level,
+        streak: state.streak,
+        petName: state.petName,
+        petStage: state.petStage,
+        petHunger: state.petHunger,
+        petAffection: state.petAffection,
+        foodInventory: state.foodInventory || {},
+        selectedTheme: state.selectedTheme,
+        selectedBorder: state.selectedBorder,
+        selectedAccessory: state.selectedAccessory,
+        selectedTitle: state.selectedTitle,
+        selectedRoom: state.selectedRoom,
+        loginCalendar: state.loginCalendar || [],
+        categoryScans: state.categoryScans || {},
+        nightScans: state.nightScans || 0,
+        registeredBarcodes: state.registeredBarcodes || [],
+        scanHistory: state.scanHistory || [],
+        dailyMissions: state.dailyMissions || [],
+        activeBounty: state.activeBounty || null,
+      });
+      
+      const blob = new Blob([payload], { type: 'application/json' });
+      navigator.sendBeacon('/api/profile', blob);
+      
+      console.log('💾 [BEFOREUNLOAD] Saved profile via sendBeacon');
+    }
   });
 }

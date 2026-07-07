@@ -128,7 +128,20 @@ export async function GET() {
       petHunger: dbUser.pet?.stats?.hunger,
       petAffection: dbUser.pet?.stats?.affection,
       petStage: dbUser.pet?.stage,
+      petStatsExists: !!dbUser.pet?.stats,
       userId: user.id,
+    });
+
+    // CRITICAL: Use the ACTUAL values from database, don't fallback to defaults
+    // This was causing stats to reset on refresh!
+    const actualHunger = dbUser.pet?.stats?.hunger;
+    const actualAffection = dbUser.pet?.stats?.affection;
+    
+    console.log('🔢 [API GET /api/profile] Preparing response:', {
+      actualHunger,
+      actualAffection,
+      willReturnHunger: actualHunger ?? 50,
+      willReturnAffection: actualAffection ?? 10,
     });
 
     return NextResponse.json({
