@@ -100,6 +100,20 @@ export async function GET() {
       }
     }
 
+    // Parse additional data from settings metadata
+    let registeredBarcodes: string[] = [];
+    let scanHistory: string[] = [];
+    let dailyMissions: any[] = [];
+    let activeBounty: any = null;
+
+    if (dbUser.settings?.metadata) {
+      const metadata = dbUser.settings.metadata as any;
+      registeredBarcodes = metadata.registeredBarcodes || [];
+      scanHistory = metadata.scanHistory || [];
+      dailyMissions = metadata.dailyMissions || [];
+      activeBounty = metadata.activeBounty || null;
+    }
+
     const nightScans = nightStr ? parseInt(nightStr) : 0;
     const currentStreak = dbUser.progress?.streak ?? 0;
     const streakMultiplier = calculateStreakMultiplier(currentStreak);
@@ -126,6 +140,10 @@ export async function GET() {
         loginCalendar,
         categoryScans,
         nightScans,
+        registeredBarcodes,
+        scanHistory,
+        dailyMissions,
+        activeBounty,
       },
     });
   } catch (error) {
@@ -161,12 +179,24 @@ export async function POST(request: NextRequest) {
       loginCalendar,
       categoryScans,
       nightScans,
+      registeredBarcodes,
+      scanHistory,
+      dailyMissions,
+      activeBounty,
     } = body;
 
     const calendarStr = Array.isArray(loginCalendar) ? loginCalendar.join(',') : '';
     const categoriesStr = categoryScans ? JSON.stringify(categoryScans).replace(/:/g, ';') : '{}';
 
     const themeString = `${selectedTheme || 'default'}:${selectedBorder || 'none'}:${selectedAccessory || 'none'}:${selectedTitle || ''}:${selectedRoom || 'cozy'}:${calendarStr}:${categoriesStr}:${nightScans || 0}`;
+
+    // Store additional data in settings metadata
+    const metadata = {
+      registeredBarcodes: registeredBarcodes || [],
+      scanHistory: scanHistory || [],
+      dailyMissions: dailyMissions || [],
+      activeBounty: activeBounty || null,
+    };
 
     // Upsert user with pet and progress
     const updatedUser = await prisma.user.upsert({
@@ -204,8 +234,8 @@ export async function POST(request: NextRequest) {
         },
         settings: {
           upsert: {
-            create: { theme: themeString },
-            update: { theme: themeString },
+            create: { theme: themeString, metadata },
+            update: { theme: themeString, metadata },
           },
         },
         inventory: {
@@ -235,7 +265,7 @@ export async function POST(request: NextRequest) {
           },
         },
         settings: {
-          create: { theme: themeString },
+          create: { theme: themeString, metadata },
         },
         inventory: {
           create: {},

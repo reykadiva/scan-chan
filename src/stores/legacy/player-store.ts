@@ -574,6 +574,11 @@ export const usePlayerStore = create<PlayerStore>()(
               loginCalendar: data.data.loginCalendar || [],
               categoryScans: data.data.categoryScans || {},
               nightScans: data.data.nightScans || 0,
+              // Additional critical data
+              registeredBarcodes: data.data.registeredBarcodes || [],
+              scanHistory: data.data.scanHistory || [],
+              dailyMissions: data.data.dailyMissions || [],
+              activeBounty: data.data.activeBounty || null,
             });
           }
         } catch (err) {
@@ -613,9 +618,14 @@ const saveProfile = async (state: any) => {
         selectedAccessory: state.selectedAccessory,
         selectedTitle: state.selectedTitle,
         selectedRoom: state.selectedRoom,
-        loginCalendar: state.loginCalendar,
-        categoryScans: state.categoryScans,
-        nightScans: state.nightScans,
+        loginCalendar: state.loginCalendar || [],
+        categoryScans: state.categoryScans || {},
+        nightScans: state.nightScans || 0,
+        // Additional critical data
+        registeredBarcodes: state.registeredBarcodes || [],
+        scanHistory: state.scanHistory || [],
+        dailyMissions: state.dailyMissions || [],
+        activeBounty: state.activeBounty || null,
       }),
     });
   } catch (err) {
