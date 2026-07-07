@@ -124,6 +124,13 @@ export async function GET() {
     const currentStreak = dbUser.progress?.streak ?? 0;
     const streakMultiplier = calculateStreakMultiplier(currentStreak);
 
+    console.log('📖 [API GET /api/profile] Reading from database:', {
+      petHunger: dbUser.pet?.stats?.hunger,
+      petAffection: dbUser.pet?.stats?.affection,
+      petStage: dbUser.pet?.stage,
+      userId: user.id,
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -168,6 +175,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    
+    console.log('📥 [API POST /api/profile] Received payload:', {
+      petHunger: body.petHunger,
+      petAffection: body.petAffection,
+      petStage: body.petStage,
+      userId: user.id,
+    });
+    
     const {
       xp,
       level,
@@ -190,6 +205,14 @@ export async function POST(request: NextRequest) {
       dailyMissions,
       activeBounty,
     } = body;
+    
+    console.log('🔢 [API POST /api/profile] Extracted values:', {
+      petHunger,
+      petAffection,
+      petStage,
+      typeofHunger: typeof petHunger,
+      typeofAffection: typeof petAffection,
+    });
 
     const calendarStr = Array.isArray(loginCalendar) ? loginCalendar.join(',') : '';
     const categoriesStr = categoryScans ? JSON.stringify(categoryScans).replace(/:/g, ';') : '{}';
@@ -204,6 +227,13 @@ export async function POST(request: NextRequest) {
       activeBounty: activeBounty || null,
     };
 
+    // Log what we're about to write
+    console.log('💾 [API POST /api/profile] Writing to database:', {
+      petHunger: typeof petHunger === 'number' ? petHunger : 50,
+      petAffection: typeof petAffection === 'number' ? petAffection : 10,
+      petStage: petStage || 'KITTEN',
+    });
+    
     // Upsert user with pet and progress
     const updatedUser = await prisma.user.upsert({
       where: { id: user.id },
@@ -312,9 +342,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Verify what was written by reading it back
+    const verifyUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        pet: {
+          include: { stats: true },
+        },
+      },
+    });
+    
+    console.log('✅ [API POST /api/profile] Verification - Data in DB after write:', {
+      petHunger: verifyUser?.pet?.stats?.hunger,
+      petAffection: verifyUser?.pet?.stats?.affection,
+      petStage: verifyUser?.pet?.stage,
+    });
+    
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[POST /api/profile]', error);
+    console.error('❌ [POST /api/profile] Error:', error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }

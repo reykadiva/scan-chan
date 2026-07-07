@@ -604,36 +604,56 @@ export const usePlayerStore = create<PlayerStore>()(
 const saveProfile = async (state: any) => {
   if (state.mode !== GameMode.ARASHU) return;
   if (state.nickname === 'Arashu Tester') return; // Skip database save for mocked dev account
+  
+  console.log('🔄 [SAVE PROFILE] Saving to database...', {
+    petHunger: state.petHunger,
+    petAffection: state.petAffection,
+    petStage: state.petStage,
+    mode: state.mode,
+  });
+  
   try {
-    await fetch('/api/profile', {
+    const payload = {
+      xp: state.xp,
+      level: state.level,
+      streak: state.streak,
+      petName: state.petName,
+      petStage: state.petStage,
+      petHunger: state.petHunger,
+      petAffection: state.petAffection,
+      foodInventory: state.foodInventory || {},
+      selectedTheme: state.selectedTheme,
+      selectedBorder: state.selectedBorder,
+      selectedAccessory: state.selectedAccessory,
+      selectedTitle: state.selectedTitle,
+      selectedRoom: state.selectedRoom,
+      loginCalendar: state.loginCalendar || [],
+      categoryScans: state.categoryScans || {},
+      nightScans: state.nightScans || 0,
+      // Additional critical data
+      registeredBarcodes: state.registeredBarcodes || [],
+      scanHistory: state.scanHistory || [],
+      dailyMissions: state.dailyMissions || [],
+      activeBounty: state.activeBounty || null,
+    };
+    
+    console.log('📤 [SAVE PROFILE] Payload being sent:', {
+      petHunger: payload.petHunger,
+      petAffection: payload.petAffection,
+      petStage: payload.petStage,
+    });
+    
+    const response = await fetch('/api/profile', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        xp: state.xp,
-        level: state.level,
-        streak: state.streak,
-        petName: state.petName,
-        petStage: state.petStage,
-        petHunger: state.petHunger,
-        petAffection: state.petAffection,
-        foodInventory: state.foodInventory || {},
-        selectedTheme: state.selectedTheme,
-        selectedBorder: state.selectedBorder,
-        selectedAccessory: state.selectedAccessory,
-        selectedTitle: state.selectedTitle,
-        selectedRoom: state.selectedRoom,
-        loginCalendar: state.loginCalendar || [],
-        categoryScans: state.categoryScans || {},
-        nightScans: state.nightScans || 0,
-        // Additional critical data
-        registeredBarcodes: state.registeredBarcodes || [],
-        scanHistory: state.scanHistory || [],
-        dailyMissions: state.dailyMissions || [],
-        activeBounty: state.activeBounty || null,
-      }),
+      body: JSON.stringify(payload),
     });
+    
+    const result = await response.json();
+    console.log('✅ [SAVE PROFILE] Response:', result);
+    
   } catch (err) {
-    console.error('Failed to sync profile with database', err);
+    console.error('❌ [SAVE PROFILE] Failed to sync profile with database', err);
   }
 };
 
