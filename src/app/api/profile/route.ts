@@ -59,6 +59,9 @@ export async function GET() {
               sound: true,
             },
           },
+          inventory: {
+            create: {},
+          },
         },
         include: {
           progress: true,
@@ -66,6 +69,9 @@ export async function GET() {
             include: { stats: true },
           },
           settings: true,
+          inventory: {
+            include: { items: true },
+          },
         },
       });
     }
