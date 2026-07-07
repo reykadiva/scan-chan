@@ -374,6 +374,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('❌ [POST /api/profile] Error:', error);
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('   Error name:', error.name);
+      console.error('   Error message:', error.message);
+      console.error('   Error stack:', error.stack);
+    }
+    
+    // Check if it's a Prisma error
+    if (error && typeof error === 'object' && 'code' in error) {
+      console.error('   Prisma error code:', (error as any).code);
+      console.error('   Prisma error meta:', (error as any).meta);
+    }
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Internal Server Error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
