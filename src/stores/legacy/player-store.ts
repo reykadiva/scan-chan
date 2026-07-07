@@ -697,10 +697,24 @@ if (typeof window !== 'undefined') {
         activeBounty: state.activeBounty || null,
       });
       
+      // Create blob with proper content type for JSON
       const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon('/api/profile', blob);
+      const sent = navigator.sendBeacon('/api/profile', blob);
       
-      console.log('💾 [BEFOREUNLOAD] Saved profile via sendBeacon');
+      console.log('💾 [BEFOREUNLOAD] Saved profile via sendBeacon:', sent);
+      
+      // Fallback: If sendBeacon not available or fails, try synchronous fetch
+      if (!sent) {
+        console.log('⚠️  sendBeacon failed, trying synchronous fetch');
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', '/api/profile', false); // synchronous
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.send(payload);
+        } catch (e) {
+          console.error('❌ Synchronous save also failed:', e);
+        }
+      }
     }
   });
 }
