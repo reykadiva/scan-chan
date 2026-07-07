@@ -251,6 +251,7 @@ export async function POST(request: NextRequest) {
     const updatedUser = await prisma.user.upsert({
       where: { id: user.id },
       update: {
+        mode: 'ARASHU', // Ensure mode is set to ARASHU
         progress: {
           upsert: {
             create: { xp: xp ?? 0, level: level ?? 1, streak: streak ?? 0 },

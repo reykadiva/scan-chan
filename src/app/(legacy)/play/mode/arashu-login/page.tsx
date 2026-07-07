@@ -72,13 +72,15 @@ export default function ArashuLoginPage() {
         setMode(GameMode.ARASHU);
         
         // Initialize player profile stats under ARASHU mode.
-        // Nickname is "Arashu", Avatar is "👑".
-        // This sets the mode and initializes the state structure.
-        initializePlayer('Arashu', '👑');
+        // Use email username as nickname to ensure uniqueness
+        const emailUsername = email.split('@')[0]; // e.g., "dzaharap" from "dzaharap@gmail.com"
+        const nickname = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1); // Capitalize first letter
+        
+        initializePlayer(nickname, '👑');
         // Ensure the mode remains ARASHU (initializePlayer resets mode to GUEST by default)
         setMode(GameMode.ARASHU);
 
-        toast.success("Welcome back, Arashu! 👑");
+        toast.success(`Welcome back, ${nickname}! 👑`);
         router.push('/play');
       }
     } catch (err) {
