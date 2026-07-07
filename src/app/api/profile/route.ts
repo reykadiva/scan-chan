@@ -221,8 +221,8 @@ export async function POST(request: NextRequest) {
               stage: petStage || 'KITTEN',
               stats: {
                 create: {
-                  hunger: petHunger ?? 50,
-                  affection: petAffection ?? 10,
+                  hunger: typeof petHunger === 'number' ? petHunger : 50,
+                  affection: typeof petAffection === 'number' ? petAffection : 10,
                 },
               },
             },
@@ -231,8 +231,14 @@ export async function POST(request: NextRequest) {
               stage: petStage || 'KITTEN',
               stats: {
                 upsert: {
-                  create: { hunger: petHunger ?? 50, affection: petAffection ?? 10 },
-                  update: { hunger: petHunger ?? 50, affection: petAffection ?? 10 },
+                  create: { 
+                    hunger: typeof petHunger === 'number' ? petHunger : 50, 
+                    affection: typeof petAffection === 'number' ? petAffection : 10 
+                  },
+                  update: { 
+                    hunger: typeof petHunger === 'number' ? petHunger : 50, 
+                    affection: typeof petAffection === 'number' ? petAffection : 10 
+                  },
                 },
               },
             },

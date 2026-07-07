@@ -21,8 +21,8 @@ export const petSchema = z.object({
 
 export const petStatsSchema = z.object({
   petId: z.string().min(1),
-  hunger: z.number().int().min(0).max(100).default(100),
-  affection: z.number().int().min(0).max(100).default(25),
+  hunger: z.number().int().min(0).max(100).default(50),
+  affection: z.number().int().min(0).max(100).default(10),
 });
 
 export const inventoryItemSchema = z.object({

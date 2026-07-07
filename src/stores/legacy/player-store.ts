@@ -557,27 +557,31 @@ export const usePlayerStore = create<PlayerStore>()(
           const res = await fetch('/api/profile');
           const data = await res.json();
           if (data.success && data.data) {
+            // Defensive checks: ensure numeric stats are never undefined or null
+            const petHunger = typeof data.data.petHunger === 'number' ? data.data.petHunger : 50;
+            const petAffection = typeof data.data.petAffection === 'number' ? data.data.petAffection : 10;
+            
             set({
-              xp: data.data.xp,
-              level: data.data.level,
-              streak: data.data.streak,
-              petName: data.data.petName,
-              petStage: data.data.petStage,
-              petHunger: data.data.petHunger,
-              petAffection: data.data.petAffection,
+              xp: typeof data.data.xp === 'number' ? data.data.xp : 0,
+              level: typeof data.data.level === 'number' ? data.data.level : 1,
+              streak: typeof data.data.streak === 'number' ? data.data.streak : 0,
+              petName: data.data.petName || 'Scan-chan Jr.',
+              petStage: data.data.petStage || 'KITTEN',
+              petHunger,
+              petAffection,
               foodInventory: data.data.foodInventory || {},
-              selectedTheme: data.data.selectedTheme,
-              selectedBorder: data.data.selectedBorder,
-              selectedAccessory: data.data.selectedAccessory,
-              selectedTitle: data.data.selectedTitle,
+              selectedTheme: data.data.selectedTheme || 'default',
+              selectedBorder: data.data.selectedBorder || 'none',
+              selectedAccessory: data.data.selectedAccessory || 'none',
+              selectedTitle: data.data.selectedTitle || '',
               selectedRoom: data.data.selectedRoom || 'cozy',
-              loginCalendar: data.data.loginCalendar || [],
-              categoryScans: data.data.categoryScans || {},
-              nightScans: data.data.nightScans || 0,
+              loginCalendar: Array.isArray(data.data.loginCalendar) ? data.data.loginCalendar : [],
+              categoryScans: typeof data.data.categoryScans === 'object' && data.data.categoryScans ? data.data.categoryScans : {},
+              nightScans: typeof data.data.nightScans === 'number' ? data.data.nightScans : 0,
               // Additional critical data
-              registeredBarcodes: data.data.registeredBarcodes || [],
-              scanHistory: data.data.scanHistory || [],
-              dailyMissions: data.data.dailyMissions || [],
+              registeredBarcodes: Array.isArray(data.data.registeredBarcodes) ? data.data.registeredBarcodes : [],
+              scanHistory: Array.isArray(data.data.scanHistory) ? data.data.scanHistory : [],
+              dailyMissions: Array.isArray(data.data.dailyMissions) ? data.data.dailyMissions : [],
               activeBounty: data.data.activeBounty || null,
             });
           }
