@@ -12,6 +12,7 @@ import { EnhancedProgress } from '@/components/ui/enhanced-progress';
 import { EmptyFoodPantry, LoadingCat } from '@/components/ui/pixel-illustrations';
 import { ParticleSystem } from '@/components/ui/particle-system';
 import { MilestoneCelebration } from '@/components/ui/milestone-celebration';
+import { PixelBowl, PixelApple, PixelMeat, PixelCake, PixelDrink, PixelCandy, PixelCookie, PixelBiscuit, PixelDairy, PixelSnack } from '@/components/ui/pixel-icons';
 import { haptics } from '@/lib/haptics';
 import { playSound } from '@/lib/sounds';
 
@@ -224,6 +225,22 @@ export function PetPanel() {
     return 'full';
   };
 
+  // Helper to get pixel icon for food category
+  const getFoodIcon = (category: string | null | undefined) => {
+    const cat = category?.toLowerCase() || 'other';
+    
+    if (cat.includes('meat') || cat.includes('protein')) return PixelMeat;
+    if (cat.includes('cake') || cat.includes('dessert') || cat.includes('pastry')) return PixelCake;
+    if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice')) return PixelDrink;
+    if (cat.includes('candy') || cat.includes('sweet')) return PixelCandy;
+    if (cat.includes('cookie')) return PixelCookie;
+    if (cat.includes('biscuit') || cat.includes('wafer') || cat.includes('cracker')) return PixelBiscuit;
+    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('yogurt') || cat.includes('cheese')) return PixelDairy;
+    if (cat.includes('snack') || cat.includes('chip')) return PixelSnack;
+    
+    return PixelApple; // default
+  };
+
   return (
     <div className="space-y-6">
       {/* Main Pet Display Card */}
@@ -322,7 +339,7 @@ export function PetPanel() {
       {/* Available Food Section */}
       <div className="space-y-3">
         <h4 className="font-fredoka text-slate-800 text-lg font-bold flex items-center gap-2">
-          <Apple className="w-5 h-5 text-brand-pink animate-bounce" />
+          <PixelApple className="w-6 h-6 text-red-500 animate-float" />
           Feed Pet (Food Inventory)
         </h4>
         <p className="font-nunito text-xs text-slate-400 font-medium">
@@ -343,38 +360,43 @@ export function PetPanel() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {foodItems.map((item) => (
-              <motion.div
-                key={item.id}
-                whileHover={{ scale: 1.02 }}
-                className="card-bubbly bg-white p-4 flex flex-col justify-between gap-3 border border-slate-100 hover:border-brand-pink/30"
-              >
-                <div className="flex gap-3 items-start">
-                  <div className="w-10 h-10 rounded-xl bg-brand-pink/5 flex items-center justify-center shrink-0">
-                    <Apple className="w-5 h-5 text-brand-pink" />
-                  </div>
-                  <div className="min-w-0">
-                    <h5 className="font-fredoka font-bold text-slate-800 text-sm truncate leading-tight">
-                      {item.productName}
-                    </h5>
-                    <div className="flex gap-2 items-center mt-1">
-                      <span className="inline-block px-2 py-0.5 bg-brand-pink/10 text-brand-pink rounded-full text-[10px] font-fredoka font-semibold">
-                        {item.category}
-                      </span>
-                      <span className="text-[10px] font-nunito font-bold text-slate-500">
-                        Qty: {foodInventory[item.barcodeNumber] || 0}
-                      </span>
+            {foodItems.map((item) => {
+              const FoodIcon = getFoodIcon(item.category);
+              
+              return (
+                <motion.div
+                  key={item.id}
+                  whileHover={{ scale: 1.02 }}
+                  className="card-bubbly bg-white p-4 flex flex-col justify-between gap-3 border border-slate-100 hover:border-brand-pink/30"
+                >
+                  <div className="flex gap-3 items-start">
+                    <div className="w-12 h-12 rounded-xl bg-brand-pink/5 flex items-center justify-center shrink-0">
+                      <FoodIcon className="w-8 h-8" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="font-fredoka font-bold text-slate-800 text-sm truncate leading-tight">
+                        {item.productName}
+                      </h5>
+                      <div className="flex gap-2 items-center mt-1">
+                        <span className="inline-block px-2 py-0.5 bg-brand-pink/10 text-brand-pink rounded-full text-[10px] font-fredoka font-semibold">
+                          {item.category}
+                        </span>
+                        <span className="text-[10px] font-nunito font-bold text-slate-500">
+                          Qty: {foodInventory[item.barcodeNumber] || 0}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <button
-                  onClick={() => handleFeed(item)}
-                  className="btn-bubbly bg-brand-pink text-white w-full py-2 text-xs flex items-center justify-center gap-1.5"
-                >
-                  Feed {petName}
-                </button>
-              </motion.div>
-            ))}
+                  <button
+                    onClick={() => handleFeed(item)}
+                    className="btn-bubbly bg-brand-pink text-white w-full py-2 text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <PixelBowl className="w-4 h-4" />
+                    Feed {petName}
+                  </button>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
