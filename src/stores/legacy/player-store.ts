@@ -601,9 +601,20 @@ export const usePlayerStore = create<PlayerStore>()(
   )
 );
 
+// AbortController for cancelling pending requests
+let saveAbortController: AbortController | null = null;
+
 const saveProfile = async (state: any) => {
   if (state.mode !== GameMode.ARASHU) return;
   if (state.nickname === 'Arashu Tester') return; // Skip database save for mocked dev account
+  
+  // Cancel any pending save request
+  if (saveAbortController) {
+    saveAbortController.abort();
+  }
+  
+  // Create new AbortController for this request
+  saveAbortController = new AbortController();
   
   console.log('🔄 [SAVE PROFILE] Saving to database...', {
     petHunger: state.petHunger,
@@ -647,13 +658,19 @@ const saveProfile = async (state: any) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: saveAbortController.signal, // Add abort signal
     });
     
     const result = await response.json();
     console.log('✅ [SAVE PROFILE] Response:', result);
     
   } catch (err) {
-    console.error('❌ [SAVE PROFILE] Failed to sync profile with database', err);
+    // Only log error if it's not an abort
+    if (err instanceof Error && err.name === 'AbortError') {
+      console.log('🔄 [SAVE PROFILE] Request cancelled (new save initiated)');
+    } else {
+      console.error('❌ [SAVE PROFILE] Failed to sync profile with database', err);
+    }
   }
 };
 
