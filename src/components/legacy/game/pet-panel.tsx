@@ -12,7 +12,7 @@ import { EnhancedProgress } from '@/components/ui/enhanced-progress';
 import { EmptyFoodPantry, LoadingCat } from '@/components/ui/pixel-illustrations';
 import { ParticleSystem } from '@/components/ui/particle-system';
 import { MilestoneCelebration } from '@/components/ui/milestone-celebration';
-import { PixelBowl, PixelApple, PixelMeat, PixelCake, PixelDrink, PixelCandy, PixelCookie, PixelBiscuit, PixelDairy, PixelSnack } from '@/components/ui/pixel-icons';
+import { CatIcon, FoodCatIcons, ActionCatIcons, type CatIconColor } from '@/components/ui/cat-icon-variants';
 import { haptics } from '@/lib/haptics';
 import { playSound } from '@/lib/sounds';
 
@@ -225,20 +225,28 @@ export function PetPanel() {
     return 'full';
   };
 
-  // Helper to get pixel icon for food category
-  const getFoodIcon = (category: string | null | undefined) => {
+  // Helper to get cat icon for food category
+  const getFoodCatIcon = (category: string | null | undefined) => {
     const cat = category?.toLowerCase() || 'other';
     
-    if (cat.includes('meat') || cat.includes('protein')) return PixelMeat;
-    if (cat.includes('cake') || cat.includes('dessert') || cat.includes('pastry')) return PixelCake;
-    if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice')) return PixelDrink;
-    if (cat.includes('candy') || cat.includes('sweet')) return PixelCandy;
-    if (cat.includes('cookie')) return PixelCookie;
-    if (cat.includes('biscuit') || cat.includes('wafer') || cat.includes('cracker')) return PixelBiscuit;
-    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('yogurt') || cat.includes('cheese')) return PixelDairy;
-    if (cat.includes('snack') || cat.includes('chip')) return PixelSnack;
+    if (cat.includes('meat') || cat.includes('protein')) 
+      return { Component: FoodCatIcons.Meat, color: 'orange' as CatIconColor };
+    if (cat.includes('cake') || cat.includes('dessert') || cat.includes('pastry')) 
+      return { Component: FoodCatIcons.Cake, color: 'pink' as CatIconColor };
+    if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice')) 
+      return { Component: FoodCatIcons.Drink, color: 'cyan' as CatIconColor };
+    if (cat.includes('candy') || cat.includes('sweet')) 
+      return { Component: FoodCatIcons.Candy, color: 'pastel-pink' as CatIconColor };
+    if (cat.includes('cookie')) 
+      return { Component: FoodCatIcons.Cookie, color: 'brown' as CatIconColor };
+    if (cat.includes('biscuit') || cat.includes('wafer') || cat.includes('cracker')) 
+      return { Component: FoodCatIcons.Biscuit, color: 'cream' as CatIconColor };
+    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('yogurt') || cat.includes('cheese')) 
+      return { Component: FoodCatIcons.Dairy, color: 'white' as CatIconColor };
+    if (cat.includes('snack') || cat.includes('chip')) 
+      return { Component: FoodCatIcons.Snack, color: 'amber' as CatIconColor };
     
-    return PixelApple; // default
+    return { Component: ActionCatIcons.Apple, color: 'red' as CatIconColor }; // default
   };
 
   return (
@@ -339,7 +347,7 @@ export function PetPanel() {
       {/* Available Food Section */}
       <div className="space-y-3">
         <h4 className="font-fredoka text-slate-800 text-lg font-bold flex items-center gap-2">
-          <PixelApple className="w-6 h-6 text-red-500 animate-float" />
+          <ActionCatIcons.Apple size={24} color="red" className="animate-float" />
           Feed Pet (Food Inventory)
         </h4>
         <p className="font-nunito text-xs text-slate-400 font-medium">
@@ -361,7 +369,7 @@ export function PetPanel() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {foodItems.map((item) => {
-              const FoodIcon = getFoodIcon(item.category);
+              const { Component: FoodIcon, color } = getFoodCatIcon(item.category);
               
               return (
                 <motion.div
@@ -371,7 +379,7 @@ export function PetPanel() {
                 >
                   <div className="flex gap-3 items-start">
                     <div className="w-12 h-12 rounded-xl bg-brand-pink/5 flex items-center justify-center shrink-0">
-                      <FoodIcon className="w-8 h-8" />
+                      <FoodIcon size={40} color={color} />
                     </div>
                     <div className="min-w-0">
                       <h5 className="font-fredoka font-bold text-slate-800 text-sm truncate leading-tight">
@@ -391,7 +399,7 @@ export function PetPanel() {
                     onClick={() => handleFeed(item)}
                     className="btn-bubbly bg-brand-pink text-white w-full py-2 text-xs flex items-center justify-center gap-1.5"
                   >
-                    <PixelBowl className="w-4 h-4" />
+                    <ActionCatIcons.Bowl size={16} color="white" />
                     Feed {petName}
                   </button>
                 </motion.div>
