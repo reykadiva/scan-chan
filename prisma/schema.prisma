@@ -204,6 +204,7 @@ model Settings {
   music     Boolean  @default(true)
   motion    Boolean  @default(true)
   theme     String   @default("warm") @db.VarChar(80)
+  metadata  Json?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
