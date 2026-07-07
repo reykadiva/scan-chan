@@ -132,8 +132,8 @@ describe('Player Store & Virtual Pet Mechanics', () => {
     store.initializePlayer('TestPlayer', 'calico');
     expect(store.selectedRoom).toBe('cozy');
 
-    store.selectRoom('cyberpunk-cafe');
-    expect(usePlayerStore.getState().selectedRoom).toBe('cyberpunk-cafe');
+    store.selectRoom('kawaii-garden');
+    expect(usePlayerStore.getState().selectedRoom).toBe('kawaii-garden');
   });
 
   it('should generate and complete bounty hunts on recordScan', () => {

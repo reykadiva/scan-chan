@@ -45,7 +45,7 @@ export default function ArashuLoginPage() {
         selectedBorder: 'holographic',
         selectedAccessory: 'wizard',
         selectedTitle: 'Barcode Hero',
-        selectedRoom: 'outer-space',
+        selectedRoom: 'kawaii-garden',
         loginCalendar: ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06', '2026-07-07'],
         categoryScans: { Snack: 50, Drink: 50, Candy: 50, Dairy: 50, Biscuit: 50 },
         nightScans: 10,
