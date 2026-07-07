@@ -22,6 +22,9 @@ export async function GET() {
           include: { stats: true },
         },
         settings: true,
+        inventory: {
+          include: { items: true },
+        },
       },
     });
 
@@ -72,7 +75,7 @@ export async function GET() {
 
     let loginCalendar: string[] = [];
     if (calendarStr) {
-      loginCalendar = calendarStr.split(',');
+      loginCalendar = calendarStr.split(',').filter(Boolean);
     }
 
     let categoryScans: Record<string, number> = {};
@@ -80,6 +83,21 @@ export async function GET() {
       try {
         categoryScans = JSON.parse(categoriesStr.replace(/;/g, ':'));
       } catch {}
+    }
+
+    // Load food inventory from database
+    let foodInventory: Record<string, number> = {};
+    if (dbUser.inventory) {
+      const foodItems = await prisma.inventoryItem.findMany({
+        where: {
+          inventoryId: dbUser.inventory.id,
+          type: 'FOOD',
+        },
+      });
+      
+      for (const item of foodItems) {
+        foodInventory[item.itemKey] = item.quantity;
+      }
     }
 
     const nightScans = nightStr ? parseInt(nightStr) : 0;
@@ -99,6 +117,7 @@ export async function GET() {
         petStage: dbUser.pet?.stage ?? 'KITTEN',
         petHunger: dbUser.pet?.stats?.hunger ?? 50,
         petAffection: dbUser.pet?.stats?.affection ?? 10,
+        foodInventory,
         selectedTheme: t || 'default',
         selectedBorder: b || 'none',
         selectedAccessory: a || 'none',
@@ -133,6 +152,7 @@ export async function POST(request: NextRequest) {
       petStage,
       petHunger,
       petAffection,
+      foodInventory,
       selectedTheme,
       selectedBorder,
       selectedAccessory,
@@ -148,7 +168,8 @@ export async function POST(request: NextRequest) {
 
     const themeString = `${selectedTheme || 'default'}:${selectedBorder || 'none'}:${selectedAccessory || 'none'}:${selectedTitle || ''}:${selectedRoom || 'cozy'}:${calendarStr}:${categoriesStr}:${nightScans || 0}`;
 
-    await prisma.user.upsert({
+    // Upsert user with pet and progress
+    const updatedUser = await prisma.user.upsert({
       where: { id: user.id },
       update: {
         progress: {
@@ -187,6 +208,12 @@ export async function POST(request: NextRequest) {
             update: { theme: themeString },
           },
         },
+        inventory: {
+          upsert: {
+            create: {},
+            update: {},
+          },
+        },
       },
       create: {
         id: user.id,
@@ -210,8 +237,38 @@ export async function POST(request: NextRequest) {
         settings: {
           create: { theme: themeString },
         },
+        inventory: {
+          create: {},
+        },
+      },
+      include: {
+        inventory: true,
       },
     });
+
+    // Save food inventory to database
+    if (updatedUser.inventory && foodInventory) {
+      // Delete all existing food items first
+      await prisma.inventoryItem.deleteMany({
+        where: {
+          inventoryId: updatedUser.inventory.id,
+          type: 'FOOD',
+        },
+      });
+
+      // Insert new food items
+      const foodEntries = Object.entries(foodInventory as Record<string, number>);
+      if (foodEntries.length > 0) {
+        await prisma.inventoryItem.createMany({
+          data: foodEntries.map(([barcode, quantity]) => ({
+            inventoryId: updatedUser.inventory!.id,
+            type: 'FOOD' as const,
+            itemKey: barcode,
+            quantity,
+          })),
+        });
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
