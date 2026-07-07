@@ -189,24 +189,6 @@ export function PetPanel() {
     <div className="space-y-6">
       {/* Main Pet Display Card */}
       <div className={`card-bubbly p-6 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 bg-gradient-to-br ${getRoomGradient(selectedRoom)}`}>
-        {/* Pixel decoration in corners */}
-        <div className="absolute top-3 right-3 text-3xl opacity-40 pointer-events-none select-none animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
-          {roomTheme.pixelDecoration.split('')[0]}
-        </div>
-        <div className="absolute bottom-3 right-8 text-2xl opacity-30 pointer-events-none select-none animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '4s' }}>
-          {roomTheme.pixelDecoration.split('')[1]}
-        </div>
-        <div className="absolute bottom-8 left-8 text-2xl opacity-35 pointer-events-none select-none animate-bounce" style={{ animationDelay: '1s', animationDuration: '3.5s' }}>
-          {roomTheme.pixelDecoration.split('')[2]}
-        </div>
-        {/* Extra pixel cats decorations */}
-        <div className="absolute top-1/2 right-12 opacity-20 pointer-events-none">
-          <PixelCat variant="calico" action="none" size={24} />
-        </div>
-        <div className="absolute top-16 left-1/3 opacity-15 pointer-events-none">
-          <PixelCat variant="tabby" action="none" size={20} />
-        </div>
-        
         {/* Floating popups */}
         <div className="absolute top-4 left-4 z-10 pointer-events-none">
           <AnimatePresence>
@@ -224,15 +206,13 @@ export function PetPanel() {
           </AnimatePresence>
         </div>
 
-        {/* Big Pixel Cat View with glow effect */}
+        {/* Big Pixel Cat View */}
         <div 
           onClick={handleCatClick}
           className={`relative group w-36 h-36 bg-gradient-to-br from-white/20 to-white/10 rounded-[2.5rem] flex items-center justify-center border-4 ${roomTheme.borderColor} shadow-xl overflow-hidden shrink-0 cursor-pointer active:scale-95 transition-all hover:shadow-2xl hover:brightness-110`}
           title="Click me to play!"
         >
           <PixelCat variant={catVariant} action={getIdleAction()} size={110} />
-          {/* Sparkle effect on hover */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
 
         {/* Pet details and progress bars */}
@@ -254,7 +234,7 @@ export function PetPanel() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <h3 className={`font-fredoka text-2xl font-bold ${roomTheme.textColor} drop-shadow-sm`}>{petName}</h3>
+                <h3 className={`font-fredoka text-2xl font-bold ${roomTheme.textColor}`}>{petName}</h3>
                 <button onClick={() => setIsEditingName(true)} className={`p-1.5 ${roomTheme.subTextColor} hover:brightness-110 transition-colors`}>
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
@@ -278,9 +258,7 @@ export function PetPanel() {
             {/* Hunger Progress */}
             <div className="space-y-1.5">
               <div className={`flex justify-between items-center text-xs font-fredoka font-bold ${roomTheme.subTextColor}`}>
-                <span className="flex items-center gap-1">
-                  🍽️ Hunger
-                </span>
+                <span>Hunger</span>
                 <span>{petHunger}%</span>
               </div>
               <div className={`w-full ${roomTheme.hungerBarBg} rounded-full h-3 border ${roomTheme.borderColor} overflow-hidden shadow-inner`}>
@@ -309,9 +287,7 @@ export function PetPanel() {
             {/* Affection Progress */}
             <div className="space-y-1.5">
               <div className={`flex justify-between items-center text-xs font-fredoka font-bold ${roomTheme.subTextColor}`}>
-                <span className="flex items-center gap-1">
-                  💗 Affection
-                </span>
+                <span>Affection</span>
                 <span>{petAffection}%</span>
               </div>
               <div className={`w-full ${roomTheme.affectionBarBg} rounded-full h-3 border ${roomTheme.borderColor} overflow-hidden shadow-inner`}>

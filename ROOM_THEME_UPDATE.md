@@ -13,28 +13,19 @@ Setiap room background sekarang memiliki color palette yang sinkron:
   - Text: Amber tones
   - Hunger Bar: Orange-Amber gradient
   - Affection Bar: Rose-Pink gradient
-  - Decorations: 🍂☕🏠
   - Unlock: Level 1 (Default)
 
 - **🌸 Kawaii Garden** (Soft & Sweet)
   - Text: Pink tones
   - Hunger Bar: Rose-Pink gradient
   - Affection Bar: Fuchsia-Pink gradient
-  - Decorations: 🌸🦋🌺
   - Unlock: Level 3
 
-### 2. **Pixel Art Decorations**
-Ditambahkan elemen dekoratif pixel art yang beranimasi:
-- Emoji tematik di sudut-sudut card dengan bounce animation
-- Mini pixel cats yang mengambang
-- Efek sparkle saat hover di mascot utama
-
-### 3. **Enhanced Visual Effects**
+### 2. **Enhanced Visual Effects**
 - Gradient progress bars dengan shadow
 - Border colors yang match dengan theme
-- Glow effects saat hover
-- Drop shadows untuk better readability
 - Smooth transitions antar room themes
+- Clean and minimal design
 
 ## 📝 Technical Changes
 
@@ -47,8 +38,7 @@ Ditambahkan elemen dekoratif pixel art yang beranimasi:
 2. `src/components/legacy/game/pet-panel.tsx`
    - Import `getRoomTheme` function
    - Apply dynamic theme colors to all UI elements
-   - Added pixel art decorations
-   - Enhanced visual effects
+   - Clean minimal design without decorations
 
 3. `src/stores/legacy/player-store.ts`
    - Updated room types to only include cozy & kawaii-garden
@@ -58,14 +48,15 @@ Ditambahkan elemen dekoratif pixel art yang beranimasi:
 1. Buka Game Hub
 2. Scroll ke bagian "🏠 Room Background"
 3. Pilih antara Cozy Bedroom atau Kawaii Garden
-4. Lihat semua warna dan dekorasi berubah otomatis!
+4. Lihat semua warna berubah otomatis untuk better readability!
 
-## 🐱 Easter Eggs
+## � Design Philosophy
 
-- Mini pixel cats tersembunyi di background
-- Emoji beranimasi bounce dengan timing berbeda
-- Sparkle effect saat hover di pixel cat utama
-- Progress bars dengan gradient smooth
+Menggunakan **adaptive color system** yang:
+- Memastikan text selalu readable
+- Progress bars match dengan background theme
+- Borders dan shadows yang cohesive
+- Simple, clean, dan tidak ramai
 
 ---
 

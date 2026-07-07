@@ -26,7 +26,6 @@ interface RoomTheme {
   accentColor: string;
   labelBg: string;
   labelText: string;
-  pixelDecoration: string;
 }
 
 export const ROOMS: RoomOption[] = [
@@ -48,7 +47,6 @@ export const ROOM_THEMES: Record<RoomId, RoomTheme> = {
     accentColor: 'text-amber-600',
     labelBg: 'bg-amber-800',
     labelText: 'text-amber-50',
-    pixelDecoration: '🍂☕🏠',
   },
   'kawaii-garden': {
     gradient: 'from-pink-100 via-rose-50 to-fuchsia-100',
@@ -63,7 +61,6 @@ export const ROOM_THEMES: Record<RoomId, RoomTheme> = {
     accentColor: 'text-pink-600',
     labelBg: 'bg-pink-600',
     labelText: 'text-pink-50',
-    pixelDecoration: '🌸🦋🌺',
   },
 };
 
