@@ -8,6 +8,12 @@ import { Edit2, Check, Loader2, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 import { getRoomGradient, getRoomTheme, RoomSelector } from '@/components/legacy/game/room-selector';
+import { EnhancedProgress } from '@/components/ui/enhanced-progress';
+import { EmptyFoodPantry, LoadingCat } from '@/components/ui/pixel-illustrations';
+import { ParticleSystem } from '@/components/ui/particle-system';
+import { MilestoneCelebration } from '@/components/ui/milestone-celebration';
+import { haptics } from '@/lib/haptics';
+import { playSound } from '@/lib/sounds';
 
 // ponytail: map evolution stages to cute pixel cat variants
 const STAGE_AVATARS: Record<string, CatVariantId> = {
@@ -37,11 +43,19 @@ export function PetPanel() {
   const [loadingFood, setLoadingFood] = useState(true);
   const [catAction, setCatAction] = useState<CatActionId>('none');
   const [fedPopups, setFedPopups] = useState<{ id: number; text: string }[]>([]);
+  const [showParticles, setShowParticles] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationType, setCelebrationType] = useState<'levelup' | 'achievement' | 'milestone' | 'perfect'>('achievement');
 
   const handlePetClick = () => {
     petCat();
-    playMeow();
+    playSound('pet');
+    haptics.light();
     setCatAction('excited');
+
+    // Show particles
+    setShowParticles(true);
+    setTimeout(() => setShowParticles(false), 1000);
 
     const reactionText = ['Purrr~ 💖', '*purrs softly*', 'So happy! ✨', 'Meow! 🐾', 'Happy kitten! 🥰'];
     const randomText = reactionText[Math.floor(Math.random() * reactionText.length)];
@@ -107,21 +121,41 @@ export function PetPanel() {
     if (trimmed.length > 0) {
       renamePet(trimmed);
       setIsEditingName(false);
+      playSound('success');
+      haptics.medium();
       toast.success(`Pet renamed to ${trimmed}!`);
     }
   };
 
   const handleFeed = (product: Product) => {
     if (petHunger >= 100) {
+      playSound('error');
       toast.info(`${petName} is full!`);
       return;
     }
     
     // ponytail: animate feeding action
     setCatAction('rewards');
+    playSound('feed');
+    haptics.medium();
+    
+    // Show particles
+    setShowParticles(true);
+    setTimeout(() => setShowParticles(false), 1000);
+    
     setTimeout(() => setCatAction('none'), 1500);
 
+    const prevHunger = petHunger;
     feedPet(product.barcodeNumber, product.category || 'Other');
+    
+    // Check if we hit 100%
+    if (prevHunger < 100 && petHunger + 10 >= 100) {
+      setTimeout(() => {
+        setCelebrationType('perfect');
+        setShowCelebration(true);
+      }, 500);
+    }
+    
     toast.success(`Fed ${product.productName} to ${petName}!`);
     
     // Add a floating text animation
@@ -160,10 +194,15 @@ export function PetPanel() {
   };
 
   const handleCatClick = () => {
-    playMeow();
+    playSound('pet');
+    haptics.light();
     const actions: CatActionId[] = ['say-hi', 'excited', 'sleeping'];
     const randomAction = actions[Math.floor(Math.random() * actions.length)];
     setCatAction(randomAction);
+
+    // Show particles
+    setShowParticles(true);
+    setTimeout(() => setShowParticles(false), 1000);
 
     const meows = ['Meow! 🐾', 'Nyaaa~ 😸', 'Purrr... 🐈', '*Wiggle* ✨', 'Hi human! 👋'];
     const randomMeow = meows[Math.floor(Math.random() * meows.length)];
@@ -255,51 +294,27 @@ export function PetPanel() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Hunger Progress */}
-            <div className="space-y-1.5">
-              <div className={`flex justify-between items-center text-xs font-fredoka font-bold ${roomTheme.subTextColor}`}>
-                <span>Hunger</span>
-                <span>{petHunger}%</span>
-              </div>
-              <div className={`w-full ${roomTheme.hungerBarBg} rounded-full h-3 border ${roomTheme.borderColor} overflow-hidden shadow-inner`}>
-                <div
-                  className={`${roomTheme.hungerBarColor} h-full rounded-full transition-all duration-500 shadow-sm`}
-                  style={{ width: `${petHunger}%` }}
-                />
-              </div>
-              <div className={`font-nunito text-[10px] ${roomTheme.subTextColor} font-semibold mt-1`}>
-                {petHunger < 30 ? (
-                  <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="gray" action="starving" size={16} /> Starving! Feed immediately.
-                  </span>
-                ) : petHunger < 70 ? (
-                  <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="tabby" action="hungry" size={16} /> Slightly hungry.
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1">
-                    <PixelCat variant="cyan" action="full" size={16} /> Full and happy!
-                  </span>
-                )}
-              </div>
-            </div>
+            {/* Hunger Progress - Enhanced */}
+            <EnhancedProgress 
+              value={petHunger} 
+              max={100} 
+              variant="hunger"
+              showLabel={true}
+              showPercentage={true}
+              size="md"
+              animated={true}
+            />
 
-            {/* Affection Progress */}
-            <div className="space-y-1.5">
-              <div className={`flex justify-between items-center text-xs font-fredoka font-bold ${roomTheme.subTextColor}`}>
-                <span>Affection</span>
-                <span>{petAffection}%</span>
-              </div>
-              <div className={`w-full ${roomTheme.affectionBarBg} rounded-full h-3 border ${roomTheme.borderColor} overflow-hidden shadow-inner`}>
-                <div
-                  className={`${roomTheme.affectionBarColor} h-full rounded-full transition-all duration-500 shadow-sm`}
-                  style={{ width: `${petAffection}%` }}
-                />
-              </div>
-              <p className={`font-nunito text-[10px] ${roomTheme.subTextColor} font-semibold`}>
-                Keep caring for your pet to trigger the next evolution!
-              </p>
-            </div>
+            {/* Affection Progress - Enhanced */}
+            <EnhancedProgress 
+              value={petAffection} 
+              max={100} 
+              variant="happiness"
+              showLabel={true}
+              showPercentage={true}
+              size="md"
+              animated={true}
+            />
           </div>
         </div>
       </div>
@@ -316,11 +331,15 @@ export function PetPanel() {
 
         {loadingFood ? (
           <div className="py-12 flex justify-center items-center">
-            <Loader2 className="w-6 h-6 text-brand-cyan animate-spin" />
+            <LoadingCat className="w-24 h-24" />
           </div>
         ) : foodItems.length === 0 ? (
-          <div className="card-bubbly bg-white p-8 text-center text-slate-400 font-nunito font-semibold">
-            You don't have any food in your inventory yet. Go scan some snacks or beverages first!
+          <div className="card-bubbly bg-white p-8 text-center">
+            <EmptyFoodPantry className="w-40 h-40 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-700 font-fredoka">No Food Yet!</h3>
+            <p className="text-gray-600 font-nunito mt-2">
+              Scan some snacks or beverages to feed your pet
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -362,6 +381,25 @@ export function PetPanel() {
 
       {/* Room Background Selector */}
       <RoomSelector />
+
+      {/* Particle Effects */}
+      <ParticleSystem 
+        active={showParticles}
+        type="mixed"
+        count={12}
+      />
+
+      {/* Milestone Celebrations */}
+      <MilestoneCelebration
+        show={showCelebration}
+        type={celebrationType}
+        message={
+          celebrationType === 'perfect' 
+            ? `${petName} is fully fed!` 
+            : 'Amazing!'
+        }
+        onComplete={() => setShowCelebration(false)}
+      />
     </div>
   );
 }
