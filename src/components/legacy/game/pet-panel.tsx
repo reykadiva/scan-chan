@@ -7,7 +7,7 @@ import { PixelCat, type CatVariantId, type CatActionId } from '@/components/lega
 import { Edit2, Check, Loader2, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
-import { getRoomGradient, RoomSelector } from '@/components/legacy/game/room-selector';
+import { getRoomGradient, getRoomTheme, RoomSelector } from '@/components/legacy/game/room-selector';
 
 // ponytail: map evolution stages to cute pixel cat variants
 const STAGE_AVATARS: Record<string, CatVariantId> = {
@@ -29,6 +29,8 @@ const STAGE_LABELS: Record<string, string> = {
 export function PetPanel() {
   const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, petCat } = usePlayerStore();
   const selectedRoom = usePlayerStore((s) => s.selectedRoom);
+  const roomTheme = getRoomTheme(selectedRoom);
+  
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(petName);
   const [foodItems, setFoodItems] = useState<Product[]>([]);
@@ -187,6 +189,24 @@ export function PetPanel() {
     <div className="space-y-6">
       {/* Main Pet Display Card */}
       <div className={`card-bubbly p-6 relative overflow-hidden flex flex-col md:flex-row items-center gap-8 bg-gradient-to-br ${getRoomGradient(selectedRoom)}`}>
+        {/* Pixel decoration in corners */}
+        <div className="absolute top-3 right-3 text-3xl opacity-40 pointer-events-none select-none animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}>
+          {roomTheme.pixelDecoration.split('')[0]}
+        </div>
+        <div className="absolute bottom-3 right-8 text-2xl opacity-30 pointer-events-none select-none animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '4s' }}>
+          {roomTheme.pixelDecoration.split('')[1]}
+        </div>
+        <div className="absolute bottom-8 left-8 text-2xl opacity-35 pointer-events-none select-none animate-bounce" style={{ animationDelay: '1s', animationDuration: '3.5s' }}>
+          {roomTheme.pixelDecoration.split('')[2]}
+        </div>
+        {/* Extra pixel cats decorations */}
+        <div className="absolute top-1/2 right-12 opacity-20 pointer-events-none">
+          <PixelCat variant="calico" action="none" size={24} />
+        </div>
+        <div className="absolute top-16 left-1/3 opacity-15 pointer-events-none">
+          <PixelCat variant="tabby" action="none" size={20} />
+        </div>
+        
         {/* Floating popups */}
         <div className="absolute top-4 left-4 z-10 pointer-events-none">
           <AnimatePresence>
@@ -204,13 +224,15 @@ export function PetPanel() {
           </AnimatePresence>
         </div>
 
-        {/* Big Pixel Cat View */}
+        {/* Big Pixel Cat View with glow effect */}
         <div 
           onClick={handleCatClick}
-          className="relative group w-36 h-36 bg-gradient-to-br from-brand-cyan/10 to-brand-pink/10 rounded-[2.5rem] flex items-center justify-center border-4 border-white shadow-xl overflow-hidden shrink-0 cursor-pointer active:scale-95 transition-all hover:shadow-2xl"
+          className={`relative group w-36 h-36 bg-gradient-to-br from-white/20 to-white/10 rounded-[2.5rem] flex items-center justify-center border-4 ${roomTheme.borderColor} shadow-xl overflow-hidden shrink-0 cursor-pointer active:scale-95 transition-all hover:shadow-2xl hover:brightness-110`}
           title="Click me to play!"
         >
           <PixelCat variant={catVariant} action={getIdleAction()} size={110} />
+          {/* Sparkle effect on hover */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
 
         {/* Pet details and progress bars */}
@@ -224,7 +246,7 @@ export function PetPanel() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                  className="px-3 py-1.5 rounded-xl border-2 border-slate-200 font-fredoka font-semibold text-slate-800 focus:outline-none focus:border-brand-cyan text-sm w-44"
+                  className={`px-3 py-1.5 rounded-xl border-2 ${roomTheme.borderColor} font-fredoka font-semibold ${roomTheme.isDark ? 'bg-slate-800/50 text-white placeholder:text-slate-400' : 'bg-white text-slate-800'} focus:outline-none focus:border-brand-cyan text-sm w-44`}
                 />
                 <button onClick={handleRename} className="p-2 bg-brand-cyan text-white rounded-xl hover:brightness-110">
                   <Check className="w-4 h-4" />
@@ -232,15 +254,15 @@ export function PetPanel() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <h3 className="font-fredoka text-2xl font-bold text-slate-800">{petName}</h3>
-                <button onClick={() => setIsEditingName(true)} className="p-1.5 text-slate-400 hover:text-slate-600 transition-colors">
+                <h3 className={`font-fredoka text-2xl font-bold ${roomTheme.textColor} drop-shadow-sm`}>{petName}</h3>
+                <button onClick={() => setIsEditingName(true)} className={`p-1.5 ${roomTheme.subTextColor} hover:brightness-110 transition-colors`}>
                   <Edit2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
 
             <div className="flex gap-2">
-              <span className="bg-slate-800 text-white text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0">
+              <span className={`${roomTheme.labelBg} ${roomTheme.labelText} text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0 shadow-sm`}>
                 {STAGE_LABELS[petStage]}
               </span>
               <button
@@ -255,17 +277,19 @@ export function PetPanel() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Hunger Progress */}
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center text-xs font-fredoka font-bold text-slate-500">
-                <span>Hunger</span>
+              <div className={`flex justify-between items-center text-xs font-fredoka font-bold ${roomTheme.subTextColor}`}>
+                <span className="flex items-center gap-1">
+                  🍽️ Hunger
+                </span>
                 <span>{petHunger}%</span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-3 border border-slate-200/50 overflow-hidden">
+              <div className={`w-full ${roomTheme.hungerBarBg} rounded-full h-3 border ${roomTheme.borderColor} overflow-hidden shadow-inner`}>
                 <div
-                  className="bg-orange-500 h-full rounded-full transition-all duration-500"
+                  className={`${roomTheme.hungerBarColor} h-full rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${petHunger}%` }}
                 />
               </div>
-              <div className="font-nunito text-[10px] text-slate-400 font-semibold mt-1">
+              <div className={`font-nunito text-[10px] ${roomTheme.subTextColor} font-semibold mt-1`}>
                 {petHunger < 30 ? (
                   <span className="inline-flex items-center gap-1">
                     <PixelCat variant="gray" action="starving" size={16} /> Starving! Feed immediately.
@@ -284,17 +308,19 @@ export function PetPanel() {
 
             {/* Affection Progress */}
             <div className="space-y-1.5">
-              <div className="flex justify-between items-center text-xs font-fredoka font-bold text-slate-500">
-                <span>Affection</span>
+              <div className={`flex justify-between items-center text-xs font-fredoka font-bold ${roomTheme.subTextColor}`}>
+                <span className="flex items-center gap-1">
+                  💗 Affection
+                </span>
                 <span>{petAffection}%</span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-3 border border-slate-200/50 overflow-hidden">
+              <div className={`w-full ${roomTheme.affectionBarBg} rounded-full h-3 border ${roomTheme.borderColor} overflow-hidden shadow-inner`}>
                 <div
-                  className="bg-brand-pink h-full rounded-full transition-all duration-500"
+                  className={`${roomTheme.affectionBarColor} h-full rounded-full transition-all duration-500 shadow-sm`}
                   style={{ width: `${petAffection}%` }}
                 />
               </div>
-              <p className="font-nunito text-[10px] text-slate-400 font-semibold">
+              <p className={`font-nunito text-[10px] ${roomTheme.subTextColor} font-semibold`}>
                 Keep caring for your pet to trigger the next evolution!
               </p>
             </div>
