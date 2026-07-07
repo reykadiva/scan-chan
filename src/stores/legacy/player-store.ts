@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GameMode, GAME_CONFIG } from '@/lib/game-config';
 import type { MissionProgress } from '@/types';
-import { generateDailyMissions, evaluateMissions, checkNewAchievements } from '@/lib/legacy/game-engine';
+import { generateDailyMissions, evaluateMissions } from '@/lib/legacy/game-engine';
+import { applyStreakMultiplier } from '@/lib/streak-multiplier';
+import { getStreakStatus, calculateNewStreak } from '@/lib/streak-helpers';
 
 // ─── State shape ─────────────────────────────────────────────────────────────
 
@@ -17,14 +19,12 @@ export interface PlayerState {
   lastActiveDate: string | null;
   registeredBarcodes: string[];
   dailyMissions: MissionProgress[];
-  unlockedAchievements: string[];
   scanHistory: string[];            // Full history, UI slices to 5
   lastScanTime: Record<string, number>;
   lastRegisterTime: number;
   lastDeleteTime: number;
   // XP popup trigger — set to xpAmount when XP is awarded, then cleared by UI
   pendingXpGain: number;
-  pendingAchievementUnlocks: string[];
   // ponytail: virtual pet states
   petName: string;
   petStage: 'KITTEN' | 'YOUNG_CAT' | 'ADULT_CAT' | 'WISE_CAT' | 'LEGENDARY_CAT';
@@ -39,7 +39,7 @@ export interface PlayerState {
   // Feature #1: Daily Login Calendar
   loginCalendar: string[]; // dates (YYYY-MM-DD) where reward was claimed
   // Feature #2: Custom Room Backgrounds
-  selectedRoom: 'cozy' | 'cyberpunk-cafe' | 'outer-space' | 'kawaii-garden';
+  selectedRoom: 'cozy' | 'kawaii-garden';
   // Feature #3: Bounty Hunt
   activeBounty: { category: string; description: string; expiresAt: number; xpBonus: number } | null;
   // Feature #4: Category Master Badges
@@ -58,7 +58,6 @@ export interface PlayerActions {
   unregisterProduct: (barcode: string) => void;
   checkDailyReset: (localDateString: string) => void;
   clearPendingXpGain: () => void;
-  clearPendingAchievementUnlocks: () => void;
   resetPlayer: () => void;
   // ponytail: virtual pet actions
   feedPet: (barcode: string, category: string) => void;
@@ -72,7 +71,7 @@ export interface PlayerActions {
   // Feature #1: Daily Login Calendar
   claimLoginReward: (dateStr: string) => { xp: number; food: boolean; affection: number; border: string | null };
   // Feature #2: Room Backgrounds
-  selectRoom: (room: 'cozy' | 'cyberpunk-cafe' | 'outer-space' | 'kawaii-garden') => void;
+  selectRoom: (room: 'cozy' | 'kawaii-garden') => void;
   // Feature #3: Bounty Hunt
   generateBounty: () => void;
   completeBounty: () => void;
@@ -122,13 +121,11 @@ const initialStoreState: PlayerState = {
   lastActiveDate: null,
   registeredBarcodes: [],
   dailyMissions: [],
-  unlockedAchievements: [],
   scanHistory: [],
   lastScanTime: {},
   lastRegisterTime: 0,
   lastDeleteTime: 0,
   pendingXpGain: 0,
-  pendingAchievementUnlocks: [],
   // ponytail: pet defaults
   petName: 'Scan-chan Jr.',
   petStage: 'KITTEN',
@@ -221,17 +218,10 @@ export const usePlayerStore = create<PlayerStore>()(
           );
 
           const totalXpGain = baseXpGain + missionXp;
-          const newXp = state.xp + totalXpGain;
+          // Apply streak multiplier to XP calculation
+          const streakMultipliedXp = applyStreakMultiplier(totalXpGain, state.streak);
+          const newXp = state.xp + streakMultipliedXp;
           const newLevel = levelFromXp(newXp);
-
-          // 2. Check achievements
-          const newlyUnlocked = checkNewAchievements({
-            scanHistory,
-            registeredBarcodes: state.registeredBarcodes,
-            level: newLevel,
-            streak: state.streak,
-            unlockedAchievements: state.unlockedAchievements,
-          });
 
           // ponytail: add consumable food item to inventory
           const isConsumable = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy'].includes(category);
@@ -256,17 +246,15 @@ export const usePlayerStore = create<PlayerStore>()(
             updatedBounty = null; // consumed
           }
 
-          const finalXp = newXp + bountyXpBonus;
-          const finalLevel = levelFromXp(finalXp);
+          const totalFinalXp = newXp + bountyXpBonus;
+          const finalLevel = levelFromXp(totalFinalXp);
 
           return {
             scanHistory,
-            xp: finalXp,
+            xp: totalFinalXp,
             level: finalLevel,
-            pendingXpGain: totalXpGain + bountyXpBonus,
-            pendingAchievementUnlocks: [...state.pendingAchievementUnlocks, ...newlyUnlocked],
+            pendingXpGain: streakMultipliedXp + bountyXpBonus,
             dailyMissions: updatedMissions,
-            unlockedAchievements: [...state.unlockedAchievements, ...newlyUnlocked],
             lastScanTime: { ...state.lastScanTime, [barcode]: now },
             foodInventory: updatedFoodInventory,
             categoryScans: updatedCategoryScans,
@@ -290,17 +278,10 @@ export const usePlayerStore = create<PlayerStore>()(
           );
 
           const totalXpGain = baseXpGain + missionXp;
-          const newXp = state.xp + totalXpGain;
+          // Apply streak multiplier to XP calculation
+          const streakMultipliedXp = applyStreakMultiplier(totalXpGain, state.streak);
+          const newXp = state.xp + streakMultipliedXp;
           const newLevel = levelFromXp(newXp);
-
-          // 2. Check achievements
-          const newlyUnlocked = checkNewAchievements({
-            scanHistory: state.scanHistory,
-            registeredBarcodes,
-            level: newLevel,
-            streak: state.streak,
-            unlockedAchievements: state.unlockedAchievements,
-          });
 
           // ponytail: add consumable food item to inventory
           const isConsumable = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy'].includes(category);
@@ -314,10 +295,8 @@ export const usePlayerStore = create<PlayerStore>()(
             lastRegisterTime: Date.now(),
             xp: newXp,
             level: newLevel,
-            pendingXpGain: totalXpGain,
-            pendingAchievementUnlocks: [...state.pendingAchievementUnlocks, ...newlyUnlocked],
+            pendingXpGain: streakMultipliedXp,
             dailyMissions: updatedMissions,
-            unlockedAchievements: [...state.unlockedAchievements, ...newlyUnlocked],
             foodInventory: updatedFoodInventory,
           };
         });
@@ -332,7 +311,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
       checkDailyReset: (localDateString: string) => {
         const lastDate = get().lastActiveDate;
+        const currentStreak = get().streak;
+        
         if (!lastDate) {
+          // First time ever
           set({
             lastActiveDate: localDateString,
             streak: 1,
@@ -342,27 +324,13 @@ export const usePlayerStore = create<PlayerStore>()(
         }
 
         if (lastDate === localDateString) {
-          // Already checked/initialized today
+          // Already checked/initialized today - no reset needed
           return;
         }
 
-        // Parse date diff to calculate streak status
-        const lastDateParts = lastDate.split('-').map(Number);
-        const currentDateParts = localDateString.split('-').map(Number);
-
-        // Date objects in local timezone representation
-        const last = new Date(lastDateParts[0], lastDateParts[1] - 1, lastDateParts[2]);
-        const current = new Date(currentDateParts[0], currentDateParts[1] - 1, currentDateParts[2]);
-        
-        const diffTime = Math.abs(current.getTime() - last.getTime());
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-        let nextStreak = get().streak;
-        if (diffDays === 1) {
-          nextStreak += 1;
-        } else if (diffDays > 1) {
-          nextStreak = 1;
-        }
+        // Calculate streak status for new day (strict logic)
+        const status = getStreakStatus(lastDate, localDateString, currentStreak);
+        const nextStreak = calculateNewStreak(currentStreak, status);
 
         const newMissions = generateDailyMissions(localDateString);
 
@@ -393,10 +361,6 @@ export const usePlayerStore = create<PlayerStore>()(
 
       clearPendingXpGain: () => {
         set({ pendingXpGain: 0 });
-      },
-
-      clearPendingAchievementUnlocks: () => {
-        set({ pendingAchievementUnlocks: [] });
       },
 
       resetPlayer: () => {

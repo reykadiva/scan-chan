@@ -3,7 +3,7 @@
 import { motion } from 'motion/react';
 import { usePlayerStore } from '@/stores/legacy/player-store';
 
-type RoomId = 'cozy' | 'cyberpunk-cafe' | 'outer-space' | 'kawaii-garden';
+type RoomId = 'cozy' | 'kawaii-garden';
 
 interface RoomOption {
   id: RoomId;
@@ -31,9 +31,7 @@ interface RoomTheme {
 
 export const ROOMS: RoomOption[] = [
   { id: 'cozy', name: 'Cozy Bedroom', emoji: '🛋️', gradient: 'from-amber-100 via-orange-50 to-yellow-100', unlockLevel: 1 },
-  { id: 'cyberpunk-cafe', name: 'Cyber Café', emoji: '🌃', gradient: 'from-indigo-900 via-purple-900 to-slate-900', unlockLevel: 3 },
-  { id: 'outer-space', name: 'Outer Space', emoji: '🌌', gradient: 'from-slate-950 via-indigo-950 to-blue-950', unlockLevel: 5 },
-  { id: 'kawaii-garden', name: 'Kawaii Garden', emoji: '🌸', gradient: 'from-pink-100 via-rose-50 to-fuchsia-100', unlockLevel: 7 },
+  { id: 'kawaii-garden', name: 'Kawaii Garden', emoji: '🌸', gradient: 'from-pink-100 via-rose-50 to-fuchsia-100', unlockLevel: 3 },
 ];
 
 export const ROOM_THEMES: Record<RoomId, RoomTheme> = {
@@ -51,36 +49,6 @@ export const ROOM_THEMES: Record<RoomId, RoomTheme> = {
     labelBg: 'bg-amber-800',
     labelText: 'text-amber-50',
     pixelDecoration: '🍂☕🏠',
-  },
-  'cyberpunk-cafe': {
-    gradient: 'from-indigo-900 via-purple-900 to-slate-900',
-    isDark: true,
-    textColor: 'text-cyan-100',
-    subTextColor: 'text-cyan-300',
-    hungerBarColor: 'bg-gradient-to-r from-cyan-400 to-blue-500',
-    hungerBarBg: 'bg-slate-800/80',
-    affectionBarColor: 'bg-gradient-to-r from-fuchsia-500 to-pink-500',
-    affectionBarBg: 'bg-purple-900/80',
-    borderColor: 'border-cyan-500/30',
-    accentColor: 'text-cyan-400',
-    labelBg: 'bg-cyan-500',
-    labelText: 'text-slate-900',
-    pixelDecoration: '⚡🌃💾',
-  },
-  'outer-space': {
-    gradient: 'from-slate-950 via-indigo-950 to-blue-950',
-    isDark: true,
-    textColor: 'text-blue-100',
-    subTextColor: 'text-blue-300',
-    hungerBarColor: 'bg-gradient-to-r from-blue-400 to-indigo-500',
-    hungerBarBg: 'bg-slate-900/80',
-    affectionBarColor: 'bg-gradient-to-r from-purple-400 to-pink-500',
-    affectionBarBg: 'bg-indigo-950/80',
-    borderColor: 'border-blue-500/30',
-    accentColor: 'text-blue-400',
-    labelBg: 'bg-blue-500',
-    labelText: 'text-slate-900',
-    pixelDecoration: '✨🌌🚀',
   },
   'kawaii-garden': {
     gradient: 'from-pink-100 via-rose-50 to-fuchsia-100',

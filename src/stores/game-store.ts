@@ -13,9 +13,7 @@ export interface GameStoreState {
   registeredBarcodes: string[];
   scanHistory: string[];
   dailyMissions: MissionProgress[];
-  unlockedAchievements: string[];
   pendingXpGain: number;
-  pendingAchievementUnlocks: string[];
   rewardsQueue: string[];
   lastScanTime: Record<string, number>;
   lastRegisterTime: number | null;
@@ -42,9 +40,7 @@ export const initialGameState = {
   registeredBarcodes: [] as string[],
   scanHistory: [] as string[],
   dailyMissions: [] as MissionProgress[],
-  unlockedAchievements: [] as string[],
   pendingXpGain: 0,
-  pendingAchievementUnlocks: [] as string[],
   rewardsQueue: [] as string[],
   lastScanTime: {} as Record<string, number>,
   lastRegisterTime: null as number | null,
@@ -79,7 +75,7 @@ export const useGameStore = create<GameStoreState>()(
             lastRegisterTime: registeredAt,
           })),
         setScanSessionState: (scanSessionState) => set({ scanSessionState }),
-        clearPendingRewards: () => set({ pendingXpGain: 0, pendingAchievementUnlocks: [], rewardsQueue: [] }),
+        clearPendingRewards: () => set({ pendingXpGain: 0, rewardsQueue: [] }),
         reset: () =>
           set((state) => ({
             ...initialGameState,
@@ -91,7 +87,7 @@ export const useGameStore = create<GameStoreState>()(
         name: gameStorageKey('guest'),
         version: 1,
         storage: createJSONStorage(() => localStorage),
-        partialize: ({ xp, level, streak, lastActiveDate, registeredBarcodes, scanHistory, dailyMissions, unlockedAchievements, pendingXpGain, pendingAchievementUnlocks, rewardsQueue, lastScanTime, lastRegisterTime, persistenceMode }) => ({
+        partialize: ({ xp, level, streak, lastActiveDate, registeredBarcodes, scanHistory, dailyMissions, pendingXpGain, rewardsQueue, lastScanTime, lastRegisterTime, persistenceMode }) => ({
           xp,
           level,
           streak,
@@ -99,9 +95,7 @@ export const useGameStore = create<GameStoreState>()(
           registeredBarcodes,
           scanHistory,
           dailyMissions,
-          unlockedAchievements,
           pendingXpGain,
-          pendingAchievementUnlocks,
           rewardsQueue,
           lastScanTime,
           lastRegisterTime,
@@ -121,6 +115,5 @@ export const selectProgress = (state: GameStoreState) => ({
 });
 export const selectPendingRewards = (state: GameStoreState) => ({
   pendingXpGain: state.pendingXpGain,
-  pendingAchievementUnlocks: state.pendingAchievementUnlocks,
   rewardsQueue: state.rewardsQueue,
 });

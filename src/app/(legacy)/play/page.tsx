@@ -16,8 +16,6 @@ import { GameStats } from '@/components/legacy/game/game-stats';
 import { ScanHistory } from '@/components/legacy/game/scan-history';
 import { XpPopup } from '@/components/legacy/game/xp-popup';
 import { DailyMissions } from '@/components/legacy/game/daily-missions';
-import { GameAchievements } from '@/components/legacy/game/game-achievements';
-import { AchievementPopup } from '@/components/legacy/game/achievement-popup';
 import { createClient } from '@/lib/supabase/client';
 import { PetPanel } from '@/components/legacy/game/pet-panel';
 import { LevelRoadmap } from '@/components/legacy/game/level-roadmap';
@@ -41,7 +39,7 @@ function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void })
   return null;
 }
 
-type Tab = 'missions' | 'stats' | 'roadmap' | 'history' | 'achievements' | 'products' | 'login' | 'bounty' | 'badges';
+type Tab = 'missions' | 'stats' | 'roadmap' | 'history' | 'products' | 'login' | 'bounty' | 'badges';
 
 export default function GameHubPage() {
   const router = useRouter();
@@ -279,7 +277,6 @@ export default function GameHubPage() {
       </Suspense>
 
       <XpPopup />
-      <AchievementPopup />
 
       <AnimatePresence>
         {showSetup && <NicknameSetup onComplete={() => setShowSetup(false)} />}
@@ -403,7 +400,6 @@ export default function GameHubPage() {
             { id: 'roadmap', label: 'Roadmap', action: 'play', variant: 'black' },
             { id: 'badges', label: 'Badges', action: 'achievements', variant: 'pink' },
             { id: 'history', label: 'History', action: 'history', variant: 'gray' },
-            { id: 'achievements', label: 'Achievements', action: 'achievements', variant: 'calico' },
             { id: 'products', label: 'Products', action: 'items', variant: 'pink' },
           ] as const).map((tab) => (
             <button
@@ -443,9 +439,6 @@ export default function GameHubPage() {
           )}
           {activeTab === 'history' && (
             <ScanHistory />
-          )}
-          {activeTab === 'achievements' && (
-            <GameAchievements />
           )}
           {activeTab === 'products' && (
             <ProductList

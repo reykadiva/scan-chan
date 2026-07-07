@@ -10,7 +10,6 @@ import { PixelCat } from '@/components/legacy/pixel-cat';
 import { usePlayerStore } from '@/stores/legacy/player-store';
 import { useSound } from '@/hooks/use-sound';
 import { XpPopup } from '@/components/legacy/game/xp-popup';
-import { AchievementPopup } from '@/components/legacy/game/achievement-popup';
 import { getDeviceType, formatBarcode } from '@/lib/utils';
 import { GAME_CONFIG } from '@/lib/game-config';
 import type { Product } from '@/types/product';
@@ -120,7 +119,6 @@ export default function ScanPage() {
   return (
     <main className="fixed inset-0 z-50 bg-black flex flex-col">
       <XpPopup />
-      <AchievementPopup />
       {/* Top bar */}
       <div className="absolute top-0 left-0 right-0 z-30 p-4 flex items-center justify-between">
         <button

@@ -14,48 +14,34 @@ Setiap room background sekarang memiliki color palette yang sinkron:
   - Hunger Bar: Orange-Amber gradient
   - Affection Bar: Rose-Pink gradient
   - Decorations: 🍂☕🏠
-
-- **🌃 Cyber Café** (Dark & Neon)
-  - Text: Cyan tones
-  - Hunger Bar: Cyan-Blue gradient
-  - Affection Bar: Fuchsia-Pink gradient
-  - Decorations: ⚡🌃💾
-
-- **🌌 Outer Space** (Deep & Cosmic)
-  - Text: Blue tones
-  - Hunger Bar: Blue-Indigo gradient
-  - Affection Bar: Purple-Pink gradient
-  - Decorations: ✨🌌🚀
+  - Unlock: Level 1 (Default)
 
 - **🌸 Kawaii Garden** (Soft & Sweet)
   - Text: Pink tones
   - Hunger Bar: Rose-Pink gradient
   - Affection Bar: Fuchsia-Pink gradient
   - Decorations: 🌸🦋🌺
+  - Unlock: Level 3
 
 ### 2. **Pixel Art Decorations**
 Ditambahkan elemen dekoratif pixel art yang beranimasi:
-- Emoji tematik di sudut-sudut card
+- Emoji tematik di sudut-sudut card dengan bounce animation
 - Mini pixel cats yang mengambang
-- Efek bounce dan sparkle saat hover
+- Efek sparkle saat hover di mascot utama
 
-### 3. **Dark/Light Mode Detection**
-- Background gelap → text terang
-- Background terang → text gelap
-- Input fields menyesuaikan dengan theme
-
-### 4. **Enhanced Visual Effects**
+### 3. **Enhanced Visual Effects**
 - Gradient progress bars dengan shadow
 - Border colors yang match dengan theme
 - Glow effects saat hover
 - Drop shadows untuk better readability
+- Smooth transitions antar room themes
 
 ## 📝 Technical Changes
 
 ### Files Modified:
 1. `src/components/legacy/game/room-selector.tsx`
    - Added `RoomTheme` interface
-   - Added `ROOM_THEMES` configuration object
+   - Added `ROOM_THEMES` configuration (2 cute rooms only!)
    - Added `getRoomTheme()` helper function
 
 2. `src/components/legacy/game/pet-panel.tsx`
@@ -64,11 +50,14 @@ Ditambahkan elemen dekoratif pixel art yang beranimasi:
    - Added pixel art decorations
    - Enhanced visual effects
 
+3. `src/stores/legacy/player-store.ts`
+   - Updated room types to only include cozy & kawaii-garden
+
 ## 🎮 Cara Menggunakan
 
 1. Buka Game Hub
 2. Scroll ke bagian "🏠 Room Background"
-3. Pilih room yang kamu suka
+3. Pilih antara Cozy Bedroom atau Kawaii Garden
 4. Lihat semua warna dan dekorasi berubah otomatis!
 
 ## 🐱 Easter Eggs

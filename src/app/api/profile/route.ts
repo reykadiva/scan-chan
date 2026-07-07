@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
+import { calculateStreakMultiplier } from '@/lib/streak-multiplier';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,8 +46,6 @@ export async function GET() {
                 create: {
                   hunger: 50,
                   affection: 10,
-                  mood: 100,
-                  energy: 100,
                 },
               },
             },
@@ -84,6 +83,8 @@ export async function GET() {
     }
 
     const nightScans = nightStr ? parseInt(nightStr) : 0;
+    const currentStreak = dbUser.progress?.streak ?? 0;
+    const streakMultiplier = calculateStreakMultiplier(currentStreak);
 
     return NextResponse.json({
       success: true,
@@ -92,7 +93,8 @@ export async function GET() {
         avatar: dbUser.avatar || '👑',
         xp: dbUser.progress?.xp ?? 0,
         level: dbUser.progress?.level ?? 1,
-        streak: dbUser.progress?.streak ?? 0,
+        streak: currentStreak,
+        streakMultiplier,
         petName: dbUser.pet?.name ?? 'Scan-chan Jr.',
         petStage: dbUser.pet?.stage ?? 'KITTEN',
         petHunger: dbUser.pet?.stats?.hunger ?? 50,

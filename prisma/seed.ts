@@ -13,34 +13,6 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Seed achievements
-  const achievements = [
-    { title: 'First Scan', description: 'Complete your very first barcode scan!', badgeImage: '🎉' },
-    { title: 'Product Pioneer', description: 'Register your first product in the database.', badgeImage: '🏅' },
-    { title: '10 Products Scanned', description: 'Scan 10 different products.', badgeImage: '🌟' },
-    { title: '50 Products Scanned', description: 'Scan 50 different products.', badgeImage: '🏆' },
-    { title: '100 Products Scanned', description: "Scan 100 different products. You're a legend!", badgeImage: '👑' },
-    { title: 'Snack Hunter', description: 'Scan 5 snack products.', badgeImage: '🍿' },
-    { title: 'Drink Collector', description: 'Scan 5 drink products.', badgeImage: '🥤' },
-    { title: 'Candy Lover', description: 'Scan 5 candy products.', badgeImage: '🍬' },
-    { title: 'Barcode Master', description: 'Scan 200 barcodes total.', badgeImage: '📱' },
-  ];
-
-  for (const achievement of achievements) {
-    const exists = await prisma.achievement.findFirst({ where: { title: achievement.title } });
-    if (!exists) {
-      await prisma.achievement.create({ 
-        data: {
-          title: achievement.title,
-          description: achievement.description,
-          badgeImage: achievement.badgeImage,
-          category: 'milestone',
-          xpReward: 50,
-        } 
-      });
-    }
-  }
-
   // Seed sample products
   const sampleProducts = [
     {

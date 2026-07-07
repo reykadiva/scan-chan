@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useEffect } from 'react';
 
-type SoundType = 'success' | 'error' | 'achievement' | 'beep';
+type SoundType = 'success' | 'error' | 'beep';
 
 export function useSound() {
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -71,12 +71,6 @@ export function useSound() {
           case 'error':
             playTone(330, 0.18, 'square', now);
             playTone(262, 0.25, 'square', now + 0.2);
-            break;
-          case 'achievement':
-            playTone(523, 0.1, 'sine', now);
-            playTone(659, 0.1, 'sine', now + 0.1);
-            playTone(784, 0.1, 'sine', now + 0.2);
-            playTone(1047, 0.3, 'sine', now + 0.3);
             break;
         }
       } catch {

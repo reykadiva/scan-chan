@@ -4,6 +4,7 @@ import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 import { PixelCat, type CatVariantId, type CatActionId } from '@/components/legacy/pixel-cat';
+import { StreakDisplay } from '@/components/legacy/game/streak-display';
 
 interface GlobalStats {
   totalProducts: number;
@@ -101,6 +102,9 @@ export function GameStats() {
 
   return (
     <div className="space-y-6">
+      {/* Streak Display */}
+      <StreakDisplay />
+
       {/* Overview Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, i) => {
