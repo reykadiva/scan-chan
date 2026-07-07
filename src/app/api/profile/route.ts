@@ -29,11 +29,17 @@ export async function GET() {
     });
 
     if (!dbUser) {
+      // Generate unique nickname from user email or ID
+      const email = user.email || '';
+      const emailUsername = email.split('@')[0] || user.id.substring(0, 8);
+      const nickname = emailUsername.charAt(0).toUpperCase() + emailUsername.slice(1);
+      
       dbUser = await prisma.user.create({
         data: {
           id: user.id,
-          nickname: 'Arashu',
+          nickname,
           avatar: '👑',
+          mode: 'GUEST', // Default to GUEST mode, will be updated when user logs in
           progress: {
             create: {
               xp: 0,
@@ -303,8 +309,9 @@ export async function POST(request: NextRequest) {
       },
       create: {
         id: user.id,
-        nickname: 'Arashu',
+        nickname: user.email ? user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1) : user.id.substring(0, 8),
         avatar: '👑',
+        mode: 'ARASHU',
         progress: {
           create: { xp: xp ?? 0, level: level ?? 1, streak: streak ?? 0 },
         },
