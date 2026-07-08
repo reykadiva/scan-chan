@@ -8,7 +8,7 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId } from '@/components/legacy/pixel-cat';
 import { PixelFlame } from '@/components/ui/pixel-illustrations';
-import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
+import { usePlayerStore, xpForLevel, levelFromXp } from '@/stores/legacy/player-store';
 import { GameMode } from '@/lib/game-config';
 import { NicknameSetup } from '@/components/legacy/game/nickname-setup';
 import { RegisterProductModal } from '@/components/legacy/game/register-product-modal';
@@ -75,6 +75,11 @@ export default function GameHubPage() {
   });
 
   const [lastLevel, setLastLevel] = useState(level);
+  const displayLevel = levelFromXp(xp);
+  const levelStartXp = xpForLevel(displayLevel);
+  const levelEndXp = xpForLevel(displayLevel + 1);
+  const levelProgressXp = Math.max(0, xp - levelStartXp);
+  const levelRequiredXp = levelEndXp - levelStartXp;
 
   const toggleMute = () => {
     setIsMuted((prev) => {
@@ -349,20 +354,17 @@ export default function GameHubPage() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <span className="bg-brand-cyan/20 text-cyan-800 text-xs font-fredoka font-bold px-2.5 py-0.5 rounded-full">
-                    LVL {level}
+                    LVL {displayLevel}
                   </span>
                   <span className={`font-nunito text-xs font-bold ${theme.subtext}`}>
-                    {xp - xpForLevel(level)} / {xpForLevel(level + 1) - xpForLevel(level)} XP
+                    {levelProgressXp} / {levelRequiredXp} XP
                   </span>
                 </div>
                 <div className="w-40 bg-slate-100/80 rounded-full h-1.5 border border-slate-200/30 overflow-hidden mt-1">
                   <div
                     className="bg-brand-cyan h-full rounded-full transition-all duration-500"
                     style={{
-                      width: `${Math.min(
-                        100,
-                        ((xp - xpForLevel(level)) / (xpForLevel(level + 1) - xpForLevel(level))) * 100
-                      )}%`,
+                      width: `${Math.min(100, (levelProgressXp / levelRequiredXp) * 100)}%`,
                     }}
                   />
                 </div>
