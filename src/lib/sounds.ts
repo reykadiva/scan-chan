@@ -63,10 +63,12 @@ class SoundManager {
    * Play a sound effect
    */
   play(type: SoundType, config?: Partial<SoundConfig>) {
-    if (!this.enabled || typeof window === "undefined") return;
+    if (!this.enabled || typeof window === "undefined" || !navigator.userActivation?.hasBeenActive) return;
 
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+      const audioContext = new AudioCtx();
       const volume = config?.volume ?? this.volume;
 
       switch (type) {

@@ -17,17 +17,19 @@ export function useSound() {
   }, []);
 
   const getContext = useCallback(() => {
+    if (!navigator.userActivation?.hasBeenActive) return null;
     if (!audioContextRef.current) {
       const AudioCtx = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) audioContextRef.current = new AudioCtx();
     }
-    return audioContextRef.current!;
+    return audioContextRef.current;
   }, []);
 
   const playTone = useCallback(
     (frequency: number, duration: number, type: OscillatorType = 'sine', startTime?: number) => {
       try {
         const ctx = getContext();
+        if (!ctx) return;
         const oscillator = ctx.createOscillator();
         const gainNode = ctx.createGain();
 
@@ -66,6 +68,7 @@ export function useSound() {
         }
 
         const ctx = getContext();
+        if (!ctx) return;
         const now = ctx.currentTime;
         switch (sound) {
           case 'error':
