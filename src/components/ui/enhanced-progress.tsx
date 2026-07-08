@@ -5,6 +5,7 @@
 
 import { cn } from "@/lib/utils";
 import { PixelHeart, PixelStar } from "./pixel-illustrations";
+import { StatusCatIcons } from "./cat-icon-variants";
 
 interface ProgressBarProps {
   value: number;
@@ -21,35 +22,35 @@ const variantStyles = {
   hunger: {
     gradient: "from-orange-400 via-orange-500 to-amber-600",
     glow: "shadow-orange-500/50",
-    icon: "🍖",
+    IconComponent: StatusCatIcons.Hunger,
     bg: "bg-orange-100",
     border: "border-orange-300",
   },
   happiness: {
     gradient: "from-pink-400 via-pink-500 to-rose-600",
     glow: "shadow-pink-500/50",
-    icon: "💖",
+    IconComponent: StatusCatIcons.Happiness,
     bg: "bg-pink-100",
     border: "border-pink-300",
   },
   health: {
     gradient: "from-green-400 via-green-500 to-emerald-600",
     glow: "shadow-green-500/50",
-    icon: "💚",
+    IconComponent: StatusCatIcons.Health,
     bg: "bg-green-100",
     border: "border-green-300",
   },
   xp: {
     gradient: "from-cyan-400 via-cyan-500 to-blue-600",
     glow: "shadow-cyan-500/50",
-    icon: "⭐",
+    IconComponent: StatusCatIcons.XP,
     bg: "bg-cyan-100",
     border: "border-cyan-300",
   },
   energy: {
     gradient: "from-yellow-400 via-yellow-500 to-amber-600",
     glow: "shadow-yellow-500/50",
-    icon: "⚡",
+    IconComponent: StatusCatIcons.Energy,
     bg: "bg-yellow-100",
     border: "border-yellow-300",
   },
@@ -74,14 +75,15 @@ export function EnhancedProgress({
   const percentage = Math.min(Math.round((value / max) * 100), 100);
   const styles = variantStyles[variant];
   const sizes = sizeStyles[size];
+  const IconComponent = styles.IconComponent;
 
   return (
     <div className={cn("w-full space-y-1", className)}>
       {/* Label */}
       {showLabel && (
         <div className="flex items-center justify-between">
-          <span className={cn("font-medium capitalize", sizes.text)}>
-            {styles.icon} {variant}
+          <span className={cn("font-medium capitalize flex items-center gap-2", sizes.text)}>
+            <IconComponent size={sizes.iconSize} /> {variant}
           </span>
           {showPercentage && (
             <span className={cn("font-bold", sizes.text)}>
@@ -175,6 +177,7 @@ export function CircularProgress({
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
   const styles = variantStyles[variant];
+  const IconComponent = styles.IconComponent;
 
   const colorMap = {
     hunger: "#f97316",
@@ -215,9 +218,7 @@ export function CircularProgress({
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         {showIcon && (
-          <span className="text-xl" role="img" aria-label={variant}>
-            {styles.icon}
-          </span>
+          <IconComponent size={16} />
         )}
         <span className="text-xs font-bold">{Math.round(percentage)}%</span>
       </div>
