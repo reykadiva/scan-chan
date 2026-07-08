@@ -3,11 +3,19 @@
 import { motion } from 'motion/react';
 import { usePlayerStore } from '@/stores/legacy/player-store';
 import { PixelCat } from '@/components/legacy/pixel-cat';
+import { 
+  PixelSnack, 
+  PixelDrink, 
+  PixelCandy, 
+  PixelDairy, 
+  PixelBiscuit, 
+  PixelFood 
+} from '@/components/ui/pixel-illustrations';
 
 interface Badge {
   id: string;
   title: string;
-  emoji: string;
+  icon: 'snack' | 'drink' | 'candy' | 'dairy' | 'biscuit' | 'night';
   category: string; // 'Snack' | 'Drink' | 'night' etc.
   threshold: number;
   color: string; // tailwind gradient
@@ -18,7 +26,7 @@ const BADGES: Badge[] = [
   {
     id: 'snack-master',
     title: 'Snack Master',
-    emoji: '🍿',
+    icon: 'snack',
     category: 'Snack',
     threshold: 20,
     color: 'from-orange-400 to-amber-500',
@@ -27,7 +35,7 @@ const BADGES: Badge[] = [
   {
     id: 'drink-champion',
     title: 'Healthy Hydration',
-    emoji: '🥤',
+    icon: 'drink',
     category: 'Drink',
     threshold: 20,
     color: 'from-cyan-400 to-blue-500',
@@ -36,7 +44,7 @@ const BADGES: Badge[] = [
   {
     id: 'candy-collector',
     title: 'Candy Collector',
-    emoji: '🍬',
+    icon: 'candy',
     category: 'Candy',
     threshold: 15,
     color: 'from-pink-400 to-rose-500',
@@ -45,7 +53,7 @@ const BADGES: Badge[] = [
   {
     id: 'dairy-devotee',
     title: 'Dairy Devotee',
-    emoji: '🥛',
+    icon: 'dairy',
     category: 'Dairy',
     threshold: 15,
     color: 'from-emerald-400 to-teal-500',
@@ -54,7 +62,7 @@ const BADGES: Badge[] = [
   {
     id: 'biscuit-boss',
     title: 'Biscuit Boss',
-    emoji: '🍪',
+    icon: 'biscuit',
     category: 'Biscuit',
     threshold: 15,
     color: 'from-amber-500 to-yellow-600',
@@ -63,7 +71,7 @@ const BADGES: Badge[] = [
   {
     id: 'midnight-gamer',
     title: 'Midnight Gamer',
-    emoji: '🌙',
+    icon: 'night',
     category: 'night',
     threshold: 5,
     color: 'from-indigo-500 to-purple-600',
@@ -118,8 +126,13 @@ export function CategoryBadges() {
                   ? `bg-gradient-to-br ${badge.color} shadow-md`
                   : 'bg-slate-100'
               }`}>
-                <span className={`text-xl ${isUnlocked ? '' : 'grayscale opacity-50'}`}>
-                  {badge.emoji}
+                <span className={`${isUnlocked ? '' : 'grayscale opacity-50'}`}>
+                  {badge.icon === 'snack' && <PixelSnack size={24} />}
+                  {badge.icon === 'drink' && <PixelDrink size={24} />}
+                  {badge.icon === 'candy' && <PixelCandy size={24} />}
+                  {badge.icon === 'dairy' && <PixelDairy size={24} />}
+                  {badge.icon === 'biscuit' && <PixelBiscuit size={24} />}
+                  {badge.icon === 'night' && <span className="text-xl">🌙</span>}
                 </span>
               </div>
 

@@ -17,6 +17,56 @@ const DAY_REWARDS = [
   { day: 7, label: '+50 XP', icon: 'crown', desc: 'Streak Master!' },
 ];
 
+// Generate rewards for a week starting at weekStart (0-indexed)
+const generateWeekRewards = (weekStart: number) => {
+  const rewards = [];
+  for (let i = 0; i < 7; i++) {
+    const day = weekStart + i + 1;
+    let icon: 'star' | 'heart' | 'crown' = 'star';
+    let desc = 'Daily Reward';
+    let label = '+20 XP';
+    
+    // Pattern repeats every 7 days
+    const dayMod = (i % 7) + 1;
+    
+    if (dayMod <= 3) {
+      icon = 'star';
+      desc = 'XP & Food';
+      label = '+20 XP';
+    } else if (dayMod === 4) {
+      icon = 'star';
+      desc = 'XP Boost';
+      label = '+20 XP';
+    } else if (dayMod === 5 || dayMod === 6) {
+      icon = 'heart';
+      desc = '+15 Affection';
+      label = '+30 XP';
+    } else if (dayMod === 7) {
+      icon = 'crown';
+      desc = 'Week Complete!';
+      label = '+50 XP';
+    }
+    
+    // Special milestones
+    if (day === 30) {
+      icon = 'crown';
+      desc = '30-Day Legend!';
+      label = '+100 XP';
+    } else if (day === 100) {
+      icon = 'crown';
+      desc = '100-Day Master!';
+      label = '+200 XP';
+    } else if (day === 365) {
+      icon = 'crown';
+      desc = 'Year Champion!';
+      label = '+500 XP';
+    }
+    
+    rewards.push({ day, label, icon, desc });
+  }
+  return rewards;
+};
+
 export function LoginCalendar() {
   const loginCalendar = usePlayerStore((s) => s.loginCalendar);
   const streak = usePlayerStore((s) => s.streak);
@@ -35,7 +85,7 @@ export function LoginCalendar() {
   // Count consecutive days
   let consecutiveDays = 0;
   const today = new Date(todayStr);
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 365; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(checkDate.getDate() - i);
     const checkStr = checkDate.toLocaleDateString('en-CA');
@@ -45,6 +95,12 @@ export function LoginCalendar() {
       break;
     }
   }
+
+  // Determine which week to show (0-indexed, 7 days per week)
+  const currentWeek = Math.floor(consecutiveDays / 7);
+  const weekStart = currentWeek * 7;
+  const weekRewards = generateWeekRewards(weekStart);
+  const weekNumber = currentWeek + 1;
 
   const handleClaim = () => {
     if (hasClaimed) return;
@@ -69,7 +125,7 @@ export function LoginCalendar() {
       <div className="flex items-center justify-between">
         <h3 className="font-fredoka text-slate-800 text-lg font-bold flex items-center gap-2">
           <PixelCat variant="calico" action="achievements" size={28} />
-          Daily Login Calendar
+          Daily Login Calendar {weekNumber > 1 && <span className="text-sm text-slate-500">(Week {weekNumber})</span>}
         </h3>
         <span className="text-xs font-nunito font-bold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-full flex items-center gap-1">
           <PixelFlame size={14} /> {streak} day streak
@@ -78,10 +134,11 @@ export function LoginCalendar() {
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-2">
-        {DAY_REWARDS.map((reward, idx) => {
-          const isDone = idx < consecutiveDays;
-          const isToday = idx === consecutiveDays && !hasClaimed;
-          const isFuture = idx > consecutiveDays || (idx === consecutiveDays && hasClaimed);
+        {weekRewards.map((reward, idx) => {
+          const dayIndex = reward.day - 1; // 0-indexed for comparison
+          const isDone = dayIndex < consecutiveDays;
+          const isToday = dayIndex === consecutiveDays && !hasClaimed;
+          const isFuture = dayIndex > consecutiveDays || (dayIndex === consecutiveDays && hasClaimed);
 
           // Render icon based on type
           const renderIcon = () => {

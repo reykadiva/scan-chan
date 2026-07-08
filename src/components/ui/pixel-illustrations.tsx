@@ -486,3 +486,211 @@ export function PixelCheck({ className = "", size = 24 }: { className?: string; 
     </svg>
   );
 }
+
+/**
+ * Pixel Barcode Scanner Icon (black for high contrast on cyan background)
+ */
+export function PixelBarcode({ className = "", size = 24 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Black barcode lines - various widths */}
+      <rect x="2" y="4" width="1" height="8" fill="#000000" />
+      <rect x="4" y="4" width="2" height="8" fill="#000000" />
+      <rect x="7" y="4" width="1" height="8" fill="#000000" />
+      <rect x="9" y="4" width="1" height="8" fill="#000000" />
+      <rect x="11" y="4" width="2" height="8" fill="#000000" />
+      <rect x="14" y="4" width="1" height="8" fill="#000000" />
+    </svg>
+  );
+}
+
+
+/**
+ * Category Product Icons (16x16px, cute & clean)
+ * Matching badge gradient colors
+ */
+
+// Snack - Orange/Amber chip bag
+export function PixelSnack({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Chip bag - orange */}
+      <rect x="4" y="2" width="8" height="2" fill="#fb923c" />
+      <rect x="3" y="4" width="10" height="8" fill="#fb923c" />
+      <rect x="4" y="12" width="8" height="2" fill="#f97316" />
+      
+      {/* Highlights */}
+      <rect x="5" y="3" width="2" height="1" fill="#fdba74" />
+      <rect x="5" y="5" width="3" height="2" fill="#fed7aa" />
+      
+      {/* Chips inside */}
+      <ellipse cx="7" cy="8" rx="1.5" ry="1" fill="#fbbf24" />
+      <ellipse cx="9" cy="9" rx="1.5" ry="1" fill="#fbbf24" />
+    </svg>
+  );
+}
+
+// Drink - Cyan/Blue juice box
+export function PixelDrink({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Box - cyan/blue */}
+      <rect x="5" y="4" width="6" height="8" fill="#22d3ee" />
+      <rect x="5" y="12" width="6" height="1" fill="#06b6d4" />
+      
+      {/* Straw */}
+      <rect x="8" y="2" width="1" height="3" fill="#ef4444" />
+      <rect x="7" y="2" width="3" height="1" fill="#ef4444" />
+      
+      {/* Label/highlight */}
+      <rect x="6" y="6" width="4" height="3" fill="#67e8f9" />
+      <rect x="7" y="7" width="2" height="1" fill="#ffffff" opacity="0.8" />
+    </svg>
+  );
+}
+
+// Candy - Pink/Rose wrapped candy
+export function PixelCandy({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Candy wrapper - pink */}
+      <rect x="2" y="7" width="2" height="2" fill="#f9a8d4" />
+      <rect x="12" y="7" width="2" height="2" fill="#f9a8d4" />
+      
+      {/* Candy body - pink/rose */}
+      <rect x="4" y="6" width="8" height="4" fill="#f472b6" />
+      <ellipse cx="8" cy="8" rx="3" ry="1.5" fill="#fb7185" />
+      
+      {/* Highlight */}
+      <rect x="6" y="7" width="3" height="1" fill="#fda4af" />
+    </svg>
+  );
+}
+
+// Dairy - Emerald/Teal milk bottle
+export function PixelDairy({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Bottle cap - emerald */}
+      <rect x="6" y="3" width="4" height="1" fill="#34d399" />
+      <rect x="7" y="2" width="2" height="1" fill="#6ee7b7" />
+      
+      {/* Bottle body - white with teal tint */}
+      <rect x="5" y="4" width="6" height="8" fill="#ffffff" />
+      <rect x="5" y="4" width="6" height="8" fill="#14b8a6" opacity="0.2" />
+      
+      {/* Milk level - emerald/teal */}
+      <rect x="6" y="8" width="4" height="3" fill="#5eead4" />
+      <rect x="6" y="11" width="4" height="1" fill="#14b8a6" />
+      
+      {/* Bottle outline */}
+      <rect x="5" y="12" width="6" height="1" fill="#0d9488" />
+    </svg>
+  );
+}
+
+// Biscuit - Amber/Yellow cookie
+export function PixelBiscuit({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Cookie - amber/yellow */}
+      <ellipse cx="8" cy="8" rx="5" ry="5" fill="#f59e0b" />
+      <ellipse cx="8" cy="8" rx="4" ry="4" fill="#fbbf24" />
+      
+      {/* Chocolate chips - brown */}
+      <rect x="6" y="6" width="1" height="1" fill="#78350f" />
+      <rect x="9" y="7" width="1" height="1" fill="#78350f" />
+      <rect x="7" y="9" width="1" height="1" fill="#78350f" />
+      <rect x="10" y="9" width="1" height="1" fill="#78350f" />
+      
+      {/* Highlight */}
+      <rect x="6" y="5" width="2" height="1" fill="#fde68a" />
+    </svg>
+  );
+}
+
+// Food - Orange/Red bowl with steam
+export function PixelFood({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Steam - gray */}
+      <rect x="6" y="3" width="1" height="2" fill="#94a3b8" opacity="0.5" />
+      <rect x="9" y="2" width="1" height="2" fill="#94a3b8" opacity="0.5" />
+      
+      {/* Bowl - orange/red */}
+      <rect x="4" y="7" width="8" height="1" fill="#ea580c" />
+      <rect x="3" y="8" width="10" height="3" fill="#f97316" />
+      <rect x="4" y="11" width="8" height="1" fill="#ea580c" />
+      
+      {/* Food inside - yellow */}
+      <rect x="5" y="8" width="6" height="2" fill="#fbbf24" />
+      <rect x="6" y="9" width="4" height="1" fill="#fde047" />
+    </svg>
+  );
+}
+
+// Other - Gray/Slate generic box
+export function PixelOther({ className = "", size = 16 }: { className?: string; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      className={cn("pixelated inline-block", className)}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Box - gray */}
+      <rect x="4" y="5" width="8" height="7" fill="#94a3b8" />
+      <rect x="4" y="12" width="8" height="1" fill="#64748b" />
+      
+      {/* Box top flaps */}
+      <polygon points="4,5 8,3 12,5" fill="#cbd5e1" />
+      
+      {/* Tape/label */}
+      <rect x="6" y="7" width="4" height="2" fill="#e2e8f0" />
+      <rect x="7" y="8" width="2" height="1" fill="#94a3b8" />
+    </svg>
+  );
+}

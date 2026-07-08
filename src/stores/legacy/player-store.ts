@@ -417,6 +417,7 @@ export const usePlayerStore = create<PlayerStore>()(
       selectTheme: (theme) => set({ selectedTheme: theme }),
       selectAccessory: (accessory) => set({ selectedAccessory: accessory }),
       selectTitle: (title) => set({ selectedTitle: title }),
+
       renamePet: (name: string) => {
         set({ petName: name });
       },
@@ -442,6 +443,21 @@ export const usePlayerStore = create<PlayerStore>()(
           } else {
             break;
           }
+        }
+
+        // Update streak when claiming login reward
+        // This ensures streak increments even without scanning
+        const lastDate = state.lastActiveDate;
+        const currentStreak = state.streak;
+        let newStreak = currentStreak;
+        
+        if (!lastDate) {
+          // First time ever
+          newStreak = 1;
+        } else if (lastDate !== dateStr) {
+          // Check if this is a consecutive day
+          const status = getStreakStatus(lastDate, dateStr, currentStreak);
+          newStreak = calculateNewStreak(currentStreak, status);
         }
 
         let xpReward = 20;
@@ -477,6 +493,8 @@ export const usePlayerStore = create<PlayerStore>()(
 
         set({
           loginCalendar: newCalendar,
+          lastActiveDate: dateStr, // Update last active date
+          streak: newStreak, // Update streak counter
           xp: newXp,
           level: newLevel,
           pendingXpGain: xpReward,

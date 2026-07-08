@@ -5,6 +5,15 @@ import { toast } from 'sonner';
 import type { Product } from '@/types';
 import { CATEGORIES } from '@/types';
 import { PixelCat } from '@/components/legacy/pixel-cat';
+import { 
+  PixelSnack, 
+  PixelDrink, 
+  PixelCandy, 
+  PixelDairy, 
+  PixelBiscuit, 
+  PixelFood, 
+  PixelOther 
+} from '@/components/ui/pixel-illustrations';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getCategoryVariant } from '@/lib/legacy/game-utils';
 
@@ -14,6 +23,19 @@ interface ProductListProps {
 }
 
 const PAGE_LIMIT = 12;
+
+// Helper to get category icon
+const getCategoryIcon = (category: string, size = 14) => {
+  switch (category) {
+    case 'Snack': return <PixelSnack size={size} />;
+    case 'Drink': return <PixelDrink size={size} />;
+    case 'Candy': return <PixelCandy size={size} />;
+    case 'Dairy': return <PixelDairy size={size} />;
+    case 'Biscuit': return <PixelBiscuit size={size} />;
+    case 'Food': return <PixelFood size={size} />;
+    default: return <PixelOther size={size} />;
+  }
+};
 
 export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -157,7 +179,8 @@ export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
                     <p className="font-nunito text-slate-500 text-xs mt-0.5">{product.brand}</p>
                   )}
                   {product.category && (
-                    <span className="inline-block mt-1.5 px-2 py-0.5 bg-brand-yellow/30 text-yellow-800 rounded-full text-xs font-fredoka font-semibold">
+                    <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-brand-yellow/30 text-yellow-800 rounded-full text-xs font-fredoka font-semibold">
+                      {getCategoryIcon(product.category, 12)}
                       {product.category}
                     </span>
                   )}

@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useStreakWarning } from '@/hooks/use-streak-warning';
 import { PixelCat } from '@/components/legacy/pixel-cat';
+import { PixelFlame } from '@/components/ui/pixel-illustrations';
 
 /**
  * Displays current streak with warning indicator if at risk
@@ -29,7 +30,9 @@ export function StreakDisplay() {
       >
         <div className="flex items-center gap-3">
           {/* Flame Icon */}
-          <div className="text-3xl animate-pulse">🔥</div>
+          <div className="text-3xl">
+            <PixelFlame size={40} />
+          </div>
 
           {/* Streak Info */}
           <div className="flex-1">
@@ -37,7 +40,7 @@ export function StreakDisplay() {
               {currentStreak} Day Streak
             </h3>
             <p className="text-sm text-slate-600 font-nunito">
-              {hasScannedToday ? '✅ Scanned today' : '⏳ Waiting for today\'s scan'}
+              {hasScannedToday ? 'Scanned today' : '⏳ Waiting for today\'s scan'}
             </p>
           </div>
 
@@ -71,18 +74,18 @@ export function StreakDisplay() {
           className="text-center"
         >
           {currentStreak === 7 && (
-            <div className="inline-block px-3 py-1 bg-gradient-to-r from-orange-400 to-amber-500 rounded-full text-white text-xs font-bold">
-              🔥 7-Day Streak!
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-400 to-amber-500 rounded-full text-white text-xs font-bold">
+              <PixelFlame size={14} /> 7-Day Streak!
             </div>
           )}
           {currentStreak === 30 && (
-            <div className="inline-block px-3 py-1 bg-gradient-to-r from-red-400 to-orange-500 rounded-full text-white text-xs font-bold">
-              🔥🔥 30-Day Streak!
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-400 to-orange-500 rounded-full text-white text-xs font-bold">
+              <PixelFlame size={14} /><PixelFlame size={14} /> 30-Day Streak!
             </div>
           )}
           {currentStreak === 100 && (
-            <div className="inline-block px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 rounded-full text-white text-xs font-bold">
-              🔥🔥🔥 100-Day Streak!
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-500 to-pink-500 rounded-full text-white text-xs font-bold">
+              <PixelFlame size={14} /><PixelFlame size={14} /><PixelFlame size={14} /> 100-Day Streak!
             </div>
           )}
           {currentStreak === 365 && (
