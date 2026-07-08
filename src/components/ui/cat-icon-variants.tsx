@@ -79,6 +79,7 @@ const COLOR_PALETTES: Record<CatIconColor, CatPalette> = {
 };
 
 // Base Cat Head Bitmap (simplified, head only - 16x12)
+// E = Eye placeholder (will be replaced with larger icon)
 const CAT_HEAD_BITMAP: string[] = [
   '....KK....KK....', // 0 - ears
   '...KFFK..KFFK...', // 1
@@ -86,42 +87,99 @@ const CAT_HEAD_BITMAP: string[] = [
   '.KDDFFFFFFFDDK..', // 3
   '.KFFFFFFFFFFFFK.', // 4
   'KFFFFFFFFFFFFFFK', // 5
-  'KFFFFFFFFFFFFFFK', // 6
-  'KFFEEFFFFFFEEFFK', // 7 - eyes (E = eye position for icons)
-  'KFFEEFFFFFFEEFFK', // 8
+  'KFFEEEFFFFEEFFK', // 6 - eyes row 1
+  'KFFEEEFFFFEEFFK', // 7 - eyes row 2
+  'KFFEEEFFFFEEFFK', // 8 - eyes row 3
   'KFFPPFFFFFFPPFFK', // 9 - cheeks
   'KFFFFFFKKFFFFFFK', // 10 - nose
   '.KFFFFFFFFFFFFK.', // 11
 ];
 
-// Eye Icon Bitmaps (4x2 pixels for each eye icon)
-const EYE_ICONS: Record<CatIconType, string[]> = {
-  // Normal eyes
-  'normal': ['KKKK', 'KKKK'],
+// Larger Eye Icons (3x3 pixels each eye - more visible!)
+const EYE_ICONS: Record<CatIconType, { left: string[], right: string[] }> = {
+  // Normal eyes (simple black)
+  'normal': {
+    left: ['KKK', 'KKK', 'KKK'],
+    right: ['KKK', 'KKK', 'KKK']
+  },
   
-  // Food Icons
-  'meat': ['KOOK', 'KOOO'], // Drumstick shape
-  'cake': ['KPPK', 'PPPP'], // Cake slice (pink)
-  'drink': ['KUUU', 'UUUU'], // Cup (blue with U for blUe)
-  'candy': ['KPPK', 'KPPK'], // Lollipop (pink circle)
-  'cookie': ['KBRK', 'BRRB'], // Cookie with chips (brown with B for Brown)
-  'biscuit': ['YYYY', 'YYYY'], // Wafer (yellow)
-  'dairy': ['KWWK', 'WWWW'], // Milk (white)
-  'snack': ['KYYK', 'YYYY'], // Snack chip (yellow)
+  // FOOD ICONS - Clear recognizable shapes
+  'meat': {
+    left: ['.O.', 'OOK', 'KKK'],  // Drumstick
+    right: ['.O.', 'KOO', 'KKK']
+  },
+  'cake': {
+    left: ['PPP', 'PPP', 'RRR'],  // Pink cake with red cherry
+    right: ['PPP', 'PPP', 'RRR']
+  },
+  'drink': {
+    left: ['UUU', 'UUU', '.I.'],  // Cup with straw
+    right: ['UUU', 'UUU', '.I.']
+  },
+  'candy': {
+    left: ['.P.', 'PPP', '.P.'],  // Lollipop
+    right: ['.P.', 'PPP', '.P.']
+  },
+  'cookie': {
+    left: ['BBB', 'BRB', 'BBB'],  // Cookie with chip
+    right: ['BBB', 'BRB', 'BBB']
+  },
+  'biscuit': {
+    left: ['YYY', 'YYY', 'YYY'],  // Wafer
+    right: ['YYY', 'YYY', 'YYY']
+  },
+  'dairy': {
+    left: ['WWW', 'WWW', 'WUU'],  // Milk carton
+    right: ['WWW', 'WWW', 'UUW']
+  },
+  'snack': {
+    left: ['YYY', '.Y.', 'YYY'],  // Chip/snack
+    right: ['YYY', '.Y.', 'YYY']
+  },
   
-  // Actions
-  'bowl': ['KRRK', 'RRRR'], // Bowl (red)
-  'paw': ['KPPK', 'PPKK'], // Paw print (pink)
-  'scanner': ['KGGK', 'GGGG'], // Scanner (green)
-  'apple': ['KRRK', 'RRRR'], // Apple (red)
-  'home': ['KBBK', 'BBBB'], // House (brown)
+  // ACTION ICONS
+  'bowl': {
+    left: ['.R.', 'RRR', 'KKK'],  // Bowl shape
+    right: ['.R.', 'RRR', 'KKK']
+  },
+  'paw': {
+    left: ['.P.', 'PPP', 'P.P'],  // Paw print
+    right: ['.P.', 'PPP', 'P.P']
+  },
+  'scanner': {
+    left: ['GGG', 'K.K', 'GGG'],  // Barcode
+    right: ['GGG', 'K.K', 'GGG']
+  },
+  'apple': {
+    left: ['.G.', 'RRR', 'RRR'],  // Apple with leaf
+    right: ['.G.', 'RRR', 'RRR']
+  },
+  'home': {
+    left: ['.B.', 'BBB', 'BBB'],  // House roof
+    right: ['.B.', 'BBB', 'BBB']
+  },
   
-  // Status
-  'hunger': ['KSSK', 'SSSS'], // Fork/knife (silver)
-  'happiness': ['KPPK', 'PPPP'], // Heart (pink)
-  'health': ['KGGK', 'KGGK'], // Plus sign (green)
-  'energy': ['KYYK', 'KYKK'], // Lightning (yellow)
-  'xp': ['KYKY', 'KYKK'], // Star shape (yellow)
+  // STATUS ICONS
+  'hunger': {
+    left: ['SSS', '.S.', 'SSS'],  // Fork
+    right: ['SSS', 'S..', 'SSS']   // Knife
+  },
+  'happiness': {
+    left: ['.P.', 'PPP', 'P.P'],  // Heart
+    right: ['.P.', 'PPP', 'P.P']
+  },
+  'health': {
+    left: ['.G.', 'GGG', '.G.'],  // Plus/cross
+    right: ['.G.', 'GGG', '.G.']
+  },
+  'energy': {
+    left: ['.Y.', 'YYY', '.Y.'],  // Lightning bolt
+    right: ['Y..', 'YYY', '..Y']
+  },
+  'xp': {
+    left: ['Y.Y', '.Y.', 'Y.Y'],  // Star
+    right: ['Y.Y', '.Y.', 'Y.Y']
+  },
 };
 
 // Icon Color Mapping
@@ -131,6 +189,7 @@ const ICON_COLORS: Record<string, string> = {
   'P': '#f472b6', // Pink
   'B': '#8b4513', // Brown (home/cookie)
   'U': '#3b82f6', // blUe (drink)
+  'I': '#ff6b6b', // pInk/red (straw)
   'R': '#ef4444', // Red
   'Y': '#fbbf24', // Yellow
   'W': '#ffffff', // White
@@ -166,15 +225,33 @@ export function CatIcon({
       else if (char === 'P') pixelColor = '#f9a8d4'; // Pink inner ear/cheek
       else if (char === 'L') pixelColor = palette.light; // Light highlight
       else if (char === 'E') {
-        // Eye position - replace with icon
-        const eyeRow = y - 7; // Eyes start at row 7
-        const eyeCol = x <= 7 ? x - 3 : x - 11; // Left eye: col 3-6, right eye: col 11-14
+        // Eye position - replace with 3x3 icon
+        const eyeRow = y - 6; // Eyes start at row 6
         
-        if (eyeRow >= 0 && eyeRow < 2 && eyeCol >= 0 && eyeCol < 4) {
-          const iconChar = eyeIcon[eyeRow][eyeCol];
-          pixelColor = ICON_COLORS[iconChar] || palette.fur;
+        // Left eye: x position 3-5
+        // Right eye: x position 11-13
+        if (eyeRow >= 0 && eyeRow < 3) {
+          let iconChar: string | undefined;
+          
+          if (x >= 3 && x <= 5) {
+            // Left eye
+            const eyeCol = x - 3;
+            iconChar = eyeIcon.left[eyeRow]?.[eyeCol];
+          } else if (x >= 11 && x <= 13) {
+            // Right eye
+            const eyeCol = x - 11;
+            iconChar = eyeIcon.right[eyeRow]?.[eyeCol];
+          }
+          
+          if (iconChar && iconChar !== '.') {
+            pixelColor = ICON_COLORS[iconChar] || palette.fur;
+          } else if (iconChar === '.') {
+            pixelColor = palette.fur; // Transparent = fur color
+          } else {
+            pixelColor = palette.fur; // Fallback
+          }
         } else {
-          pixelColor = palette.fur; // Fallback
+          pixelColor = palette.fur; // Outside eye area
         }
       }
 
