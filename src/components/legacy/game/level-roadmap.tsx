@@ -1,6 +1,6 @@
 'use client';
 
-import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
+import { usePlayerStore, xpForLevel, levelFromXp } from '@/stores/legacy/player-store';
 import { toast } from 'sonner';
 import { Sparkles, Palette, Crown, Award } from 'lucide-react';
 
@@ -16,7 +16,6 @@ interface UnlockItem {
 export function LevelRoadmap() {
   const { 
     xp, 
-    level, 
     selectedBorder, 
     selectedTheme, 
     selectedAccessory, 
@@ -26,6 +25,8 @@ export function LevelRoadmap() {
     selectAccessory, 
     selectTitle 
   } = usePlayerStore();
+
+  const level = levelFromXp(xp);
 
   const roadmap: UnlockItem[] = [
     {

@@ -527,10 +527,11 @@ export const usePlayerStore = create<PlayerStore>()(
             // Defensive checks: ensure numeric stats are never undefined or null
             const petHunger = typeof data.data.petHunger === 'number' ? data.data.petHunger : 50;
             const petAffection = typeof data.data.petAffection === 'number' ? data.data.petAffection : 10;
+            const xp = typeof data.data.xp === 'number' ? data.data.xp : 0;
             
             set({
-              xp: typeof data.data.xp === 'number' ? data.data.xp : 0,
-              level: typeof data.data.level === 'number' ? data.data.level : 1,
+              xp,
+              level: levelFromXp(xp),
               streak: typeof data.data.streak === 'number' ? data.data.streak : 0,
               petName: data.data.petName || 'Scan-chan Jr.',
               petStage: data.data.petStage || 'KITTEN',
@@ -593,7 +594,7 @@ const saveProfile = async (state: any) => {
   try {
     const payload = {
       xp: state.xp,
-      level: state.level,
+      level: levelFromXp(state.xp),
       streak: state.streak,
       petName: state.petName,
       petStage: state.petStage,
@@ -660,7 +661,7 @@ if (typeof window !== 'undefined') {
       // Use sendBeacon for reliable delivery even during page unload
       const payload = JSON.stringify({
         xp: state.xp,
-        level: state.level,
+        level: levelFromXp(state.xp),
         streak: state.streak,
         petName: state.petName,
         petStage: state.petStage,

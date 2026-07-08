@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
+import { usePlayerStore, xpForLevel, levelFromXp } from '@/stores/legacy/player-store';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 import { PixelCat, type CatVariantId, type CatActionId } from '@/components/legacy/pixel-cat';
@@ -14,8 +14,8 @@ interface GlobalStats {
 export function GameStats() {
   const scanHistory = usePlayerStore((state) => state.scanHistory);
   const registeredBarcodes = usePlayerStore((state) => state.registeredBarcodes);
-  const level = usePlayerStore((state) => state.level);
   const xp = usePlayerStore((state) => state.xp);
+  const level = levelFromXp(xp);
 
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
   const [categoriesMastered, setCategoriesMastered] = useState<number>(0);

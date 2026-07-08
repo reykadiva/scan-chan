@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { usePlayerStore } from '@/stores/legacy/player-store';
+import { usePlayerStore, levelFromXp } from '@/stores/legacy/player-store';
 import { CatIcon } from '@/components/ui/cat-icon-variants';
 
 type RoomId = 'cozy' | 'kawaii-garden';
@@ -76,7 +76,8 @@ export function getRoomTheme(roomId: RoomId): RoomTheme {
 export function RoomSelector() {
   const selectedRoom = usePlayerStore((s) => s.selectedRoom);
   const selectRoom = usePlayerStore((s) => s.selectRoom);
-  const level = usePlayerStore((s) => s.level);
+  const xp = usePlayerStore((s) => s.xp);
+  const level = levelFromXp(xp);
 
   return (
     <div className="space-y-3">

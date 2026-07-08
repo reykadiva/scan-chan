@@ -49,7 +49,6 @@ export default function GameHubPage() {
   const nickname = usePlayerStore((state) => state.nickname);
   const avatar = usePlayerStore((state) => state.avatar);
   const xp = usePlayerStore((state) => state.xp);
-  const level = usePlayerStore((state) => state.level);
   const streak = usePlayerStore((state) => state.streak);
   const creatorId = usePlayerStore((state) => state.creatorId);
   const resetPlayer = usePlayerStore((state) => state.resetPlayer);
@@ -74,7 +73,7 @@ export default function GameHubPage() {
     return false;
   });
 
-  const [lastLevel, setLastLevel] = useState(level);
+  const [lastLevel, setLastLevel] = useState(() => levelFromXp(xp));
   const displayLevel = levelFromXp(xp);
   const levelStartXp = xpForLevel(displayLevel);
   const levelEndXp = xpForLevel(displayLevel + 1);
@@ -124,14 +123,14 @@ export default function GameHubPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    if (level > lastLevel) {
+    if (displayLevel > lastLevel) {
       playFanfare();
-      toast.success(`🎉 LEVEL UP! You reached Level ${level}!`, {
+      toast.success(`🎉 LEVEL UP! You reached Level ${displayLevel}!`, {
         description: 'New titles or pet accessories unlocked. Check the Roadmap tab!',
       });
-      setLastLevel(level);
+      setLastLevel(displayLevel);
     }
-  }, [level, lastLevel, mounted]);
+  }, [displayLevel, lastLevel, mounted]);
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 0);

@@ -2,8 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { calculateStreakMultiplier } from '@/lib/streak-multiplier';
+import { GAME_CONFIG } from '@/lib/game-config';
 
 export const dynamic = 'force-dynamic';
+
+function xpForLevel(level: number) {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let l = 2; l <= level; l++) total += GAME_CONFIG.levelFormula(l);
+  return total;
+}
+
+function levelFromXp(totalXp: number) {
+  let level = 1;
+  while (totalXp >= xpForLevel(level + 1)) {
+    level++;
+    if (level >= 100) break;
+  }
+  return level;
+}
 
 export async function GET() {
   try {
@@ -156,7 +173,7 @@ export async function GET() {
         nickname: dbUser.nickname || 'Arashu',
         avatar: dbUser.avatar || '👑',
         xp: dbUser.progress?.xp ?? 0,
-        level: dbUser.progress?.level ?? 1,
+        level: levelFromXp(dbUser.progress?.xp ?? 0),
         streak: currentStreak,
         streakMultiplier,
         petName: dbUser.pet?.name ?? 'Scan-chan Jr.',
@@ -204,7 +221,6 @@ export async function POST(request: NextRequest) {
     
     const {
       xp,
-      level,
       streak,
       petName,
       petStage,
@@ -224,6 +240,8 @@ export async function POST(request: NextRequest) {
       dailyMissions,
       activeBounty,
     } = body;
+    const progressXp = typeof xp === 'number' ? xp : 0;
+    const progressLevel = levelFromXp(progressXp);
     
     console.log('🔢 [API POST /api/profile] Extracted values:', {
       petHunger,
@@ -260,8 +278,8 @@ export async function POST(request: NextRequest) {
         mode: 'ARASHU', // Ensure mode is set to ARASHU
         progress: {
           upsert: {
-            create: { xp: xp ?? 0, level: level ?? 1, streak: streak ?? 0 },
-            update: { xp: xp ?? 0, level: level ?? 1, streak: streak ?? 0 },
+            create: { xp: progressXp, level: progressLevel, streak: streak ?? 0 },
+            update: { xp: progressXp, level: progressLevel, streak: streak ?? 0 },
           },
         },
         pet: {
@@ -313,7 +331,7 @@ export async function POST(request: NextRequest) {
         avatar: '👑',
         mode: 'ARASHU',
         progress: {
-          create: { xp: xp ?? 0, level: level ?? 1, streak: streak ?? 0 },
+          create: { xp: progressXp, level: progressLevel, streak: streak ?? 0 },
         },
         pet: {
           create: {
