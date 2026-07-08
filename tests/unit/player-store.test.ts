@@ -90,26 +90,6 @@ describe('Player Store & Virtual Pet Mechanics', () => {
     expect(state.selectedAccessory).toBe('wizard');
   });
 
-  it('should increase affection and xp when petting the cat', () => {
-    const store = usePlayerStore.getState();
-    store.initializePlayer('TestPlayer', 'calico');
-
-    const initialAffection = store.petAffection; // 10
-    const initialXp = store.xp; // 0
-
-    // Pet the cat
-    store.petCat();
-
-    const state = usePlayerStore.getState();
-    expect(state.petAffection).toBe(initialAffection + 5); // 15
-    expect(state.xp).toBe(initialXp + 5); // 5
-    expect(state.lastPetTime).toBeGreaterThan(0);
-
-    // Petting again immediately during 3s cooldown should not change affection
-    store.petCat();
-    expect(usePlayerStore.getState().petAffection).toBe(initialAffection + 5);
-  });
-
   it('should claim daily login rewards and increment calendar', () => {
     const store = usePlayerStore.getState();
     store.initializePlayer('TestPlayer', 'calico');

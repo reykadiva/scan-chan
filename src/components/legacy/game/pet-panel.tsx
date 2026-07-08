@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerStore } from '@/stores/legacy/player-store';
 import { PixelCat, type CatVariantId, type CatActionId } from '@/components/legacy/pixel-cat';
-import { Edit2, Check, Loader2, Apple } from 'lucide-react';
+import { Edit2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Product } from '@/types';
 import { getRoomGradient, getRoomTheme, RoomSelector } from '@/components/legacy/game/room-selector';
@@ -12,7 +12,7 @@ import { EnhancedProgress } from '@/components/ui/enhanced-progress';
 import { EmptyFoodPantry, LoadingCat } from '@/components/ui/pixel-illustrations';
 import { ParticleSystem } from '@/components/ui/particle-system';
 import { MilestoneCelebration } from '@/components/ui/milestone-celebration';
-import { CatIcon, FoodCatIcons, ActionCatIcons, type CatIconColor } from '@/components/ui/cat-icon-variants';
+import { FoodCatIcons, ActionCatIcons, type CatIconColor } from '@/components/ui/cat-icon-variants';
 import { haptics } from '@/lib/haptics';
 import { playSound } from '@/lib/sounds';
 
@@ -34,7 +34,7 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export function PetPanel() {
-  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, petCat } = usePlayerStore();
+  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory } = usePlayerStore();
   const selectedRoom = usePlayerStore((s) => s.selectedRoom);
   const roomTheme = getRoomTheme(selectedRoom);
   
@@ -47,27 +47,6 @@ export function PetPanel() {
   const [showParticles, setShowParticles] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationType, setCelebrationType] = useState<'levelup' | 'achievement' | 'milestone' | 'perfect'>('achievement');
-
-  const handlePetClick = () => {
-    petCat();
-    playSound('pet');
-    haptics.light();
-    setCatAction('excited');
-
-    // Show particles
-    setShowParticles(true);
-    setTimeout(() => setShowParticles(false), 1000);
-
-    const reactionText = ['Purrr~ 💖', '*purrs softly*', 'So happy! ✨', 'Meow! 🐾', 'Happy kitten! 🥰'];
-    const randomText = reactionText[Math.floor(Math.random() * reactionText.length)];
-    const id = Date.now();
-    setFedPopups((prev) => [...prev, { id, text: randomText }]);
-
-    setTimeout(() => setCatAction('none'), 1800);
-    setTimeout(() => {
-      setFedPopups((prev) => prev.filter((p) => p.id !== id));
-    }, 1800);
-  };
 
   // Fetch product details for food inventory to list available food
   useEffect(() => {
@@ -309,12 +288,6 @@ export function PetPanel() {
               <span className={`${roomTheme.labelBg} ${roomTheme.labelText} text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0 shadow-sm`}>
                 {STAGE_LABELS[petStage]}
               </span>
-              <button
-                onClick={handlePetClick}
-                className="bg-brand-pink text-white text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0 hover:brightness-105 active:scale-95 transition-all shadow-sm flex items-center gap-1 cursor-pointer"
-              >
-                💖 Pet Cat
-              </button>
             </div>
           </div>
 

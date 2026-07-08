@@ -35,7 +35,6 @@ export interface PlayerState {
   selectedTheme: 'default' | 'kawaii' | 'cyberpunk';
   selectedAccessory: 'none' | 'cowboy' | 'wizard' | 'shades';
   selectedTitle: string;
-  lastPetTime: number;
   // Feature #1: Daily Login Calendar
   loginCalendar: string[]; // dates (YYYY-MM-DD) where reward was claimed
   // Feature #2: Custom Room Backgrounds
@@ -66,7 +65,6 @@ export interface PlayerActions {
   selectTheme: (theme: 'default' | 'kawaii' | 'cyberpunk') => void;
   selectAccessory: (accessory: 'none' | 'cowboy' | 'wizard' | 'shades') => void;
   selectTitle: (title: string) => void;
-  petCat: () => void;
   loadProfile: () => Promise<void>;
   // Feature #1: Daily Login Calendar
   claimLoginReward: (dateStr: string) => { xp: number; food: boolean; affection: number; border: string | null };
@@ -136,7 +134,6 @@ const initialStoreState: PlayerState = {
   selectedTheme: 'default',
   selectedAccessory: 'none',
   selectedTitle: '',
-  lastPetTime: 0,
   loginCalendar: [],
   selectedRoom: 'cozy',
   activeBounty: null,
@@ -420,36 +417,6 @@ export const usePlayerStore = create<PlayerStore>()(
       selectTheme: (theme) => set({ selectedTheme: theme }),
       selectAccessory: (accessory) => set({ selectedAccessory: accessory }),
       selectTitle: (title) => set({ selectedTitle: title }),
-      petCat: () => {
-        set((state) => {
-          const now = Date.now();
-          const isCooldown = now - state.lastPetTime < 3000;
-          if (isCooldown) return {};
-
-          const nextAffection = Math.min(100, state.petAffection + 5);
-
-          let nextStage: typeof state.petStage = 'KITTEN';
-          if (nextAffection < 25) nextStage = 'KITTEN';
-          else if (nextAffection < 50) nextStage = 'YOUNG_CAT';
-          else if (nextAffection < 75) nextStage = 'ADULT_CAT';
-          else if (nextAffection < 95) nextStage = 'WISE_CAT';
-          else nextStage = 'LEGENDARY_CAT';
-
-          const xpGain = 5;
-          const newXp = state.xp + xpGain;
-          const newLevel = levelFromXp(newXp);
-
-          return {
-            petAffection: nextAffection,
-            petStage: nextStage,
-            xp: newXp,
-            level: newLevel,
-            pendingXpGain: xpGain,
-            lastPetTime: now,
-          };
-        });
-      },
-
       renamePet: (name: string) => {
         set({ petName: name });
       },
