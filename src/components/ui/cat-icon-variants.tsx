@@ -26,7 +26,7 @@ export type CatIconType =
   | 'meat' | 'cake' | 'drink' | 'candy' | 'cookie'
   | 'biscuit' | 'dairy' | 'snack'
   // Actions
-  | 'bowl' | 'paw' | 'scanner' | 'apple'
+  | 'bowl' | 'paw' | 'scanner' | 'apple' | 'home'
   // Status
   | 'hunger' | 'happiness' | 'health' | 'energy' | 'xp'
   // Default
@@ -102,9 +102,9 @@ const EYE_ICONS: Record<CatIconType, string[]> = {
   // Food Icons
   'meat': ['KOOK', 'KOOO'], // Drumstick shape
   'cake': ['KPPK', 'PPPP'], // Cake slice (pink)
-  'drink': ['KBBB', 'BBBB'], // Cup (blue)
+  'drink': ['KUUU', 'UUUU'], // Cup (blue with U for blUe)
   'candy': ['KPPK', 'KPPK'], // Lollipop (pink circle)
-  'cookie': ['KBRK', 'BRRB'], // Cookie with chips (brown)
+  'cookie': ['KBRK', 'BRRB'], // Cookie with chips (brown with B for Brown)
   'biscuit': ['YYYY', 'YYYY'], // Wafer (yellow)
   'dairy': ['KWWK', 'WWWW'], // Milk (white)
   'snack': ['KYYK', 'YYYY'], // Snack chip (yellow)
@@ -114,6 +114,7 @@ const EYE_ICONS: Record<CatIconType, string[]> = {
   'paw': ['KPPK', 'PPKK'], // Paw print (pink)
   'scanner': ['KGGK', 'GGGG'], // Scanner (green)
   'apple': ['KRRK', 'RRRR'], // Apple (red)
+  'home': ['KBBK', 'BBBB'], // House (brown)
   
   // Status
   'hunger': ['KSSK', 'SSSS'], // Fork/knife (silver)
@@ -128,7 +129,8 @@ const ICON_COLORS: Record<string, string> = {
   'K': '#1a1a1a', // Black outline
   'O': '#fb923c', // Orange (meat)
   'P': '#f472b6', // Pink
-  'B': '#3b82f6', // Blue
+  'B': '#8b4513', // Brown (home/cookie)
+  'U': '#3b82f6', // blUe (drink)
   'R': '#ef4444', // Red
   'Y': '#fbbf24', // Yellow
   'W': '#ffffff', // White
@@ -223,6 +225,7 @@ export const ActionCatIcons = {
   Paw: (props: Omit<CatIconProps, 'iconType'>) => <CatIcon {...props} iconType="paw" color={props.color || 'pink'} />,
   Scanner: (props: Omit<CatIconProps, 'iconType'>) => <CatIcon {...props} iconType="scanner" color={props.color || 'teal'} />,
   Apple: (props: Omit<CatIconProps, 'iconType'>) => <CatIcon {...props} iconType="apple" color={props.color || 'red'} />,
+  Home: (props: Omit<CatIconProps, 'iconType'>) => <CatIcon {...props} iconType="home" color={props.color || 'amber'} />,
 };
 
 export const StatusCatIcons = {

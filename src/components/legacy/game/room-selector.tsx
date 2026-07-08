@@ -2,6 +2,7 @@
 
 import { motion } from 'motion/react';
 import { usePlayerStore } from '@/stores/legacy/player-store';
+import { CatIcon } from '@/components/ui/cat-icon-variants';
 
 type RoomId = 'cozy' | 'kawaii-garden';
 
@@ -80,7 +81,7 @@ export function RoomSelector() {
   return (
     <div className="space-y-3">
       <h4 className="font-fredoka text-sm font-bold text-slate-700 flex items-center gap-2">
-        🏠 Room Background
+        <CatIcon iconType="home" color="amber" size={20} /> Room Background
       </h4>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {ROOMS.map((room) => {
