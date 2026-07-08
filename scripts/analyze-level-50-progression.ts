@@ -189,3 +189,5 @@ console.log('5. Event Days (weekends = 2x happiness gain)');
 console.log('6. Achievement Unlocks (reach LEGENDARY = permanent +0.5 bonus)\n');
 
 console.log('═══════════════════════════════════════════════════════════════════\n');
+
+export {};

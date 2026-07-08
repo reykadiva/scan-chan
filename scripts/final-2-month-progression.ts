@@ -151,3 +151,5 @@ console.log('   • Hardest tier, minimal happiness gain');
 console.log('   • Achieve Perfect 100 Affection\n');
 
 console.log('═══════════════════════════════════════════════════════════════════\n');
+
+export {};

@@ -118,3 +118,5 @@ console.log('Level 35: Unlock LEGENDARY_CAT');
 console.log('Level 50: Unlock Perfect 100 Affection\n');
 
 console.log('═══════════════════════════════════════════════════════════════════\n');
+
+export {};

@@ -163,3 +163,5 @@ console.log('Proposed Level 6-10: ~15-20 minutes to reach ADULT_CAT (Engaging)')
 console.log('Proposed Level 11+: ~1-2 hours to reach LEGENDARY (Long-term goal)\n');
 
 console.log('═══════════════════════════════════════════════════════════════\n');
+
+export {};
