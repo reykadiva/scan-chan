@@ -347,7 +347,7 @@ export function PetPanel() {
       {/* Available Food Section */}
       <div className="space-y-3">
         <h4 className="font-fredoka text-slate-800 text-lg font-bold flex items-center gap-2">
-          <ActionCatIcons.Apple size={24} color="red" className="animate-float" />
+          <ActionCatIcons.Apple size={24} color="red" />
           Feed Pet (Food Inventory)
         </h4>
         <p className="font-nunito text-xs text-slate-400 font-medium">

@@ -4,16 +4,17 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerStore } from '@/stores/legacy/player-store';
 import { PixelCat } from '@/components/legacy/pixel-cat';
+import { PixelFlame, PixelStar, PixelHeart, PixelCrown, PixelCheck } from '@/components/ui/pixel-illustrations';
 import { toast } from 'sonner';
 
 const DAY_REWARDS = [
-  { day: 1, label: '+20 XP', emoji: '⭐', desc: 'XP & Food' },
-  { day: 2, label: '+20 XP', emoji: '⭐', desc: 'XP & Food' },
-  { day: 3, label: '+20 XP', emoji: '⭐', desc: 'XP & Food' },
-  { day: 4, label: '+20 XP', emoji: '✨', desc: 'XP Boost' },
-  { day: 5, label: '+30 XP', emoji: '💖', desc: '+15 Affection' },
-  { day: 6, label: '+30 XP', emoji: '💖', desc: '+15 Affection' },
-  { day: 7, label: '+50 XP', emoji: '👑', desc: 'Streak Master!' },
+  { day: 1, label: '+20 XP', icon: 'star', desc: 'XP & Food' },
+  { day: 2, label: '+20 XP', icon: 'star', desc: 'XP & Food' },
+  { day: 3, label: '+20 XP', icon: 'star', desc: 'XP & Food' },
+  { day: 4, label: '+20 XP', icon: 'star', desc: 'XP Boost' },
+  { day: 5, label: '+30 XP', icon: 'heart', desc: '+15 Affection' },
+  { day: 6, label: '+30 XP', icon: 'heart', desc: '+15 Affection' },
+  { day: 7, label: '+50 XP', icon: 'crown', desc: 'Streak Master!' },
 ];
 
 export function LoginCalendar() {
@@ -70,8 +71,8 @@ export function LoginCalendar() {
           <PixelCat variant="calico" action="achievements" size={28} />
           Daily Login Calendar
         </h3>
-        <span className="text-xs font-nunito font-bold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-full">
-          🔥 {streak} day streak
+        <span className="text-xs font-nunito font-bold text-orange-500 bg-orange-50 px-2.5 py-1 rounded-full flex items-center gap-1">
+          <PixelFlame size={14} /> {streak} day streak
         </span>
       </div>
 
@@ -82,6 +83,17 @@ export function LoginCalendar() {
           const isToday = idx === consecutiveDays && !hasClaimed;
           const isFuture = idx > consecutiveDays || (idx === consecutiveDays && hasClaimed);
 
+          // Render icon based on type
+          const renderIcon = () => {
+            if (isDone) {
+              return <PixelCheck size={20} />;
+            }
+            if (reward.icon === 'star') return <PixelStar size={20} className="text-amber-400" />;
+            if (reward.icon === 'heart') return <PixelHeart size={20} className="text-pink-500" />;
+            if (reward.icon === 'crown') return <PixelCrown size={20} />;
+            return <PixelStar size={20} className="text-amber-400" />;
+          };
+
           return (
             <motion.div
               key={reward.day}
@@ -90,14 +102,14 @@ export function LoginCalendar() {
               transition={{ delay: idx * 0.05 }}
               className={`relative rounded-xl p-2 flex flex-col items-center justify-center text-center aspect-square border-2 transition-all ${
                 isDone
-                  ? 'bg-green-50 border-green-300 shadow-sm'
+                  ? 'bg-pink-50 border-pink-300 shadow-sm'
                   : isToday
-                  ? 'bg-gradient-to-br from-amber-50 to-yellow-100 border-amber-400 shadow-md ring-2 ring-amber-300/50 animate-pulse cursor-pointer'
+                  ? 'bg-gradient-to-br from-pink-50 to-fuchsia-100 border-pink-400 shadow-md ring-2 ring-pink-300/50 cursor-pointer'
                   : 'bg-slate-50 border-slate-200 opacity-50'
               }`}
               onClick={isToday ? handleClaim : undefined}
             >
-              <span className="text-lg leading-none">{isDone ? '✅' : reward.emoji}</span>
+              {renderIcon()}
               <span className="font-fredoka text-[9px] font-bold text-slate-600 mt-0.5">
                 Day {reward.day}
               </span>
@@ -115,13 +127,13 @@ export function LoginCalendar() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleClaim}
-          className="w-full py-3 bg-gradient-to-r from-amber-400 to-orange-400 text-white font-fredoka font-bold rounded-xl shadow-md hover:shadow-lg transition-all text-sm cursor-pointer"
+          className="w-full py-3 bg-gradient-to-r from-pink-400 to-fuchsia-400 text-white font-fredoka font-bold rounded-xl shadow-md hover:shadow-lg transition-all text-sm cursor-pointer"
         >
           🎁 Claim Today&apos;s Login Reward!
         </motion.button>
       ) : (
-        <div className="w-full py-3 bg-green-50 text-green-700 font-fredoka font-bold rounded-xl text-center text-sm border border-green-200">
-          ✅ Reward claimed! Come back tomorrow~
+        <div className="w-full py-3 bg-pink-50 text-pink-700 font-fredoka font-bold rounded-xl text-center text-sm border border-pink-200 flex items-center justify-center gap-2">
+          <PixelCheck size={16} /> Reward claimed! Come back tomorrow~
         </div>
       )}
 

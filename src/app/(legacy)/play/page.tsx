@@ -7,6 +7,7 @@ import { AnimatePresence } from 'motion/react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId } from '@/components/legacy/pixel-cat';
+import { PixelFlame } from '@/components/ui/pixel-illustrations';
 import { usePlayerStore, xpForLevel } from '@/stores/legacy/player-store';
 import { GameMode } from '@/lib/game-config';
 import { NicknameSetup } from '@/components/legacy/game/nickname-setup';
@@ -336,7 +337,7 @@ export default function GameHubPage() {
                 </h2>
                 {streak > 0 && (
                   <span className="inline-flex items-center gap-1.5 text-sm text-orange-600 font-semibold" title={`${streak}-day streak`}>
-                    <PixelCat variant="tabby" action="fire-streak" size={24} /> {streak}
+                    <PixelFlame size={20} /> {streak}
                   </span>
                 )}
               </div>
