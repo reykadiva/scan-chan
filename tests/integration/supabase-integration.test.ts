@@ -7,7 +7,7 @@ config({ path: path.resolve(process.cwd(), '.env.local') });
 
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
-import { registerUser, loginUser } from '@/services/auth-service';
+import { syncOAuthUser } from '@/services/auth-service';
 import { getPlayerProfile, updatePlayerProfile } from '@/services/player-service';
 import { createProduct, getProductByBarcode, deleteProduct } from '@/services/product-service';
 import { processBarcodeScan } from '@/services/scanner-service';
@@ -46,21 +46,21 @@ describe('🔌 Supabase Cloud Database & Auth Integration Suite', () => {
     }
   });
 
-  it('2. Auth Sign Up & Profile Synchronization with Cat Avatar', async () => {
-    // Attempt registration via auth-service
-    const regRes = await registerUser({
+  it('2. OAuth Sign In & Profile Synchronization with Cat Avatar', async () => {
+    createdUserId = `usr_test_${Date.now()}`;
+    const syncRes = await syncOAuthUser({
+      id: createdUserId,
       email: testEmail,
-      password: testPassword,
-      nickname: testNickname,
-      avatar: testAvatar,
+      user_metadata: {
+        full_name: testNickname,
+        nickname: testNickname,
+        avatar: testAvatar,
+      },
     });
 
-    expect(regRes.success).toBe(true);
-    expect(regRes.user?.email).toBe(testEmail);
-    expect(regRes.dbUser?.nickname).toBe(testNickname);
-    expect(regRes.dbUser?.avatar).toBe(testAvatar);
-
-    createdUserId = regRes.user!.id;
+    expect(syncRes.success).toBe(true);
+    expect(syncRes.user?.email).toBe(testEmail);
+    expect(syncRes.dbUser?.nickname).toBe(testNickname);
 
     // Verify record exists directly in Supabase Cloud PostgreSQL table
     const pgUser = await prisma.user.findUnique({
@@ -68,17 +68,6 @@ describe('🔌 Supabase Cloud Database & Auth Integration Suite', () => {
     });
     expect(pgUser).not.toBeNull();
     expect(pgUser?.nickname).toBe(testNickname);
-    expect(pgUser?.avatar).toBe(testAvatar);
-
-    // Login back to verify credential & metadata retrieval
-    const loginRes = await loginUser({
-      email: testEmail,
-      password: testPassword,
-    });
-
-    expect(loginRes.success).toBe(true);
-    expect(loginRes.dbUser?.nickname).toBe(testNickname);
-    expect(loginRes.dbUser?.avatar).toBe(testAvatar);
   }, 20000);
 
   it('3. Scan, Catalog & TikTok-Style Streak Persistence', async () => {

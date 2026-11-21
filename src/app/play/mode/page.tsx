@@ -86,18 +86,18 @@ export default function ModeSelectionPage() {
                 <div className="flex items-center gap-2">
                   <h2 className="text-lg font-bold font-fredoka text-[var(--theme-text-dark)]">Hunter Account</h2>
                   <span className="text-[10px] font-pixel px-1.5 py-0.5 rounded-md bg-[var(--theme-primary)] border border-[var(--theme-border)] text-white font-bold">
-                    CLOUD
+                    GOOGLE CLOUD
                   </span>
                 </div>
                 <p className="text-xs text-[var(--theme-text-dark)]/80 font-nunito font-semibold mt-1">
-                  Sign in or create an account. Sync your companion pet, level, and streaks across any device.
+                  Sign in with Google to sync your companion pet, level, and streaks across any device.
                 </p>
               </div>
             </div>
 
             <div className="pt-4 flex items-center gap-1 text-xs font-bold text-[var(--theme-primary)] font-fredoka">
               <UserCheck className="w-3.5 h-3.5" />
-              <span>Sign In / Register →</span>
+              <span>Sign In with Google →</span>
             </div>
           </Link>
         </div>

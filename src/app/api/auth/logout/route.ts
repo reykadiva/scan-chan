@@ -7,8 +7,8 @@ export async function POST() {
   try {
     await logoutUser();
     const response = NextResponse.json({ success: true, message: 'Logged out successfully' });
-    // Also remove guest cookie if any
     response.cookies.delete('scan_mode');
+    response.cookies.delete('scan_session');
     return response;
   } catch (error: any) {
     console.error('[API /api/auth/logout]', error);

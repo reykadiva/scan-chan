@@ -48,7 +48,7 @@
 
 Scan-Chan transforms routine trips to grocery shelves, pantry cabinets, and retail stores into an 8-bit Tamagotchi-inspired expedition. By scanning physical barcodes (UPC-A, EAN-13, EAN-8, Code-128) using your device camera, you discover item nutritional data, convert everyday consumables into in-game cat treats, and earn experience points to evolve your pet from a tiny kitten to a legendary feline guardian.
 
-The application operates as a modern progressive web application designed mobile-first for smartphones and tablets, while scaling gracefully to desktop displays. It implements dual storage modes: an instant **Guest Mode** powered by browser persistence for immediate friction-free play, and an authenticated **Arashu Hunter Mode** backed by Supabase Auth and PostgreSQL cloud database synchronization.
+The application operates as a modern progressive web application designed mobile-first for smartphones and tablets, while scaling gracefully to desktop displays. It implements dual storage modes: an instant **Guest Mode** powered by browser persistence for immediate friction-free play, and an authenticated **Arashu Hunter Mode** using Google OAuth single sign-on backed by Supabase Auth and PostgreSQL cloud database synchronization.
 
 - **Live Application:** [https://scanchan.vercel.app](https://scanchan.vercel.app)
 - **Source Code:** [https://github.com/reykadiva/scan-chan](https://github.com/reykadiva/scan-chan)
@@ -241,7 +241,7 @@ scan-chan/
 ├── src/
 │   ├── app/
 │   │   ├── api/                    # Serverless Next.js API Routes
-│   │   │   ├── auth/               # Signup, login, logout, session check
+│   │   │   ├── auth/               # OAuth session, guest mode, logout
 │   │   │   ├── products/           # Catalog retrieval & product creation
 │   │   │   ├── profile/            # Hunter profile & settings mutations
 │   │   │   └── scan/               # Barcode processing & XP reward pipeline
@@ -279,7 +279,7 @@ scan-chan/
 │   │   ├── streak-multiplier.ts    # Consecutive day math multiplier
 │   │   └── theme-config.ts         # Six arcade theme definitions
 │   ├── services/                   # Business logic layer
-│   │   ├── auth-service.ts         # Supabase Auth & credential management
+│   │   ├── auth-service.ts         # Google OAuth sync & session management
 │   │   ├── player-service.ts       # Profile, stats, inventory, and feeding logic
 │   │   ├── product-service.ts      # Barcode lookup & catalog CRUD
 │   │   └── scanner-service.ts      # Scan processing pipeline
@@ -310,7 +310,7 @@ scan-chan/
 | **Barcode Detection** | `@zxing/library` | `^3.0.0` | Real-time browser-based optical barcode decoding |
 | **Database ORM** | Prisma Client & CLI | `7.8.0` | Type-safe PostgreSQL client with connection pooler |
 | **Cloud Database** | Supabase | PostgreSQL 15 | Relational cloud database hosting 12 tables |
-| **Authentication** | `@supabase/ssr` | `^0.12.0` | Cookie-based session storage and auth guards |
+| **Authentication** | `@supabase/ssr` | `^0.12.0` | Google OAuth SSO with cookie-based session storage |
 | **State Management** | Zustand | `5.0.14` | Lightweight isolated client state container |
 | **Testing Engine** | Vitest & Playwright | `4.1 / 1.61` | Fast unit, integration, and cross-browser testing |
 

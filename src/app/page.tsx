@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { PixelCat, CatVariantId, CatActionId, CAT_PALETTES } from '@/components/game/pixel-cat';
+import { PixelCat, CatVariantId, CatActionId } from '@/components/game/pixel-cat';
 import { usePlayerStore } from '@/stores/player-store';
 import { useAudio } from '@/components/providers/audio-provider';
 import { GameMode } from '@/lib/game-config';
+import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { Lock, Mail, User, Sparkles, X, Loader2, Play, ShieldAlert } from 'lucide-react';
-
-const CAT_AVATARS: CatVariantId[] = ['calico', 'gray', 'cyan', 'pink', 'black', 'tabby'];
+import { X, Loader2, Play, ShieldAlert } from 'lucide-react';
 
 interface WanderingCat {
   id: string;
@@ -73,13 +73,6 @@ export default function TitleScreenPage() {
 
   const [checkingAuth, setCheckingAuth] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [modalTab, setModalTab] = useState<'login' | 'register'>('login');
-
-  // Form states
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState<CatVariantId>('calico');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
@@ -173,73 +166,24 @@ export default function TitleScreenPage() {
     }, 3500);
   };
 
-  // Submit Auth Form
-  const handleSubmitAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Google OAuth Sign In
+  const handleGoogleSignIn = async () => {
     if (authLoading) return;
-    setAuthLoading(true);
-    setAuthError('');
-
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password.trim();
-
-    if (!cleanEmail || !cleanPassword) {
-      setAuthError('Please fill in both email and password.');
-      setAuthLoading(false);
-      return;
-    }
-
     try {
-      if (modalTab === 'register') {
-        if (!nickname.trim()) {
-          setAuthError('Please choose a hunter nickname.');
-          setAuthLoading(false);
-          return;
-        }
-
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: cleanEmail,
-            password: cleanPassword,
-            nickname: nickname.trim(),
-            avatar: selectedAvatar,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Registration failed');
-        }
-
-        toast.success('Account created! Welcome to the hunt! 🐱');
-        setMode(GameMode.ARASHU);
-        await loadProfile();
-        router.push('/play');
-      } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: cleanEmail,
-            password: cleanPassword,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Invalid credentials');
-        }
-
-        toast.success(`Welcome back, ${data.user?.nickname || 'Hunter'}! 🌟`);
-        setMode(GameMode.ARASHU);
-        await loadProfile();
-        router.push('/play');
+      setAuthLoading(true);
+      setAuthError('');
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        throw error;
       }
     } catch (err: any) {
-      setAuthError(err.message || 'Authentication failed. Please try again.');
-    } finally {
+      setAuthError(err.message || 'Google sign-in failed. Please try again.');
       setAuthLoading(false);
     }
   };
@@ -452,40 +396,8 @@ export default function TitleScreenPage() {
                   MYSTERY ADVENTURE
                 </div>
                 <p className="text-[10px] font-pixelify text-white/80 max-w-xs mx-auto pt-1 leading-snug drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                  Scan everyday barcodes to feed and evolve your pixel cat. Free on mobile & desktop.
+                  Choose your hunter access to start feeding & evolving your companion cat:
                 </p>
-              </div>
-
-              {/* Tab Switcher (Log in | Sign up) */}
-              <div className="grid grid-cols-2 gap-2 mt-4 p-1 rounded-xl bg-black/15 border-2 border-white/40">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalTab('login');
-                    setAuthError('');
-                  }}
-                  className={`py-2 text-[10px] font-press-start rounded-lg transition-all cursor-pointer ${
-                    modalTab === 'login'
-                      ? 'bg-white text-[var(--theme-primary)] font-bold shadow-[2px_2px_0_0_var(--theme-shadow)] border border-[var(--theme-border)]'
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  Log in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalTab('register');
-                    setAuthError('');
-                  }}
-                  className={`py-2 text-[10px] font-press-start rounded-lg transition-all cursor-pointer ${
-                    modalTab === 'register'
-                      ? 'bg-white text-[var(--theme-primary)] font-bold shadow-[2px_2px_0_0_var(--theme-shadow)] border border-[var(--theme-border)]'
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  Sign up
-                </button>
               </div>
 
               {/* Error banner */}
@@ -496,110 +408,56 @@ export default function TitleScreenPage() {
                 </div>
               )}
 
-              {/* Auth Form */}
-              <form onSubmit={handleSubmitAuth} className="space-y-3.5 mt-4">
-                {modalTab === 'register' && (
-                  <>
-                    <div>
-                      <label className="block text-[9px] font-press-start text-white mb-1 uppercase tracking-wider drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                        Hunter Nickname
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={nickname}
-                        onChange={(e) => setNickname(e.target.value)}
-                        placeholder="e.g. MasterScanner"
-                        maxLength={24}
-                        className="w-full px-3 py-2 rounded-lg bg-white border-2 border-[var(--theme-border)] text-[var(--theme-text-dark)] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[9px] font-press-start text-white mb-1 uppercase tracking-wider drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                        Choose Companion
-                      </label>
-                      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-                        {CAT_AVATARS.map((av) => (
-                          <button
-                            key={av}
-                            type="button"
-                            onClick={() => setSelectedAvatar(av)}
-                            title={CAT_PALETTES[av]?.label || av}
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center border-2 transition-all cursor-pointer overflow-hidden ${
-                              selectedAvatar === av
-                                ? 'border-[var(--theme-border)] bg-white scale-105 shadow-[2px_2px_0_0_var(--theme-shadow)]'
-                                : 'border-white/40 bg-black/15 hover:border-white'
-                            }`}
-                          >
-                            <PixelCat variant={av} size={28} />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                <div>
-                  <label className="block text-[9px] font-press-start text-white mb-1 uppercase tracking-wider drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="hunter@scanchan.com"
-                    className="w-full px-3 py-2 rounded-lg bg-white border-2 border-[var(--theme-border)] text-[var(--theme-text-dark)] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-press-start text-white mb-1 uppercase tracking-wider drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-3 py-2 rounded-lg bg-white border-2 border-[var(--theme-border)] text-[var(--theme-text-dark)] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-white"
-                  />
-                </div>
-
-                {/* Primary Button */}
+              {/* Clean Auth Options: Google OAuth & Guest Mode */}
+              <div className="space-y-3 mt-5">
+                {/* 1. Continue with Google */}
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleGoogleSignIn}
                   disabled={authLoading}
-                  className="w-full mt-2 py-3 px-4 rounded-lg bg-white hover:bg-[var(--theme-surface-inner)] text-[var(--theme-primary)] font-press-start text-[11px] border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] active:translate-y-1 active:shadow-[1px_1px_0_0_var(--theme-shadow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-[var(--theme-surface-inner)] text-[var(--theme-text-dark)] font-press-start text-[11px] border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] active:translate-y-1 active:shadow-[1px_1px_0_0_var(--theme-shadow)] transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50"
                 >
                   {authLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-[var(--theme-primary)]" />
-                  ) : modalTab === 'register' ? (
-                    'Create Account'
+                    <Loader2 className="w-5 h-5 animate-spin text-[var(--theme-primary)]" />
                   ) : (
-                    'Log In'
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
                   )}
+                  <span>Continue with Google</span>
                 </button>
 
-                {/* Quick Play as Guest (Instant Access) */}
+                {/* 2. Quick Play as Guest */}
                 <button
                   type="button"
                   onClick={handlePlayGuest}
                   disabled={authLoading}
-                  className="w-full py-2.5 px-4 rounded-lg bg-[var(--theme-surface-inner)] hover:bg-white text-[var(--theme-text-dark)] font-press-start text-[10px] border-2 border-[var(--theme-border)] shadow-[3px_3px_0_0_var(--theme-shadow)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="w-full py-3 px-4 rounded-xl bg-[var(--theme-surface-inner)] hover:bg-white text-[var(--theme-text-dark)] font-press-start text-[10px] border-2 border-[var(--theme-border)] shadow-[3px_3px_0_0_var(--theme-shadow)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Play as Guest</span>
                 </button>
-              </form>
+              </div>
 
               {/* Bottom Cloud Info Subtext */}
               <div className="mt-5 pt-3 border-t border-white/30 text-center space-y-1">
                 <p className="text-[8px] font-press-start text-white/90">
-                  Your game is saved in the cloud when logged in.
+                  Google accounts sync your pet, level, and streaks to the cloud.
                 </p>
                 <p className="text-[9px] font-pixelify text-white/70">
                   Guest progress is stored locally in this browser.
@@ -609,6 +467,18 @@ export default function TitleScreenPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* 6. Retro Landing Footer with Privacy Policy */}
+      <footer className="absolute bottom-3 inset-x-0 z-30 flex items-center justify-center gap-2.5 text-[10px] font-pixelify text-white/80 drop-shadow-md pointer-events-auto">
+        <span>Scan Chan © 2026</span>
+        <span>•</span>
+        <Link
+          href="/privacy"
+          className="underline hover:text-white transition-colors cursor-pointer"
+        >
+          Privacy Policy
+        </Link>
+      </footer>
     </div>
   );
 }

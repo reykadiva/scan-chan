@@ -305,6 +305,9 @@ export default function GameHubPage() {
       isSigningOutRef.current = true;
       await fetch('/api/auth/logout', { method: 'POST' });
       resetPlayer();
+      try {
+        localStorage.removeItem('scan-chan-player-state');
+      } catch {}
       toast.success('Signed out. See you soon!');
       window.location.href = '/';
     } catch {

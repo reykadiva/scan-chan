@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse, type NextRequest } from 'next/server';
+import { syncOAuthUser } from '@/services/auth-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +11,10 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient();
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data?.user) {
+      await syncOAuthUser(data.user);
+    }
   }
 
   return NextResponse.redirect(new URL(next, request.url));

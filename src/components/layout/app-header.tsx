@@ -28,6 +28,9 @@ export function AppHeader() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       resetPlayer();
+      try {
+        localStorage.removeItem('scan-chan-player-state');
+      } catch {}
       toast.success('Signed out successfully');
       router.push('/');
       router.refresh();
