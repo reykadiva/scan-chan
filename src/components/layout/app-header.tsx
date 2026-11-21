@@ -18,9 +18,9 @@ export function AppHeader() {
     setMounted(true);
   }, []);
 
-  // Hide header completely on title screen, live scanner, and game hub for full-screen retro game immersion
-  // ponytail: Game Hub has its own integrated dark retro RPG floating HUD
-  if (pathname === '/' || pathname === '/scan' || pathname.startsWith('/play')) {
+  // Hide header completely on title screen, live scanner, game hub, and privacy page
+  // ponytail: Keep full-screen retro game immersion and clean legal reading
+  if (pathname === '/' || pathname === '/scan' || pathname.startsWith('/play') || pathname === '/privacy' || pathname.startsWith('/privacy')) {
     return null;
   }
 

@@ -13,9 +13,9 @@ const TABS = [
 export function BottomNav() {
   const pathname = usePathname();
 
-  // Hide on title screen, live scanner, and game hub for full-screen retro arcade view
-  // ponytail: Game Hub provides direct 1-screen navigation without bottom navbar
-  if (pathname === '/' || pathname === '/scan' || pathname.startsWith('/play')) {
+  // Hide on title screen, live scanner, game hub, and privacy page for full-screen retro arcade view
+  // ponytail: Keep full-screen retro game immersion and clean legal reading
+  if (pathname === '/' || pathname === '/scan' || pathname.startsWith('/play') || pathname === '/privacy' || pathname.startsWith('/privacy')) {
     return null;
   }
 

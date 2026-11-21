@@ -10,9 +10,9 @@ export function MainContentLayout({ children }: { children: React.ReactNode }) {
     return <main className="flex-1 w-full h-full flex flex-col overflow-hidden">{children}</main>;
   }
 
-  // Naturally scrolling single-column container for Game Hub
-  // ponytail: Allow natural vertical scroll on Game Hub single-column layout
-  if (pathname.startsWith('/play')) {
+  // Naturally scrolling single-column container for Game Hub & Privacy Policy
+  // ponytail: Allow natural vertical scroll on Game Hub & Privacy Policy
+  if (pathname.startsWith('/play') || pathname.startsWith('/privacy')) {
     return <main className="flex-1 w-full min-h-screen flex flex-col overflow-y-auto overflow-x-hidden">{children}</main>;
   }
 
