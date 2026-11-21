@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId, type CatActionId } from '@/components/game/pixel-cat';
-import { usePlayerStore, xpForLevel, levelFromXp } from '@/stores/player-store';
+import { usePlayerStore, xpForLevel, levelFromXp, getPetStageFromLevel } from '@/stores/player-store';
 import { GameMode } from '@/lib/game-config';
 import { NicknameSetup } from '@/components/game/nickname-setup';
 import { RegisterProductModal } from '@/components/game/register-product-modal';
@@ -92,6 +92,7 @@ export default function GameHubPage() {
     mode,
     setMode,
     nickname,
+    userEmail,
     avatar,
     xp,
     streak,
@@ -209,6 +210,9 @@ export default function GameHubPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated && data.user) {
+          if (data.user.email) {
+            usePlayerStore.setState({ userEmail: data.user.email });
+          }
           if (mode !== GameMode.ARASHU) {
             setMode(GameMode.ARASHU);
           }
@@ -549,7 +553,8 @@ export default function GameHubPage() {
     );
   }
 
-  const catVariant = (avatar as CatVariantId) || STAGE_AVATARS[petStage] || 'calico';
+  const effectiveStage = getPetStageFromLevel(displayLevel);
+  const catVariant = (avatar as CatVariantId) || STAGE_AVATARS[effectiveStage] || 'calico';
 
   return (
     <div className="w-full min-h-screen px-3 sm:px-4 py-4 sm:py-6 select-none">
@@ -577,6 +582,7 @@ export default function GameHubPage() {
             onClose={() => setShowSettingsModal(false)}
             onSignOut={handleSignOut}
             isCloudMode={mode === GameMode.ARASHU}
+            userEmail={userEmail}
           />
         )}
       </AnimatePresence>
@@ -633,16 +639,6 @@ export default function GameHubPage() {
                   }`}
                 />
               )}
-            </div>
-
-            {/* Account Status with Chosen Cat Sprite Avatar */}
-            <div className="flex items-center gap-1 sm:gap-1.5 rpg-inner-box px-1.5 sm:px-2.5 py-1 text-xs font-semibold text-[var(--theme-text-dark)] shrink-0 min-w-0">
-              <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                <PixelCat variant={(avatar as CatVariantId) || 'calico'} hunger={petHunger} size={20} />
-              </div>
-              <span className="max-w-[70px] xs:max-w-[95px] sm:max-w-[160px] truncate font-fredoka text-xs">
-                {nickname || (mode === GameMode.ARASHU ? 'Hunter' : 'Guest')}
-              </span>
             </div>
 
             {/* Settings Button (⚙️) */}
@@ -714,7 +710,7 @@ export default function GameHubPage() {
               </div>
               <div className="flex items-center gap-2">
                 <p className="font-pixel text-[9px] text-white font-semibold leading-none drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                  {STAGE_LABELS[petStage] || 'Kitten'} • Stage {petStage}
+                  {STAGE_LABELS[effectiveStage] || 'Kitten'}
                 </p>
                 <span className="font-pixel text-[8px] bg-white/20 text-white px-1.5 py-0.5 rounded border border-white/30 drop-shadow-[1px_1px_0_var(--theme-dark)]">
                   Pets: {petsToday}/3 💕
@@ -754,22 +750,26 @@ export default function GameHubPage() {
                 )}
               </AnimatePresence>
 
-              <div className="transition-transform duration-200 group-hover:scale-108 active:scale-95 flex items-center justify-center">
+              <div className="transition-transform duration-200 group-hover:scale-108 active:scale-95 flex items-center justify-center -translate-y-2">
                 <PixelCat variant={catVariant} action={catAction} hunger={petHunger} size={120} />
               </div>
 
-              <div className="absolute bottom-2.5 inset-x-0 text-center pointer-events-none z-10 px-2">
-                <span className={`font-pixel text-[8px] transition-colors ${
+              <div className="absolute bottom-2 inset-x-0 text-center pointer-events-none z-10 px-2 flex justify-center">
+                <span className={`font-pixel text-[8px] px-2 py-0.5 rounded-md border shadow-xs transition-colors ${
                   petHunger === 0
-                    ? 'text-rose-600 font-bold animate-pulse'
+                    ? 'bg-rose-50 border-rose-300 text-rose-600 font-bold animate-pulse'
                     : petHunger <= 25
-                    ? 'text-amber-600 font-bold animate-pulse'
-                    : 'text-[var(--theme-text-dark)] group-hover:text-[var(--theme-primary)]'
+                    ? 'bg-amber-50 border-amber-300 text-amber-600 font-bold animate-pulse'
+                    : petsToday >= 3
+                    ? 'bg-white/80 border-[var(--theme-border)]/40 text-[var(--theme-text-dark)]/70'
+                    : 'bg-white/95 border-[var(--theme-border)] text-[var(--theme-text-dark)] group-hover:text-[var(--theme-primary)]'
                 }`}>
                   {petHunger === 0
                     ? '[Feed to Revive! 🍖]'
                     : petHunger <= 25
                     ? '[Feed Me! 😿]'
+                    : petsToday >= 3
+                    ? '[All Pets Done Today ✨]'
                     : `[Tap to Pet • ${petsToday}/3 💕]`}
                 </span>
               </div>

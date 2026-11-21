@@ -63,7 +63,7 @@ export function recordScanStreak(
   todayString: string
 ): { newStreak: number; incremented: boolean } {
   if (hasScannedToday(lastActiveDate, todayString)) {
-    return { newStreak: currentStreak, incremented: false };
+    return { newStreak: Math.max(1, currentStreak), incremented: false };
   }
 
   if (lastActiveDate) {
@@ -73,8 +73,8 @@ export function recordScanStreak(
     const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
     const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1 && currentStreak > 0) {
-      return { newStreak: currentStreak + 1, incremented: true };
+    if (diffDays === 1) {
+      return { newStreak: Math.max(1, currentStreak) + 1, incremented: true };
     }
   }
 

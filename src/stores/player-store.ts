@@ -10,6 +10,7 @@ export interface PlayerState {
   mode: GameMode | null;
   isProfileLoaded: boolean;
   nickname: string | null;
+  userEmail: string | null;
   avatar: string | null;
   creatorId: string;
   xp: number;
@@ -96,6 +97,17 @@ export function levelFromXp(totalXp: number): number {
   return level;
 }
 
+export function getPetStageFromLevel(
+  level: number
+): 'KITTEN' | 'YOUNG_CAT' | 'ADULT_CAT' | 'WISE_CAT' | 'LEGENDARY_CAT' {
+  const lvl = Math.max(1, Math.floor(level || 1));
+  if (lvl >= 30) return 'LEGENDARY_CAT';
+  if (lvl >= 20) return 'WISE_CAT';
+  if (lvl >= 10) return 'ADULT_CAT';
+  if (lvl >= 5) return 'YOUNG_CAT';
+  return 'KITTEN';
+}
+
 function generateCreatorId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -107,6 +119,7 @@ export const initialStoreState: PlayerState = {
   mode: null,
   isProfileLoaded: false,
   nickname: null,
+  userEmail: null,
   avatar: null,
   creatorId: '',
   xp: 0,
@@ -182,9 +195,17 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       addXP: (amount: number) => {
-        const newXp = get().xp + amount;
-        const newLevel = levelFromXp(newXp);
-        set({ xp: newXp, level: newLevel, pendingXpGain: amount });
+        const currentTotalXp = Math.max(0, Number(get().xp) || 0);
+        const newTotalXp = currentTotalXp + amount;
+        const newLevel = levelFromXp(newTotalXp);
+        const newStage = getPetStageFromLevel(newLevel);
+        set({
+          xp: newTotalXp,
+          level: newLevel,
+          petStage: newStage,
+          pendingXpGain: amount,
+          lastLocalMutationAt: Date.now(),
+        });
       },
 
       recordScan: (barcode: string, isNewProduct: boolean, category: string) => {
@@ -202,7 +223,7 @@ export const usePlayerStore = create<PlayerStore>()(
             return { scanHistory };
           }
 
-          const todayStr = getTodayString();
+          const todayStr = getLocalDateKey();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
           const baseXpGain = isNewProduct
@@ -210,8 +231,10 @@ export const usePlayerStore = create<PlayerStore>()(
             : GAME_CONFIG.xp.scanExisting;
 
           const streakMultipliedXp = applyStreakMultiplier(baseXpGain, newStreak);
-          const newXp = state.xp + streakMultipliedXp;
-          const newLevel = levelFromXp(newXp);
+          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
+          const newTotalXp = currentTotalXp + streakMultipliedXp;
+          const newLevel = levelFromXp(newTotalXp);
+          const newStage = getPetStageFromLevel(newLevel);
 
           const foodCategories = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
           const isFood = !category || foodCategories.some((c) => (category || '').toLowerCase().includes(c));
@@ -224,8 +247,9 @@ export const usePlayerStore = create<PlayerStore>()(
             lastScanTime: { ...state.lastScanTime, [barcode]: now },
             streak: newStreak,
             lastActiveDate: todayStr,
-            xp: newXp,
+            xp: newTotalXp,
             level: newLevel,
+            petStage: newStage,
             pendingXpGain: streakMultipliedXp,
             foodInventory: updatedFoodInventory,
             lastLocalMutationAt: now,
@@ -246,14 +270,16 @@ export const usePlayerStore = create<PlayerStore>()(
             return {};
           }
 
-          const todayStr = getTodayString();
+          const todayStr = getLocalDateKey();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
           // +10 XP scan + 50 XP discovery bonus = 60 XP total
           const totalXpGain = GAME_CONFIG.xp.registerProduct + GAME_CONFIG.xp.scanExisting;
           const streakMultipliedXp = applyStreakMultiplier(totalXpGain, newStreak);
-          const newXp = state.xp + streakMultipliedXp;
-          const newLevel = levelFromXp(newXp);
+          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
+          const newTotalXp = currentTotalXp + streakMultipliedXp;
+          const newLevel = levelFromXp(newTotalXp);
+          const newStage = getPetStageFromLevel(newLevel);
 
           const foodCategories = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
           const isFood = !category || foodCategories.some((c) => (category || '').toLowerCase().includes(c));
@@ -272,8 +298,9 @@ export const usePlayerStore = create<PlayerStore>()(
             lastRegisterTime: now,
             streak: newStreak,
             lastActiveDate: todayStr,
-            xp: newXp,
+            xp: newTotalXp,
             level: newLevel,
+            petStage: newStage,
             pendingXpGain: streakMultipliedXp,
             foodInventory: updatedFoodInventory,
             lastLocalMutationAt: now,
@@ -300,16 +327,22 @@ export const usePlayerStore = create<PlayerStore>()(
 
         let newStreak = streak;
         if (lastActiveDate) {
-          const lastDateParts = lastActiveDate.split('-').map(Number);
-          const todayParts = todayStr.split('-').map(Number);
-          const last = new Date(lastDateParts[0], lastDateParts[1] - 1, lastDateParts[2]);
-          const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
-          const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+          if (lastActiveDate === todayStr) {
+            newStreak = Math.max(1, streak);
+          } else {
+            const lastDateParts = lastActiveDate.split('-').map(Number);
+            const todayParts = todayStr.split('-').map(Number);
+            const last = new Date(lastDateParts[0], lastDateParts[1] - 1, lastDateParts[2]);
+            const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+            const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
 
-          // Real-time TikTok style: if user missed 1 full calendar day without scanning, streak drops to 0!
-          if (diffDays > 1) {
-            newStreak = 0;
+            // Real-time daily streak: if user missed 1 full calendar day without scanning, streak drops to 0
+            if (diffDays > 1) {
+              newStreak = 0;
+            }
           }
+        } else {
+          newStreak = 0;
         }
 
         const isNewDay = !lastActiveDate || lastActiveDate !== todayStr;
@@ -374,7 +407,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
           const currentHunger = Math.max(0, Math.min(100, Number(state.petHunger) || 0));
           const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
-          const currentXp = Math.max(0, Number(state.xp) || 0);
+          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
 
           const wasDead = currentHunger === 0;
           const isSpecialFood = cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit')
@@ -387,14 +420,9 @@ export const usePlayerStore = create<PlayerStore>()(
 
           const newHunger = Math.min(100, currentHunger + hungerGain);
           const newAffection = Math.min(100, currentAffection + affectionGain);
-          const newXp = currentXp + xpGain;
-          const newLevel = levelFromXp(newXp);
-
-          let newStage = state.petStage;
-          if (newAffection >= 90) newStage = 'LEGENDARY_CAT';
-          else if (newAffection >= 75) newStage = 'WISE_CAT';
-          else if (newAffection >= 50) newStage = 'ADULT_CAT';
-          else if (newAffection >= 25) newStage = 'YOUNG_CAT';
+          const newTotalXp = currentTotalXp + xpGain;
+          const newLevel = levelFromXp(newTotalXp);
+          const newStage = getPetStageFromLevel(newLevel);
 
           return {
             foodInventory: updatedFoodInventory,
@@ -403,7 +431,7 @@ export const usePlayerStore = create<PlayerStore>()(
             petStage: newStage,
             lastFedBarcode: cleanBarcode,
             lastAffectionDecayAt: now,
-            xp: newXp,
+            xp: newTotalXp,
             level: newLevel,
             lastLocalMutationAt: now,
           };
@@ -462,16 +490,11 @@ export const usePlayerStore = create<PlayerStore>()(
           ? now
           : lastDecay + intervalsPassed * intervalMs;
 
-        let newStage = state.petStage;
-        if (newAffection >= 90) newStage = 'LEGENDARY_CAT';
-        else if (newAffection >= 75) newStage = 'WISE_CAT';
-        else if (newAffection >= 50) newStage = 'ADULT_CAT';
-        else if (newAffection >= 25) newStage = 'YOUNG_CAT';
-        else newStage = 'KITTEN';
+        const currentStage = getPetStageFromLevel(state.level);
 
         set({
           petAffection: newAffection,
-          petStage: newStage,
+          petStage: currentStage,
           lastAffectionDecayAt: newLastDecayAt,
           lastLocalMutationAt: now,
         });
@@ -512,15 +535,11 @@ export const usePlayerStore = create<PlayerStore>()(
         const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
         const newAffection = Math.min(100, currentAffection + 5);
 
-        let newStage = state.petStage;
-        if (newAffection >= 90) newStage = 'LEGENDARY_CAT';
-        else if (newAffection >= 75) newStage = 'WISE_CAT';
-        else if (newAffection >= 50) newStage = 'ADULT_CAT';
-        else if (newAffection >= 25) newStage = 'YOUNG_CAT';
+        const currentStage = getPetStageFromLevel(state.level);
 
         set({
           petAffection: newAffection,
-          petStage: newStage,
+          petStage: currentStage,
           lastPetTime: now,
           dailyPetCount: newDailyPets,
           lastPetDate: todayStr,
@@ -617,10 +636,6 @@ export const usePlayerStore = create<PlayerStore>()(
               ? currentState.petAffection
               : (typeof d.petAffection === 'number' ? d.petAffection : 80);
 
-            const finalStage = protectLocalVitals
-              ? currentState.petStage
-              : (d.petStage || 'KITTEN');
-
             const finalFoodInventory = protectLocalVitals
               ? currentState.foodInventory
               : (d.foodInventory && typeof d.foodInventory === 'object' ? d.foodInventory : {});
@@ -648,6 +663,7 @@ export const usePlayerStore = create<PlayerStore>()(
             const serverXp = typeof d.xp === 'number' ? d.xp : 0;
             const finalXp = Math.max(currentState.xp, serverXp);
             const finalLevel = levelFromXp(finalXp);
+            const finalStage = getPetStageFromLevel(finalLevel);
 
             const mergedRegisteredBarcodes = Array.from(new Set([
               ...currentState.registeredBarcodes,
@@ -663,6 +679,7 @@ export const usePlayerStore = create<PlayerStore>()(
               isProfileLoaded: true,
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',
+              userEmail: d.email || currentState.userEmail || null,
               avatar: d.avatar || 'calico',
               xp: finalXp,
               level: finalLevel,
@@ -744,9 +761,10 @@ export const usePlayerStore = create<PlayerStore>()(
     }),
     {
       name: 'scan-chan-player-state',
-      version: 2,
-      migrate: (persistedState: any, _version: number) => {
-        if (!persistedState || typeof persistedState !== 'object') {
+      version: 3,
+      migrate: (persistedState: any, version: number) => {
+        // Migration to version 3: wipe corrupt/stale legacy storage for clean testing
+        if (!persistedState || typeof persistedState !== 'object' || version < 3) {
           return initialStoreState;
         }
         return {

@@ -1,8 +1,24 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Volume2, VolumeX, Palette, Music, Check, Sparkles, Disc, LogOut, AlertTriangle } from 'lucide-react';
+import {
+  X,
+  Volume2,
+  VolumeX,
+  Palette,
+  Music,
+  Check,
+  Sparkles,
+  Disc,
+  LogOut,
+  AlertTriangle,
+  User,
+  Mail,
+  Cloud,
+  LogIn,
+} from 'lucide-react';
 import { useAppTheme } from '@/components/providers/theme-provider';
 import { useAudio, LOOP_MODES, type BgmLoopMode } from '@/components/providers/audio-provider';
 import { THEME_LIST, type ThemeId } from '@/lib/theme-config';
@@ -13,9 +29,16 @@ interface SettingsModalProps {
   onClose: () => void;
   onSignOut?: () => void;
   isCloudMode?: boolean;
+  userEmail?: string | null;
 }
 
-export function SettingsModal({ isOpen, onClose, onSignOut, isCloudMode = false }: SettingsModalProps) {
+export function SettingsModal({
+  isOpen,
+  onClose,
+  onSignOut,
+  isCloudMode = false,
+  userEmail,
+}: SettingsModalProps) {
   const [showConfirmExit, setShowConfirmExit] = useState(false);
   const { currentTheme, setTheme } = useAppTheme();
   const {
@@ -302,6 +325,47 @@ export function SettingsModal({ isOpen, onClose, onSignOut, isCloudMode = false 
               <Sparkles className="w-3.5 h-3.5 text-[var(--theme-primary)]" />
               <span>SAVE & CLOSE</span>
             </button>
+
+            {/* ─── SECTION: ACCOUNT INFO ─────────────────────────────────── */}
+            <div className="p-3.5 rounded-xl bg-white border-2 border-[var(--theme-border)] text-[var(--theme-text-dark)] shadow-[3px_3px_0_0_var(--theme-shadow)] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-press-start text-[10px] uppercase tracking-wider flex items-center gap-1.5 text-[var(--theme-text-dark)]">
+                  <User className="w-3.5 h-3.5 text-[var(--theme-primary)]" />
+                  Account Info
+                </span>
+                {isCloudMode ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-300 font-pixel text-[9px] uppercase font-bold">
+                    <Cloud className="w-2.5 h-2.5" /> Hunter Account
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-300 font-pixel text-[9px] uppercase font-bold">
+                    Guest Mode
+                  </span>
+                )}
+              </div>
+
+              {isCloudMode ? (
+                <div className="flex items-center gap-2 pt-1 min-w-0">
+                  <Mail className="w-3.5 h-3.5 text-[var(--theme-primary)] shrink-0" />
+                  <span className="font-nunito font-bold text-xs text-slate-700 truncate" title={userEmail || ''}>
+                    {userEmail || 'Google Account Connected'}
+                  </span>
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  <p className="font-nunito text-xs text-slate-500 font-semibold leading-relaxed">
+                    Guest Mode (Local Storage Only). Data is saved on this browser.
+                  </p>
+                  <Link
+                    href="/?auth=true"
+                    className="w-full py-2 px-3 rounded-xl bg-[var(--theme-primary)] hover:brightness-105 active:scale-[0.99] text-white font-fredoka font-bold text-xs border border-[var(--theme-border)] shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In with Google</span>
+                  </Link>
+                </div>
+              )}
+            </div>
 
             {/* Destructive Exit Action */}
             {onSignOut && (

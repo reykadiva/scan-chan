@@ -22,6 +22,17 @@ export function levelFromXp(totalXp: number): number {
   return level;
 }
 
+export function getPetStageFromLevel(
+  level: number
+): 'KITTEN' | 'YOUNG_CAT' | 'ADULT_CAT' | 'WISE_CAT' | 'LEGENDARY_CAT' {
+  const lvl = Math.max(1, Math.floor(level || 1));
+  if (lvl >= 30) return 'LEGENDARY_CAT';
+  if (lvl >= 20) return 'WISE_CAT';
+  if (lvl >= 10) return 'ADULT_CAT';
+  if (lvl >= 5) return 'YOUNG_CAT';
+  return 'KITTEN';
+}
+
 function getLocalProfile(userId: string) {
   let localUser = localDb.getUser(userId);
   if (!localUser) {
@@ -91,17 +102,19 @@ function getLocalProfile(userId: string) {
 
   const streakMultiplier = calculateStreakMultiplier(streak);
 
+  const currentLevel = levelFromXp(xp);
+
   return {
     nickname: localUser.nickname || 'Hunter',
     avatar: localUser.avatar || 'calico',
     mode: localUser.mode,
     xp,
-    level: levelFromXp(xp),
+    level: currentLevel,
     streak,
     streakMultiplier,
     lastActiveDate,
     petName: localUser.pet?.name ?? 'Scan-chan Jr.',
-    petStage: localUser.pet?.stage ?? 'KITTEN',
+    petStage: getPetStageFromLevel(currentLevel),
     petHunger: localUser.pet?.stats?.hunger ?? 80,
     petAffection: localUser.pet?.stats?.affection ?? 80,
     foodInventory: localUser.foodInventory || {},
@@ -172,7 +185,7 @@ function updateLocalProfile(userId: string, input: ProfileUpdateInput) {
 
   localUser.pet = {
     name: input.petName || localUser.pet.name,
-    stage: (input.petStage as any) || localUser.pet.stage,
+    stage: getPetStageFromLevel(level),
     stats: {
       hunger: input.petHunger !== undefined ? input.petHunger : localUser.pet.stats.hunger,
       affection: input.petAffection !== undefined ? input.petAffection : localUser.pet.stats.affection,
@@ -305,10 +318,13 @@ export async function getPlayerProfile(userId: string) {
     }
 
     const xp = dbUser.progress?.xp ?? 0;
+    const currentLevel = levelFromXp(xp);
     let streak = dbUser.progress?.streak ?? 0;
-    const lastActiveDate = dbUser.progress?.lastActiveDate
-      ? dbUser.progress.lastActiveDate.toISOString().split('T')[0]
-      : (rawMeta.lastActiveDate || null);
+    const lastActiveDate = (typeof rawMeta.lastActiveDate === 'string' && rawMeta.lastActiveDate)
+      ? rawMeta.lastActiveDate
+      : (dbUser.progress?.lastActiveDate
+          ? `${dbUser.progress.lastActiveDate.getFullYear()}-${String(dbUser.progress.lastActiveDate.getMonth() + 1).padStart(2, '0')}-${String(dbUser.progress.lastActiveDate.getDate()).padStart(2, '0')}`
+          : null);
 
     if (lastActiveDate && streak > 0) {
       const now = new Date();
@@ -330,12 +346,12 @@ export async function getPlayerProfile(userId: string) {
       avatar: dbUser.avatar || 'calico',
       mode: dbUser.mode,
       xp,
-      level: levelFromXp(xp),
+      level: currentLevel,
       streak,
       streakMultiplier,
       lastActiveDate,
       petName: dbUser.pet?.name ?? 'Scan-chan Jr.',
-      petStage: dbUser.pet?.stage ?? 'KITTEN',
+      petStage: getPetStageFromLevel(currentLevel),
       petHunger: dbUser.pet?.stats?.hunger ?? 80,
       petAffection: dbUser.pet?.stats?.affection ?? 80,
       foodInventory,
@@ -442,7 +458,7 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
           upsert: {
             create: {
               name: input.petName || 'Scan-chan Jr.',
-              stage: input.petStage || 'KITTEN',
+              stage: getPetStageFromLevel(level ?? 1),
               stats: {
                 create: {
                   hunger: input.petHunger ?? 80,
@@ -452,7 +468,7 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
             },
             update: {
               ...(input.petName && { name: input.petName }),
-              ...(input.petStage && { stage: input.petStage }),
+              stage: getPetStageFromLevel(level ?? 1),
               stats: {
                 upsert: {
                   create: {

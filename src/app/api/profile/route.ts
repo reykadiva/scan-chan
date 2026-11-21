@@ -17,7 +17,10 @@ export async function GET() {
     const profile = await getPlayerProfile(user.id);
     return NextResponse.json({
       success: true,
-      data: profile,
+      data: {
+        ...profile,
+        email: user.email,
+      },
     });
   } catch (error: any) {
     console.error('[API GET /api/profile]', error);
