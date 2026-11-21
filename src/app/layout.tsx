@@ -52,7 +52,15 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-nunito bg-background text-foreground min-h-[100dvh] flex flex-col antialiased overflow-x-hidden">
+      <head>
+        <link
+          rel="preload"
+          as="image"
+          href="/images/garden-bg.webp"
+          type="image/webp"
+        />
+      </head>
+      <body className="font-nunito bg-[#1c261d] text-foreground min-h-[100dvh] flex flex-col antialiased overflow-x-hidden">
         <ThemeProvider>
           <AudioProvider>
             <AppHeader />

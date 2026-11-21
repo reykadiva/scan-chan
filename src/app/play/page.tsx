@@ -447,7 +447,7 @@ export default function GameHubPage() {
 
   if (!mounted || mode === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#1c261d]">
         <div className="rpg-panel p-6 text-center animate-pulse">
           <p className="font-fredoka text-amber-300 font-bold">Loading Game Lobby...</p>
         </div>

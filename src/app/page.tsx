@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { PixelCat, CatVariantId, CatActionId } from '@/components/game/pixel-cat';
 import { usePlayerStore } from '@/stores/player-store';
@@ -207,16 +208,24 @@ export default function TitleScreenPage() {
   };
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden select-none bg-black">
+    <div className="relative w-screen h-screen overflow-hidden select-none bg-[#1c261d]">
       {/* 1. Full-screen Pixel Art Garden Background */}
       <div
-        className="absolute inset-0 w-full h-full bg-cover bg-center pixelated transition-transform duration-1000 ease-out"
+        className="absolute inset-0 w-full h-full pixelated transition-transform duration-1000 ease-out"
         style={{
-          backgroundImage: "url('/images/garden-bg.jpg')",
-          backgroundPosition: 'center 75%',
           transform: showModal ? 'scale(1.04) filter(blur(2px))' : 'scale(1)',
         }}
-      />
+      >
+        <Image
+          src="/images/garden-bg.webp"
+          alt="Pixel Art Garden Background"
+          fill
+          priority
+          quality={90}
+          className="object-cover object-[center_75%] pixelated"
+          sizes="100vw"
+        />
+      </div>
 
       {/* Atmospheric dynamic lighting overlay (solid retro tone - zero gradients) */}
       <div className="absolute inset-0 pointer-events-none bg-black/25" />

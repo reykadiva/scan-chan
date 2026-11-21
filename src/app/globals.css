@@ -218,8 +218,12 @@
     @apply border-border;
     box-sizing: border-box;
   }
+  html {
+    background-color: #1c261d;
+  }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-[#DCA1A1]/30 selection:text-[#2b1414];
+    background-color: #1c261d;
+    @apply text-foreground antialiased selection:bg-[#DCA1A1]/30 selection:text-[#2b1414];
     font-family: 'Nunito', sans-serif;
   }
   h1, h2, h3, h4, h5, h6, .font-heading {
