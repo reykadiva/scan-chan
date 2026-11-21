@@ -286,7 +286,11 @@ export async function registerUser(input: RegisterInput) {
     updatedAt: new Date().toISOString(),
   };
 
-  localDb.saveUser(newUser);
+  try {
+    localDb.saveUser(newUser);
+  } catch (localErr) {
+    console.warn('[registerUser] Local fallback store save skipped:', localErr);
+  }
 
   // Set session cookie
   await setSessionCookie({

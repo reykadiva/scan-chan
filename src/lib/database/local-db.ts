@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 
 export interface LocalUser {
   id: string;
@@ -64,40 +65,79 @@ interface LocalDatabaseState {
   scanHistory: LocalScanHistory[];
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+// Detect serverless environment (Vercel, AWS Lambda, or read-only production container)
+const isServerless =
+  Boolean(process.env.VERCEL) ||
+  Boolean(process.env.AWS_LAMBDA_FUNCTION_NAME) ||
+  Boolean(process.env.LAMBDA_TASK_ROOT);
+
+const DATA_DIR = isServerless
+  ? path.join(os.tmpdir(), 'scan-chan-data')
+  : path.join(process.cwd(), 'data');
+
 const DB_FILE = path.join(DATA_DIR, 'local-store.json');
 
-function ensureDbFile(): LocalDatabaseState {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+// In-memory state cache to guarantee 100% uptime even if filesystem is read-only
+let memoryState: LocalDatabaseState = {
+  users: {},
+  products: {},
+  scanHistory: [],
+};
+let isMemoryInitialized = false;
 
-  if (!fs.existsSync(DB_FILE)) {
-    const initialState: LocalDatabaseState = {
-      users: {},
-      products: {},
-      scanHistory: [],
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialState, null, 2), 'utf-8');
-    return initialState;
+function ensureDbFile(): LocalDatabaseState {
+  if (isMemoryInitialized && memoryState) {
+    return memoryState;
   }
 
   try {
-    const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content);
-  } catch {
-    return { users: {}, products: {}, scanHistory: [] };
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+
+    if (fs.existsSync(DB_FILE)) {
+      const content = fs.readFileSync(DB_FILE, 'utf-8');
+      memoryState = JSON.parse(content);
+      isMemoryInitialized = true;
+      return memoryState;
+    }
+
+    // Try seed from local file if exists in process.cwd()/data/local-store.json (e.g. deployed with build)
+    const seedFile = path.join(process.cwd(), 'data', 'local-store.json');
+    if (seedFile !== DB_FILE && fs.existsSync(seedFile)) {
+      try {
+        const seedContent = fs.readFileSync(seedFile, 'utf-8');
+        memoryState = JSON.parse(seedContent);
+      } catch {
+        // Ignore read error
+      }
+    }
+
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(memoryState, null, 2), 'utf-8');
+    } catch {
+      // Ignore write failure in restricted environment
+    }
+
+    isMemoryInitialized = true;
+    return memoryState;
+  } catch (err) {
+    console.warn('[localDb] Filesystem access restricted, operating in-memory:', (err as Error).message);
+    isMemoryInitialized = true;
+    return memoryState;
   }
 }
 
 function saveDb(state: LocalDatabaseState) {
+  memoryState = state;
   try {
     if (!fs.existsSync(DATA_DIR)) {
       fs.mkdirSync(DATA_DIR, { recursive: true });
     }
     fs.writeFileSync(DB_FILE, JSON.stringify(state, null, 2), 'utf-8');
   } catch (err) {
-    console.error('Failed to save local database:', err);
+    // Soft warning, never crash the process or bubble up ENOENT / EROFS to Next.js routes
+    console.warn('[localDb] Note: persistence to disk skipped in serverless context:', (err as Error).message);
   }
 }
 
