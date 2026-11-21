@@ -8,6 +8,7 @@ import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, 
 
 export interface PlayerState {
   mode: GameMode | null;
+  isProfileLoaded: boolean;
   nickname: string | null;
   avatar: string | null;
   creatorId: string;
@@ -104,6 +105,7 @@ function generateCreatorId(): string {
 
 export const initialStoreState: PlayerState = {
   mode: null,
+  isProfileLoaded: false,
   nickname: null,
   avatar: null,
   creatorId: '',
@@ -119,8 +121,8 @@ export const initialStoreState: PlayerState = {
   pendingXpGain: 0,
   petName: 'Scan-chan Jr.',
   petStage: 'KITTEN',
-  petHunger: 50,
-  petAffection: 10,
+  petHunger: 80,
+  petAffection: 80,
   foodInventory: {},
   lastPetTime: 0,
   dailyPetCount: 0,
@@ -153,6 +155,7 @@ export const usePlayerStore = create<PlayerStore>()(
             nickname,
             avatar,
             mode: state.mode || GameMode.GUEST,
+            isProfileLoaded: true,
           });
           return;
         }
@@ -162,14 +165,20 @@ export const usePlayerStore = create<PlayerStore>()(
           nickname,
           avatar,
           mode: GameMode.GUEST,
+          isProfileLoaded: true,
           creatorId: generateCreatorId(),
           streak: 0,
           lastActiveDate: null,
+          petHunger: 80,
+          petAffection: 80,
         });
       },
 
       setMode: (mode: GameMode | null) => {
-        set({ mode });
+        set((state) => ({
+          mode,
+          ...(mode === GameMode.GUEST && { isProfileLoaded: true }),
+        }));
       },
 
       addXP: (amount: number) => {
@@ -223,22 +232,25 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
 
-        if (get().mode === GameMode.ARASHU) {
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
       },
 
       registerProduct: (barcode: string, category: string) => {
+        const cleanBarcode = String(barcode || '').trim();
+        if (!cleanBarcode) return;
         const now = Date.now();
         set((state) => {
-          if (state.registeredBarcodes.includes(barcode)) {
+          if (state.registeredBarcodes.includes(cleanBarcode)) {
             return {};
           }
 
           const todayStr = getTodayString();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
-          const totalXpGain = GAME_CONFIG.xp.registerProduct;
+          // +10 XP scan + 50 XP discovery bonus = 60 XP total
+          const totalXpGain = GAME_CONFIG.xp.registerProduct + GAME_CONFIG.xp.scanExisting;
           const streakMultipliedXp = applyStreakMultiplier(totalXpGain, newStreak);
           const newXp = state.xp + streakMultipliedXp;
           const newLevel = levelFromXp(newXp);
@@ -246,11 +258,17 @@ export const usePlayerStore = create<PlayerStore>()(
           const foodCategories = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
           const isFood = !category || foodCategories.some((c) => (category || '').toLowerCase().includes(c));
           const updatedFoodInventory = isFood
-            ? { ...state.foodInventory, [barcode]: (state.foodInventory[barcode] || 0) + 1 }
+            ? { ...state.foodInventory, [cleanBarcode]: (state.foodInventory[cleanBarcode] || 0) + 1 }
             : state.foodInventory;
 
+          const updatedScanHistory = state.scanHistory.includes(cleanBarcode)
+            ? state.scanHistory
+            : [cleanBarcode, ...state.scanHistory];
+
           return {
-            registeredBarcodes: [...state.registeredBarcodes, barcode],
+            registeredBarcodes: [...state.registeredBarcodes, cleanBarcode],
+            scanHistory: updatedScanHistory,
+            lastScanTime: { ...state.lastScanTime, [cleanBarcode]: now },
             lastRegisterTime: now,
             streak: newStreak,
             lastActiveDate: todayStr,
@@ -262,7 +280,7 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
 
-        if (get().mode === GameMode.ARASHU) {
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
       },
@@ -311,7 +329,7 @@ export const usePlayerStore = create<PlayerStore>()(
         // Apply time-based real-time affection decay accurately
         get().applyAffectionDecay();
 
-        if (isNewPetDay && get().mode === GameMode.ARASHU) {
+        if (isNewPetDay && get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
       },
@@ -321,7 +339,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       resetPlayer: () => {
-        set({ ...initialStoreState });
+        set({ ...initialStoreState, isProfileLoaded: false });
       },
 
       feedPet: (barcode: string, category: string) => {
@@ -392,7 +410,7 @@ export const usePlayerStore = create<PlayerStore>()(
         });
 
         // Instant cloud sync for Hunter Mode (anti-rollback)
-        if (get().mode === GameMode.ARASHU) {
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
       },
@@ -400,14 +418,14 @@ export const usePlayerStore = create<PlayerStore>()(
       applyAffectionDecay: () => {
         const state = get();
         const now = Date.now();
-        const lastDecay = state.lastAffectionDecayAt || now;
 
-        // If no timestamp exists yet, initialize to now without decaying
-        if (!state.lastAffectionDecayAt) {
+        // If no timestamp exists yet or unmigrated (<= 0), initialize to now without deducting happiness
+        if (!state.lastAffectionDecayAt || state.lastAffectionDecayAt <= 0) {
           set({ lastAffectionDecayAt: now });
           return;
         }
 
+        const lastDecay = state.lastAffectionDecayAt;
         const elapsedMs = now - lastDecay;
         if (elapsedMs <= 0) return;
 
@@ -432,10 +450,17 @@ export const usePlayerStore = create<PlayerStore>()(
         const intervalsPassed = Math.floor(elapsedMs / intervalMs);
         if (intervalsPassed <= 0) return;
 
-        const totalDecay = intervalsPassed * decayPerInterval;
+        // Sanity cap: never deduct more than 15 happiness points in a single calculation cycle
+        const rawDecay = intervalsPassed * decayPerInterval;
+        const totalDecay = Math.min(15, rawDecay);
+
         const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
         const newAffection = Math.max(0, currentAffection - totalDecay);
-        const newLastDecayAt = lastDecay + intervalsPassed * intervalMs;
+
+        // If elapsed time was exceptionally long (> 48h, e.g. unmigrated old account), reset anchor to now
+        const newLastDecayAt = elapsedMs > 48 * 60 * 60 * 1000
+          ? now
+          : lastDecay + intervalsPassed * intervalMs;
 
         let newStage = state.petStage;
         if (newAffection >= 90) newStage = 'LEGENDARY_CAT';
@@ -451,7 +476,7 @@ export const usePlayerStore = create<PlayerStore>()(
           lastLocalMutationAt: now,
         });
 
-        if (get().mode === GameMode.ARASHU) {
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
       },
@@ -503,7 +528,7 @@ export const usePlayerStore = create<PlayerStore>()(
           lastLocalMutationAt: now,
         });
 
-        if (get().mode === GameMode.ARASHU) {
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
 
@@ -569,7 +594,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             const localPetName = currentState.petName;
             let finalPetName = d.petName || 'Scan-chan Jr.';
-            if ((!d.petName || d.petName === 'Scan-chan Jr.') && localPetName && localPetName !== 'Scan-chan Jr.') {
+            if (currentState.isProfileLoaded && (!d.petName || d.petName === 'Scan-chan Jr.') && localPetName && localPetName !== 'Scan-chan Jr.') {
               finalPetName = localPetName;
               setTimeout(() => {
                 get().saveProfileToServer().catch(() => {});
@@ -577,20 +602,20 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             // ANTI-ROLLBACK GUARD:
-            // If local state was mutated recently (< 6 seconds) or if a save is currently in-flight,
-            // preserve fresh local inventory & pet vitals from stale server responses!
+            // If local state was mutated recently (< 6 seconds) while already loaded,
+            // or if a save is currently in-flight, preserve fresh local inventory & pet vitals!
             const timeSinceLastMutation = Date.now() - (currentState.lastLocalMutationAt || 0);
-            const isRecentMutation = timeSinceLastMutation < 6000;
+            const isRecentMutation = currentState.isProfileLoaded && timeSinceLastMutation < 6000;
             const isSaving = currentState.isSaving;
             const protectLocalVitals = isRecentMutation || isSaving;
 
             const finalHunger = protectLocalVitals
               ? currentState.petHunger
-              : (typeof d.petHunger === 'number' ? d.petHunger : 50);
+              : (typeof d.petHunger === 'number' ? d.petHunger : 80);
 
             const finalAffection = protectLocalVitals
               ? currentState.petAffection
-              : (typeof d.petAffection === 'number' ? d.petAffection : 10);
+              : (typeof d.petAffection === 'number' ? d.petAffection : 80);
 
             const finalStage = protectLocalVitals
               ? currentState.petStage
@@ -598,19 +623,21 @@ export const usePlayerStore = create<PlayerStore>()(
 
             const finalFoodInventory = protectLocalVitals
               ? currentState.foodInventory
-              : (d.foodInventory || {});
+              : (d.foodInventory && typeof d.foodInventory === 'object' ? d.foodInventory : {});
 
             const finalLastFedBarcode = protectLocalVitals
               ? currentState.lastFedBarcode
               : (d.lastFedBarcode || '');
 
-            const finalDailyPetCount = protectLocalVitals
-              ? currentState.dailyPetCount
-              : (typeof d.dailyPetCount === 'number' ? d.dailyPetCount : 0);
-
+            const todayKey = getLocalDateKey();
+            const serverPetDate = d.lastPetDate || null;
             const finalLastPetDate = protectLocalVitals
               ? currentState.lastPetDate
-              : (d.lastPetDate || null);
+              : serverPetDate;
+
+            const finalDailyPetCount = protectLocalVitals
+              ? currentState.dailyPetCount
+              : (serverPetDate === todayKey && typeof d.dailyPetCount === 'number' ? d.dailyPetCount : 0);
 
             const finalLastAffectionDecayAt = protectLocalVitals
               ? (currentState.lastAffectionDecayAt || Date.now())
@@ -633,6 +660,7 @@ export const usePlayerStore = create<PlayerStore>()(
             ]));
 
             set({
+              isProfileLoaded: true,
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',
               avatar: d.avatar || 'calico',
@@ -675,7 +703,10 @@ export const usePlayerStore = create<PlayerStore>()(
 
       saveProfileToServer: async () => {
         const state = get();
-        if (state.mode !== GameMode.ARASHU) return;
+        // CRITICAL GUARD: Never save if not in Hunter Mode or if cloud profile has not been hydrated yet
+        if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded) {
+          return;
+        }
 
         set({ isSaving: true });
         try {

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const barcodeSchema = z
   .string()
+  .trim()
   .min(1, 'Barcode number is required')
   .max(20, 'Barcode number too long')
   .regex(/^[0-9A-Za-z-]+$/, 'Barcode contains invalid characters');
@@ -15,7 +16,7 @@ export const productCreateSchema = z.object({
   brand: z.string().max(255).optional().nullable(),
   category: z.string().max(255).optional().nullable(),
   description: z.string().optional().nullable(),
-  imageUrl: z.string().url('Invalid image URL').optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
   creatorId: z.string().max(255).optional().nullable(),
   foodValue: z.number().int().min(0).optional().nullable(),
   rarity: z.string().max(80).optional().nullable(),
@@ -27,7 +28,7 @@ export const productUpdateSchema = z.object({
   brand: z.string().max(255).optional().nullable(),
   category: z.string().max(255).optional().nullable(),
   description: z.string().optional().nullable(),
-  imageUrl: z.string().url('Invalid image URL').optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
   foodValue: z.number().int().min(0).optional().nullable(),
   rarity: z.string().max(80).optional().nullable(),
   petReaction: z.string().max(255).optional().nullable(),

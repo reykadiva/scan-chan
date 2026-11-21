@@ -35,7 +35,7 @@ function getLocalProfile(userId: string) {
       pet: {
         name: 'Scan-chan Jr.',
         stage: 'KITTEN',
-        stats: { hunger: 50, affection: 10 },
+        stats: { hunger: 80, affection: 80 },
       },
       settings: {
         theme: 'default',
@@ -102,8 +102,8 @@ function getLocalProfile(userId: string) {
     lastActiveDate,
     petName: localUser.pet?.name ?? 'Scan-chan Jr.',
     petStage: localUser.pet?.stage ?? 'KITTEN',
-    petHunger: localUser.pet?.stats?.hunger ?? 50,
-    petAffection: localUser.pet?.stats?.affection ?? 10,
+    petHunger: localUser.pet?.stats?.hunger ?? 80,
+    petAffection: localUser.pet?.stats?.affection ?? 80,
     foodInventory: localUser.foodInventory || {},
     selectedTheme,
     selectedBorder,
@@ -111,11 +111,16 @@ function getLocalProfile(userId: string) {
     selectedTitle,
     selectedRoom,
     registeredBarcodes: Array.isArray(rawMeta.registeredBarcodes) ? rawMeta.registeredBarcodes : [],
-    scanHistory: Array.isArray(rawMeta.scanHistory) ? rawMeta.scanHistory : [],
+    scanHistory: Array.from(new Set([
+      ...(Array.isArray(rawMeta.scanHistory) ? rawMeta.scanHistory : []),
+      ...localDb.getUserScans(userId, 50),
+    ])).slice(0, 50),
     lastFedBarcode: typeof rawMeta.lastFedBarcode === 'string' ? rawMeta.lastFedBarcode : '',
     dailyPetCount: typeof rawMeta.dailyPetCount === 'number' ? rawMeta.dailyPetCount : 0,
     lastPetDate: typeof rawMeta.lastPetDate === 'string' ? rawMeta.lastPetDate : null,
-    lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' ? rawMeta.lastAffectionDecayAt : 0,
+    lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' && rawMeta.lastAffectionDecayAt > 0
+      ? rawMeta.lastAffectionDecayAt
+      : Date.now(),
   };
 }
 
@@ -146,15 +151,15 @@ function updateLocalProfile(userId: string, input: ProfileUpdateInput) {
     ...(input.lastAffectionDecayAt !== undefined && { lastAffectionDecayAt: input.lastAffectionDecayAt }),
   };
 
-  const foodInv = { ...(localUser.foodInventory || {}) };
+  let foodInv: Record<string, number> = {};
   if (input.foodInventory) {
     for (const [key, qty] of Object.entries(input.foodInventory)) {
-      if (qty <= 0) {
-        delete foodInv[key];
-      } else {
+      if (qty > 0) {
         foodInv[key] = qty;
       }
     }
+  } else {
+    foodInv = { ...(localUser.foodInventory || {}) };
   }
 
   localUser.progress = {
@@ -221,7 +226,7 @@ export async function getPlayerProfile(userId: string) {
               name: 'Scan-chan Jr.',
               stage: 'KITTEN',
               stats: {
-                create: { hunger: 50, affection: 10 },
+                create: { hunger: 80, affection: 80 },
               },
             },
           },
@@ -273,6 +278,22 @@ export async function getPlayerProfile(userId: string) {
     let registeredBarcodes: string[] = Array.isArray(rawMeta.registeredBarcodes) ? rawMeta.registeredBarcodes : [];
     let scanHistory: string[] = Array.isArray(rawMeta.scanHistory) ? rawMeta.scanHistory : [];
 
+    // Hydrate scanHistory from scan_logs (ScanHistory table) in addition to metadata
+    try {
+      const dbLogs = await prisma.scanHistory.findMany({
+        where: { userId },
+        orderBy: { scannedAt: 'desc' },
+        take: 50,
+        select: { barcodeNumber: true },
+      });
+      if (dbLogs.length > 0) {
+        const logBarcodes = dbLogs.map((l) => l.barcodeNumber);
+        scanHistory = Array.from(new Set([...scanHistory, ...logBarcodes])).slice(0, 50);
+      }
+    } catch (e) {
+      console.warn('[getPlayerProfile] Error fetching scan_logs:', e);
+    }
+
     // Handle migration from old colon-separated string if metadata was empty
     if (selectedTheme.includes(':')) {
       const parts = selectedTheme.split(':');
@@ -315,8 +336,8 @@ export async function getPlayerProfile(userId: string) {
       lastActiveDate,
       petName: dbUser.pet?.name ?? 'Scan-chan Jr.',
       petStage: dbUser.pet?.stage ?? 'KITTEN',
-      petHunger: dbUser.pet?.stats?.hunger ?? 50,
-      petAffection: dbUser.pet?.stats?.affection ?? 10,
+      petHunger: dbUser.pet?.stats?.hunger ?? 80,
+      petAffection: dbUser.pet?.stats?.affection ?? 80,
       foodInventory,
       selectedTheme,
       selectedBorder,
@@ -328,7 +349,9 @@ export async function getPlayerProfile(userId: string) {
       lastFedBarcode: typeof rawMeta.lastFedBarcode === 'string' ? rawMeta.lastFedBarcode : '',
       dailyPetCount: typeof rawMeta.dailyPetCount === 'number' ? rawMeta.dailyPetCount : 0,
       lastPetDate: typeof rawMeta.lastPetDate === 'string' ? rawMeta.lastPetDate : null,
-      lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' ? rawMeta.lastAffectionDecayAt : 0,
+      lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' && rawMeta.lastAffectionDecayAt > 0
+        ? rawMeta.lastAffectionDecayAt
+        : Date.now(),
     };
   } catch (error) {
     console.warn('[getPlayerProfile] Prisma error, using local fallback:', error);
@@ -345,24 +368,47 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
   }
 
   try {
-    const xp = typeof input.xp === 'number' ? input.xp : undefined;
-    const level = xp !== undefined ? levelFromXp(xp) : undefined;
-    const streak = typeof input.streak === 'number' ? input.streak : undefined;
+    let xp = typeof input.xp === 'number' ? input.xp : undefined;
+    let level = xp !== undefined ? levelFromXp(xp) : undefined;
+    let streak = typeof input.streak === 'number' ? input.streak : undefined;
 
-    // Fetch current user settings to merge metadata safely
-    const currentSettings = await prisma.settings.findUnique({
-      where: { userId },
-    });
+    // Fetch current user settings & progress to merge metadata safely and prevent rollbacks
+    const [currentSettings, existingProgress] = await Promise.all([
+      prisma.settings.findUnique({ where: { userId } }),
+      prisma.progress.findUnique({ where: { userId } }).catch(() => null),
+    ]);
+
+    // Anti-rollback: never allow an unhydrated or stale client to decrease XP/Level
+    if (existingProgress && xp !== undefined && xp < existingProgress.xp) {
+      console.warn('[updatePlayerProfile] Anti-rollback blocked XP downgrade:', {
+        currentDbXp: existingProgress.xp,
+        incomingXp: xp,
+      });
+      xp = existingProgress.xp;
+      level = existingProgress.level;
+    }
 
     const existingMeta = (currentSettings?.metadata as any) || {};
+
+    // Safely merge arrays so empty input never wipes existing cloud records
+    const mergedRegisteredBarcodes = Array.from(new Set([
+      ...(Array.isArray(existingMeta.registeredBarcodes) ? existingMeta.registeredBarcodes : []),
+      ...(Array.isArray(input.registeredBarcodes) ? input.registeredBarcodes : []),
+    ]));
+
+    const mergedScanHistory = Array.from(new Set([
+      ...(Array.isArray(input.scanHistory) ? input.scanHistory : []),
+      ...(Array.isArray(existingMeta.scanHistory) ? existingMeta.scanHistory : []),
+    ])).slice(0, 50);
+
     const updatedMeta = {
       ...existingMeta,
       ...(input.selectedBorder !== undefined && { selectedBorder: input.selectedBorder }),
       ...(input.selectedAccessory !== undefined && { selectedAccessory: input.selectedAccessory }),
       ...(input.selectedTitle !== undefined && { selectedTitle: input.selectedTitle }),
       ...(input.selectedRoom !== undefined && { selectedRoom: input.selectedRoom }),
-      ...(input.registeredBarcodes !== undefined && { registeredBarcodes: input.registeredBarcodes }),
-      ...(input.scanHistory !== undefined && { scanHistory: input.scanHistory }),
+      registeredBarcodes: mergedRegisteredBarcodes,
+      scanHistory: mergedScanHistory,
       ...(input.lastActiveDate !== undefined && { lastActiveDate: input.lastActiveDate }),
       ...(input.lastFedBarcode !== undefined && { lastFedBarcode: input.lastFedBarcode }),
       ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
@@ -399,8 +445,8 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
               stage: input.petStage || 'KITTEN',
               stats: {
                 create: {
-                  hunger: input.petHunger ?? 50,
-                  affection: input.petAffection ?? 10,
+                  hunger: input.petHunger ?? 80,
+                  affection: input.petAffection ?? 80,
                 },
               },
             },
@@ -410,8 +456,8 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
               stats: {
                 upsert: {
                   create: {
-                    hunger: input.petHunger ?? 50,
-                    affection: input.petAffection ?? 10,
+                    hunger: input.petHunger ?? 80,
+                    affection: input.petAffection ?? 80,
                   },
                   update: {
                     ...(input.petHunger !== undefined && { hunger: input.petHunger }),
@@ -446,16 +492,21 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
         update: {},
       });
 
+      const validKeys = Object.entries(input.foodInventory)
+        .filter(([_, q]) => q > 0)
+        .map(([k]) => k);
+
+      // Delete items no longer in foodInventory or with qty <= 0
+      await prisma.inventoryItem.deleteMany({
+        where: {
+          inventoryId: userInventory.id,
+          type: 'FOOD',
+          itemKey: { notIn: validKeys },
+        },
+      });
+
       for (const [itemKey, quantity] of Object.entries(input.foodInventory)) {
-        if (quantity <= 0) {
-          await prisma.inventoryItem.deleteMany({
-            where: {
-              inventoryId: userInventory.id,
-              type: 'FOOD',
-              itemKey,
-            },
-          });
-        } else {
+        if (quantity > 0) {
           await prisma.inventoryItem.upsert({
             where: {
               inventoryId_type_itemKey: {

@@ -217,4 +217,12 @@ export const localDb = {
     const db = ensureDbFile();
     return db.scanHistory.filter((s) => s.barcodeNumber === barcode).length;
   },
+
+  getUserScans(userId: string, limit = 50): string[] {
+    const db = ensureDbFile();
+    return db.scanHistory
+      .filter((s) => s.userId === userId)
+      .slice(0, limit)
+      .map((s) => s.barcodeNumber);
+  },
 };

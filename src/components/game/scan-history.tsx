@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { usePlayerStore } from '@/stores/player-store';
+import { useProductStore } from '@/stores/product-store';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import type { Product } from '@/types';
@@ -10,37 +11,61 @@ import { getCategoryVariant } from '@/lib/game-utils';
 
 export function ScanHistory() {
   const scanHistory = usePlayerStore((state) => state.scanHistory);
-  const [products, setProducts] = useState<Record<string, Product>>({});
-  const [loading, setLoading] = useState(true);
+  const productStoreMap = useProductStore((state) => state.products);
+  const upsertMultiple = useProductStore((state) => state.upsertMultipleProducts);
+
+  // Optimistic Cache (SWR): initialize with products already in store immediately
+  const [products, setProducts] = useState<Record<string, Product>>(() => ({ ...productStoreMap }));
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 200);
 
   useEffect(() => {
+    let active = true;
+
     async function fetchScannedProducts() {
       if (scanHistory.length === 0) {
-        setLoading(false);
         return;
       }
-      setLoading(true);
+
+      // If we don't have any matching products in local cache yet, show spinner
+      const hasAnyLocal = scanHistory.some((b) => Boolean(productStoreMap[b]));
+      if (!hasAnyLocal) {
+        setLoading(true);
+      }
+
       try {
         const uniqueBarcodes = Array.from(new Set(scanHistory));
-        const res = await fetch(`/api/products?limit=50&barcodes=${uniqueBarcodes.join(',')}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch(`/api/products?limit=50&barcodes=${uniqueBarcodes.join(',')}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
         const data = await res.json();
-        if (data.success) {
+        if (data.success && Array.isArray(data.data) && active) {
           const productMap: Record<string, Product> = {};
           data.data.forEach((p: Product) => {
             productMap[p.barcodeNumber] = p;
           });
-          setProducts(productMap);
+          setProducts((prev) => ({ ...prev, ...productMap }));
+          upsertMultiple(data.data);
         }
       } catch (err) {
-        console.error('Failed to load products for scan history', err);
+        // Stale cache already rendered, gracefully ignore network/timeout error
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
+
     fetchScannedProducts();
-  }, [scanHistory]);
+
+    return () => {
+      active = false;
+    };
+  }, [scanHistory, productStoreMap, upsertMultiple]);
 
   const filteredHistory = scanHistory.filter((barcode) => {
     if (!debouncedSearch) return true;

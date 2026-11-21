@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
   Search,
@@ -20,6 +20,7 @@ import { PixelCat } from '@/components/game/pixel-cat';
 import { CategoryBadge } from '@/components/ui/category-badge';
 import { useDebounce } from '@/hooks/use-debounce';
 import { getCategoryVariant } from '@/lib/game-utils';
+import { useProductStore } from '@/stores/product-store';
 
 interface ProductListProps {
   creatorId: string;
@@ -29,37 +30,49 @@ interface ProductListProps {
 const PAGE_LIMIT = 12;
 
 export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [total, setTotal] = useState(0);
+  const productMap = useProductStore((state) => state.products);
+  const mergeServerProducts = useProductStore((state) => state.mergeServerProducts);
+  const removeProductFromStore = useProductStore((state) => state.removeProduct);
+  const syncPendingToServer = useProductStore((state) => state.syncPendingToServer);
+
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [deletingBarcode, setDeletingBarcode] = useState<string | null>(null);
   const [copiedBarcode, setCopiedBarcode] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const debouncedSearch = useDebounce(search, 300);
 
+  // Sync with server on mount and filter changes without destroying local cache
   useEffect(() => {
     let active = true;
 
     async function load() {
-      setIsLoading(true);
+      // If we don't have any cached products yet, show loader
+      if (Object.keys(productMap).length === 0) {
+        setIsLoading(true);
+      }
       try {
         const params = new URLSearchParams({
-          page: String(page),
-          limit: String(PAGE_LIMIT),
+          page: '1',
+          limit: '50',
           ...(debouncedSearch && { search: debouncedSearch }),
           ...(category && { category }),
         });
-        const res = await fetch(`/api/products?${params}`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const res = await fetch(`/api/products?${params}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
         const data = await res.json();
-        if (data.success && active) {
-          setProducts(data.data);
-          setTotal(data.total);
+        if (data.success && Array.isArray(data.data) && active) {
+          mergeServerProducts(data.data);
+          syncPendingToServer().catch(() => {});
         }
       } catch {
-        toast.error('Failed to load products');
+        // Fall back gracefully to local cached products
       } finally {
         if (active) setIsLoading(false);
       }
@@ -70,18 +83,49 @@ export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
     return () => {
       active = false;
     };
-  }, [page, debouncedSearch, category, refreshKey]);
+  }, [debouncedSearch, category, refreshKey, mergeServerProducts, syncPendingToServer]);
+
+  // Merge & compute filtered products from store (never drops local items)
+  const allMergedProducts = useMemo(() => {
+    return Object.values(productMap).sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
+    });
+  }, [productMap]);
+
+  const filteredProducts = useMemo(() => {
+    return allMergedProducts.filter((p) => {
+      if (category && p.category?.toLowerCase() !== category.toLowerCase()) {
+        return false;
+      }
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        const matchesName = p.productName?.toLowerCase().includes(q);
+        const matchesBarcode = p.barcodeNumber?.includes(q);
+        const matchesBrand = p.brand?.toLowerCase().includes(q);
+        return matchesName || matchesBarcode || matchesBrand;
+      }
+      return true;
+    });
+  }, [allMergedProducts, category, debouncedSearch]);
+
+  const total = filteredProducts.length;
+  const paginatedProducts = useMemo(() => {
+    const startIndex = (page - 1) * PAGE_LIMIT;
+    return filteredProducts.slice(startIndex, startIndex + PAGE_LIMIT);
+  }, [filteredProducts, page]);
 
   const handleDelete = async (product: Product) => {
     if (deletingBarcode) return;
     setDeletingBarcode(product.barcodeNumber);
     try {
+      removeProductFromStore(product.barcodeNumber);
       const res = await fetch(`/api/products/${product.barcodeNumber}`, {
         method: 'DELETE',
         headers: { 'x-creator-id': creatorId },
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Delete failed');
+      const data = await res.json().catch(() => ({}));
       toast.success('Product removed from registry');
       onProductDeleted(product.barcodeNumber);
       setRefreshKey((prev) => prev + 1);
@@ -154,7 +198,7 @@ export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
         <div className="flex items-center justify-center py-16">
           <Loader2 className="w-8 h-8 text-brand-cyan animate-spin" />
         </div>
-      ) : products.length === 0 ? (
+      ) : paginatedProducts.length === 0 ? (
         <div className="card-bubbly bg-white p-8 text-center border-2 border-[var(--theme-border)] rounded-2xl shadow-[3px_3px_0_0_var(--theme-shadow)]">
           <PixelCat variant="calico" action="items" size={72} className="mx-auto mb-3" />
           <p className="font-fredoka text-lg font-bold text-[var(--theme-text-dark)] mb-1">
@@ -166,7 +210,7 @@ export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 items-stretch">
-          {products.map((product) => {
+          {paginatedProducts.map((product) => {
             const isOwner = !!creatorId && product.creatorId === creatorId;
             const isDeleting = deletingBarcode === product.barcodeNumber;
             const catVariant = getCategoryVariant(product.category);

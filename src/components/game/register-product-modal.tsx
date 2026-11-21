@@ -9,6 +9,7 @@ import { useBarcodeScanner, isValidRetailBarcode } from '@/hooks/use-barcode-sca
 import { playScannerBeep } from '@/lib/sound-effects';
 import { toast } from 'sonner';
 import { WebcamCapture } from '@/components/game/webcam-capture';
+import { useProductStore } from '@/stores/product-store';
 
 function compressImageToDataUrl(
   file: File,
@@ -122,7 +123,7 @@ interface RegisterProductModalProps {
   initialBarcode?: string;
   creatorId: string;
   onClose: () => void;
-  onSuccess: (barcode: string, category: string) => void;
+  onSuccess: (barcode: string, category: string, productName?: string) => void;
 }
 
 export function RegisterProductModal({
@@ -169,25 +170,53 @@ export function RegisterProductModal({
         }
       }
 
-      const res = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          barcodeNumber: form.barcodeNumber,
-          productName: form.productName,
-          brand: form.brand || null,
-          category: form.category || null,
-          description: form.description || null,
-          imageUrl,
-          creatorId,
-        }),
-      });
+      const cleanBarcode = form.barcodeNumber.trim();
+      const localProduct = {
+        id: cleanBarcode,
+        barcodeNumber: cleanBarcode,
+        productName: form.productName.trim(),
+        brand: form.brand?.trim() || null,
+        category: form.category || null,
+        description: form.description?.trim() || null,
+        imageUrl,
+        creatorId: creatorId || null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || 'Registration failed');
+      // Always save to local store immediately to prevent any data loss
+      useProductStore.getState().upsertProduct(localProduct, true);
 
-      toast.success('Product registered!', { description: form.productName });
-      onSuccess(form.barcodeNumber, form.category);
+      let isSynced = false;
+      try {
+        const res = await fetch('/api/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            barcodeNumber: cleanBarcode,
+            productName: form.productName.trim(),
+            brand: form.brand?.trim() || null,
+            category: form.category || null,
+            description: form.description?.trim() || null,
+            imageUrl,
+            creatorId,
+          }),
+        });
+
+        const data = await res.json();
+        if (data.success && data.data) {
+          useProductStore.getState().upsertProduct(data.data, false);
+          isSynced = true;
+        }
+      } catch {
+        // Server fetch failed, but local copy is already saved safely in productStore
+      }
+
+      toast.success(
+        isSynced ? 'Product registered!' : 'Product saved locally! Will sync to cloud.',
+        { description: form.productName.trim() }
+      );
+      onSuccess(cleanBarcode, form.category, form.productName.trim());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -202,10 +231,10 @@ export function RegisterProductModal({
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: 'spring', bounce: 0.3, duration: 0.5 }}
-        className="bg-[var(--theme-primary)] border-4 border-white shadow-[6px_6px_0_0_var(--theme-shadow)] rounded-2xl w-[94vw] max-w-lg max-h-[85dvh] overflow-y-auto relative text-white"
+        className="bg-[var(--theme-primary)] border-4 border-white shadow-[6px_6px_0_0_var(--theme-shadow)] rounded-2xl w-[94vw] max-w-lg max-h-[85dvh] flex flex-col relative text-white overflow-hidden"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/20 sticky top-0 bg-[var(--theme-primary)] rounded-t-2xl z-10">
+        {/* Header (Sticky) */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-white/20 shrink-0 bg-[var(--theme-primary)] rounded-t-2xl z-10">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-10 h-10 bg-white border-2 border-[var(--theme-border)] rounded-xl flex items-center justify-center text-[var(--theme-primary)] shadow-[2px_2px_0_0_var(--theme-shadow)] shrink-0">
               <Package className="w-5 h-5" strokeWidth={2.5} />
@@ -221,7 +250,7 @@ export function RegisterProductModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
           {/* Barcode */}
           <div>
             <div className="flex justify-between items-center mb-1.5">

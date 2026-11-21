@@ -16,6 +16,9 @@ import { haptics } from '@/lib/haptics';
 import type { Product } from '@/types/product';
 import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import { CATEGORY_COLORS } from '@/types';
+import { RegisterProductModal } from '@/components/game/register-product-modal';
+import { useProductStore } from '@/stores/product-store';
+import { toast } from 'sonner';
 
 type ScanPhase = 'scanning' | 'loading' | 'found' | 'not-found' | 'error';
 
@@ -29,16 +32,42 @@ export default function ScanPage() {
   const router = useRouter();
   const recordScan = usePlayerStore((s) => s.recordScan);
   const mode = usePlayerStore((s) => s.mode);
+  const creatorId = usePlayerStore((s) => s.creatorId);
 
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [manualBarcode, setManualBarcode] = useState('');
   const [paused, setPaused] = useState(false);
   const [lastBarcode, setLastBarcode] = useState('');
   const lastDecodedRef = useRef('');
   const cooldownRef = useRef(false);
+
+  const handleRegisterSuccess = useCallback(
+    (barcode: string, category: string, productName?: string) => {
+      const cleanBarcode = barcode.trim();
+      usePlayerStore.getState().registerProduct(cleanBarcode, category);
+      setShowRegisterModal(false);
+      toast.success('🎉 Product registered & added to Food Bag! (+60 XP total) 📦🍖', {
+        description: productName ? `${productName} (+1 food in bag)` : '+1 food added to your bag',
+      });
+      const cached = useProductStore.getState().products[cleanBarcode];
+      setResult({
+        found: true,
+        product: (cached || {
+          id: cleanBarcode,
+          barcodeNumber: cleanBarcode,
+          productName: productName || 'Registered Product',
+          category,
+        }) as any,
+        isNew: true,
+      });
+      setPhase('found');
+    },
+    []
+  );
 
   useEffect(() => {
     if (mode === null) {
@@ -264,7 +293,11 @@ export default function ScanPage() {
               <ProductFoundSheet product={result.product} isNew={result.isNew} onReset={resetScanner} />
             )}
             {phase === 'not-found' && result && (
-              <ProductNotFoundSheet barcode={lastBarcode} onReset={resetScanner} />
+              <ProductNotFoundSheet
+                barcode={lastBarcode}
+                onReset={resetScanner}
+                onRegister={() => setShowRegisterModal(true)}
+              />
             )}
             {phase === 'error' && (
               <ErrorSheet message={errorMsg} onReset={resetScanner} />
@@ -319,6 +352,14 @@ export default function ScanPage() {
               </button>
             </motion.div>
           </motion.div>
+        )}
+        {showRegisterModal && (
+          <RegisterProductModal
+            initialBarcode={lastBarcode}
+            creatorId={creatorId || ''}
+            onClose={() => setShowRegisterModal(false)}
+            onSuccess={handleRegisterSuccess}
+          />
         )}
       </AnimatePresence>
     </main>
@@ -392,7 +433,15 @@ function ProductFoundSheet({ product, isNew, onReset }: { product: Product; isNe
   );
 }
 
-function ProductNotFoundSheet({ barcode, onReset }: { barcode: string; onReset: () => void }) {
+function ProductNotFoundSheet({
+  barcode,
+  onReset,
+  onRegister,
+}: {
+  barcode: string;
+  onReset: () => void;
+  onRegister?: () => void;
+}) {
   return (
     <div className="p-6 pb-10 space-y-5">
       <motion.div
@@ -415,13 +464,24 @@ function ProductNotFoundSheet({ barcode, onReset }: { barcode: string; onReset: 
           <PixelCat variant="cyan" action="scan" size={24} />
           Scan Again
         </button>
-        <Link
-          href={`/play?register=${barcode}`}
-          className="btn-arcade bg-[var(--theme-surface-inner)] hover:bg-white text-[var(--theme-text-dark)] flex-1 py-3 text-sm text-center flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <PixelCat variant="pink" action="items" size={24} />
-          Register
-        </Link>
+        {onRegister ? (
+          <button
+            type="button"
+            onClick={onRegister}
+            className="btn-arcade bg-[var(--theme-surface-inner)] hover:bg-white text-[var(--theme-text-dark)] flex-1 py-3 text-sm text-center flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <PixelCat variant="pink" action="items" size={24} />
+            Register
+          </button>
+        ) : (
+          <Link
+            href={`/play?register=${barcode}`}
+            className="btn-arcade bg-[var(--theme-surface-inner)] hover:bg-white text-[var(--theme-text-dark)] flex-1 py-3 text-sm text-center flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <PixelCat variant="pink" action="items" size={24} />
+            Register
+          </Link>
+        )}
       </div>
     </div>
   );

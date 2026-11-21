@@ -133,7 +133,7 @@ export async function syncOAuthUser(authUser: { id: string; email?: string; user
               name: 'Scan-chan Jr.',
               stage: 'KITTEN',
               stats: {
-                create: { hunger: 50, affection: 10 },
+                create: { hunger: 80, affection: 80 },
               },
             },
           },
@@ -164,20 +164,21 @@ export async function syncOAuthUser(authUser: { id: string; email?: string; user
 
   // Fallback to local store for offline/serverless resilience
   try {
+    const existingLocal = localDb.getUser(userId) || localDb.findUserByEmail(email);
     const localUser: LocalUser = {
       id: userId,
       email,
       password: '',
-      nickname: finalNickname,
-      avatar: finalAvatar,
+      nickname: existingLocal?.nickname || finalNickname,
+      avatar: existingLocal?.avatar || finalAvatar,
       mode: 'ARASHU',
-      progress: { xp: 0, level: 1, streak: 0 },
-      pet: {
+      progress: existingLocal?.progress || { xp: 0, level: 1, streak: 0 },
+      pet: existingLocal?.pet || {
         name: 'Scan-chan Jr.',
         stage: 'KITTEN',
-        stats: { hunger: 50, affection: 10 },
+        stats: { hunger: 80, affection: 80 },
       },
-      settings: {
+      settings: existingLocal?.settings || {
         theme: 'default',
         metadata: {
           selectedBorder: 'none',
@@ -186,8 +187,8 @@ export async function syncOAuthUser(authUser: { id: string; email?: string; user
           selectedRoom: 'cozy',
         },
       },
-      foodInventory: {},
-      createdAt: new Date().toISOString(),
+      foodInventory: existingLocal?.foodInventory || {},
+      createdAt: existingLocal?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     localDb.saveUser(localUser);

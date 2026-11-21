@@ -36,6 +36,7 @@ import { XpPopup } from '@/components/game/xp-popup';
 import { CategoryIcon } from '@/components/ui/category-badge';
 import { hasScannedToday, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
 import type { Product } from '@/types';
+import { useProductStore } from '@/stores/product-store';
 
 // Map evolution stages to cute pixel cat variants
 const STAGE_AVATARS: Record<string, CatVariantId> = {
@@ -170,6 +171,9 @@ export default function GameHubPage() {
     if (!mounted || mode === null) return;
 
     const handleSync = () => {
+      // In Hunter Mode, wait until profile has been hydrated from server
+      // so midnight/decay watcher doesn't push unhydrated state to cloud
+      if (mode === GameMode.ARASHU && !usePlayerStore.getState().isProfileLoaded) return;
       const currentKey = getLocalDateKey();
       setTodayKey(currentKey);
       checkDailyReset(currentKey);
@@ -208,7 +212,19 @@ export default function GameHubPage() {
           if (mode !== GameMode.ARASHU) {
             setMode(GameMode.ARASHU);
           }
-          loadProfile();
+          loadProfile()
+            .then(() => {
+              const currentKey = getLocalDateKey();
+              setTodayKey(currentKey);
+              checkDailyReset(currentKey);
+              applyAffectionDecay();
+            })
+            .catch((err) => {
+              console.error('Failed to load Hunter profile:', err);
+            });
+          // Sync any locally registered products to cloud in Hunter Mode
+          useProductStore.getState().syncPendingToServer().catch(() => {});
+          useProductStore.getState().fetchAndMergeCatalog().catch(() => {});
         } else if (mode === GameMode.GUEST) {
           if (!nickname) {
             setShowSetup(true);
@@ -262,10 +278,22 @@ export default function GameHubPage() {
             });
           }
         }
+
+        // Merge with locally cached products in useProductStore
+        const localProductMap = useProductStore.getState().products;
+        const foundBarcodes = new Set(allItems.map((p) => p.barcodeNumber));
+        for (const barcode of barcodes) {
+          if (!foundBarcodes.has(barcode) && localProductMap[barcode]) {
+            allItems.push(localProductMap[barcode]);
+            foundBarcodes.add(barcode);
+          }
+        }
+
         setFoodItems(allItems);
       } catch {
-        // Fallback placeholder items for food
-        const fallbacks = barcodes.map((b) => ({
+        // Fallback to local store first, then placeholder items for food
+        const localProductMap = useProductStore.getState().products;
+        const fallbacks = barcodes.map((b) => localProductMap[b] || ({
           id: b,
           barcodeNumber: b,
           productName: `Snack Item (${b.slice(-4)})`,
@@ -285,6 +313,17 @@ export default function GameHubPage() {
     async function loadRecentProducts() {
       const topBarcodes = Array.from(new Set(scanHistory.slice(0, 6)));
       if (topBarcodes.length === 0) return;
+
+      // Populate from local product cache immediately
+      const localProductMap = useProductStore.getState().products;
+      const initialMap: Record<string, Product> = {};
+      for (const b of topBarcodes) {
+        if (localProductMap[b]) initialMap[b] = localProductMap[b];
+      }
+      if (Object.keys(initialMap).length > 0) {
+        setRecentScanProducts((prev) => ({ ...prev, ...initialMap }));
+      }
+
       try {
         const res = await fetch(`/api/products?limit=10&barcodes=${topBarcodes.join(',')}`);
         const data = await res.json();
@@ -300,6 +339,13 @@ export default function GameHubPage() {
     loadRecentProducts();
   }, [scanHistory]);
 
+  // Sync catalog when opening Product Registry modal
+  useEffect(() => {
+    if (activeModal === 'catalog') {
+      useProductStore.getState().fetchAndMergeCatalog().catch(() => {});
+    }
+  }, [activeModal]);
+
   const handleRegisterParam = useCallback((barcode: string) => {
     setRegisterInitialBarcode(barcode);
     setShowRegisterModal(true);
@@ -311,10 +357,15 @@ export default function GameHubPage() {
   }, []);
 
   const handleRegisterSuccess = useCallback(
-    (barcode: string, category: string) => {
-      registerProduct(barcode, category);
+    (barcode: string, category: string, productName?: string) => {
+      const cleanBarcode = barcode.trim();
+      registerProduct(cleanBarcode, category);
       setShowRegisterModal(false);
-      toast.success('Product registered to catalog! 📦');
+      toast.success('🎉 Product registered & added to Food Bag! (+60 XP total) 📦🍖', {
+        description: productName
+          ? `${productName} (+1 food in bag)`
+          : '+1 food added to your bag',
+      });
     },
     [registerProduct]
   );
@@ -792,29 +843,50 @@ export default function GameHubPage() {
             </div>
 
             {foodItems.length > 0 ? (
-              <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
-                {foodItems.slice(0, 4).map((food) => {
-                  const qty = foodInventory[food.barcodeNumber] || 1;
-                  return (
-                    <div
-                      key={food.barcodeNumber}
-                      className="rpg-inner-box px-3 py-2 flex items-center justify-between gap-2.5 shrink-0 min-w-[160px]"
-                    >
-                      <div className="truncate min-w-0 flex-1">
-                        <p className="font-fredoka font-bold text-xs text-[var(--theme-text-dark)] truncate">
-                          {food.productName}
-                        </p>
-                        <p className="font-pixel text-[8px] text-[var(--theme-text-dark)]/70">{qty}x in Bag</p>
-                      </div>
-                      <button
-                        onClick={() => handleFeedItem(food.barcodeNumber, food.category || 'Snack', food.productName)}
-                        className="px-2.5 py-1 rounded bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white font-fredoka font-bold text-xs cursor-pointer shadow-[2px_2px_0_0_var(--theme-shadow)] border border-white shrink-0"
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {foodItems.slice(0, 4).map((food) => {
+                    const qty = foodInventory[food.barcodeNumber] || 1;
+                    return (
+                      <div
+                        key={food.barcodeNumber}
+                        className="rpg-inner-box p-2.5 flex flex-col justify-between gap-2"
                       >
-                        Feed
-                      </button>
-                    </div>
-                  );
-                })}
+                        {/* Baris atas: Nama produk + badge jumlah stok */}
+                        <div className="flex items-center justify-between gap-1.5 min-w-0">
+                          <p
+                            className="font-fredoka font-bold text-xs text-[var(--theme-text-dark)] truncate flex-1 min-w-0"
+                            title={food.productName}
+                          >
+                            {food.productName}
+                          </p>
+                          <span className="font-pixel text-[8px] text-[var(--theme-primary)] bg-white px-1.5 py-0.5 rounded border border-[var(--theme-border)] shrink-0 font-bold">
+                            x{qty}
+                          </span>
+                        </div>
+
+                        {/* Baris bawah: Tombol Feed selebar kartu */}
+                        <button
+                          type="button"
+                          onClick={() => handleFeedItem(food.barcodeNumber, food.category || 'Snack', food.productName)}
+                          className="w-full py-1.5 rounded-lg bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white font-fredoka font-bold text-xs cursor-pointer shadow-[2px_2px_0_0_var(--theme-shadow)] border border-white transition-all flex items-center justify-center gap-1"
+                        >
+                          Feed 🍖
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {foodItems.length > 4 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveModal('bag')}
+                    className="w-full py-1.5 text-center font-fredoka font-bold text-xs text-white hover:underline drop-shadow-[1px_1px_0_var(--theme-dark)] cursor-pointer"
+                  >
+                    View All ({foodItems.length} items) →
+                  </button>
+                )}
               </div>
             ) : (
               <div className="rpg-inner-box px-3 py-2 flex items-center justify-between gap-2 text-xs">
@@ -981,9 +1053,9 @@ export default function GameHubPage() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="rpg-panel-gold w-[94vw] max-w-2xl max-h-[85dvh] flex flex-col p-3.5 sm:p-6 shadow-[6px_6px_0_0_var(--theme-shadow)] relative"
+              className="rpg-panel-gold w-[94vw] max-w-2xl max-h-[85dvh] flex flex-col p-3.5 sm:p-6 shadow-[6px_6px_0_0_var(--theme-shadow)] relative overflow-hidden"
             >
-              {/* Modal Header */}
+              {/* Modal Header (Sticky) */}
               <div className="flex items-center justify-between border-b border-white/20 pb-3 mb-4 shrink-0">
                 <div className="flex items-center gap-2 text-white min-w-0">
                   {activeModal === 'bag' && <ShoppingBag className="w-5 h-5 text-white shrink-0" />}
@@ -1008,7 +1080,7 @@ export default function GameHubPage() {
               </div>
 
               {/* Modal Body */}
-              <div className="overflow-y-auto pr-1 space-y-4 max-h-[calc(85dvh-100px)] text-foreground">
+              <div className="overflow-y-auto pr-1 space-y-4 flex-1 text-foreground">
                 {/* 1. BAG MODAL */}
                 {activeModal === 'bag' && (
                   <div className="space-y-4 text-white">
@@ -1093,137 +1165,135 @@ export default function GameHubPage() {
                 {activeModal === 'guide' && (
                   <div className="space-y-4 text-white">
                     {/* Section 1: Scan & Collect */}
-                    <div className="rpg-inner-box p-3.5 space-y-2">
+                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
                           <Crosshair className="w-4 h-4 text-white" />
                         </div>
                         <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Scan & Collect</h4>
                       </div>
-                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Point your camera at any <strong>1D barcode</strong> (EAN-13, UPC-A, etc.) on snack/drink packaging
+                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="block leading-relaxed">
+                          Point your camera at any <strong>1D barcode</strong> (EAN-13, UPC-A, etc.) on snack/drink packaging.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Each unique scan gives <strong>+10 XP</strong> and adds <strong>1 food</strong> to your bag
+                        <li className="block leading-relaxed">
+                          Each unique scan gives <strong>+10 XP</strong> and adds <strong>1 food item</strong> to your bag.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Register new products for <strong>+50 bonus XP</strong> as first discoverer
+                        <li className="block leading-relaxed">
+                          Register new products for <strong>+50 bonus XP</strong> as first discoverer.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Scan daily to maintain your <strong>streak</strong> (shown in the top bar)
+                        <li className="block leading-relaxed">
+                          Scan daily to maintain your <strong>streak</strong> (shown in the top bar).
                         </li>
                       </ul>
                     </div>
 
                     {/* Section 2: Hunger & Feeding */}
-                    <div className="rpg-inner-box p-3.5 space-y-2">
+                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
                           <Utensils className="w-4 h-4 text-white" />
                         </div>
                         <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Hunger & Feeding</h4>
                       </div>
-                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Feed your pet from the <strong>Food Bag</strong> using items you scanned
+                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="block leading-relaxed">
+                          Feed your pet from the <strong>Food Bag</strong> using items you scanned.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Different categories restore different hunger: <strong>Dairy +20</strong>, <strong>Instant +15</strong>, <strong>Snack +10</strong>, <strong>Candy +8</strong>, <strong>Drink +5</strong>
+                        <li className="block leading-relaxed">
+                          Different categories restore different hunger values:
+                          <div className="flex flex-wrap gap-1.5 pt-2">
+                            <span className="font-pixel text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300 font-bold whitespace-nowrap">
+                              Dairy +20
+                            </span>
+                            <span className="font-pixel text-[9px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md border border-orange-300 font-bold whitespace-nowrap">
+                              Instant +15
+                            </span>
+                            <span className="font-pixel text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-300 font-bold whitespace-nowrap">
+                              Snack +10
+                            </span>
+                            <span className="font-pixel text-[9px] bg-pink-100 text-pink-800 px-2 py-0.5 rounded-md border border-pink-300 font-bold whitespace-nowrap">
+                              Candy +8
+                            </span>
+                            <span className="font-pixel text-[9px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md border border-sky-300 font-bold whitespace-nowrap">
+                              Drink +5
+                            </span>
+                          </div>
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Feeding a <strong>new food type</strong> gives <strong>+5 bonus happiness</strong>
+                        <li className="block leading-relaxed">
+                          Feeding a <strong>new food type</strong> gives <strong>+5 bonus happiness</strong>.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                        <li className="block leading-relaxed">
                           At <strong>0% hunger</strong> your pet faints. Feed to revive!
                         </li>
                       </ul>
                     </div>
 
                     {/* Section 3: Happiness & Petting */}
-                    <div className="rpg-inner-box p-3.5 space-y-2">
+                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
                           <Heart className="w-4 h-4 text-white" />
                         </div>
                         <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Happiness & Petting</h4>
                       </div>
-                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Tap your pet for <strong>+5 Happiness</strong> (up to <strong>3 times/day</strong>, 10s cooldown)
+                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="block leading-relaxed">
+                          Tap your pet for <strong>+5 Happiness</strong> (up to <strong>3 times/day</strong>, 10s cooldown).
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Feeding <strong>different food</strong> gives <strong>+5 variety bonus</strong>, snack categories give <strong>+10 bonus</strong>
+                        <li className="block leading-relaxed">
+                          Feeding <strong>different food</strong> gives <strong>+5 variety bonus</strong>, snack categories give <strong>+10 bonus</strong>.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Happiness decays over time — pet and feed regularly to keep it high
+                        <li className="block leading-relaxed">
+                          Happiness decays over time — pet and feed regularly to keep it high.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          You can tap your pet anytime for fun animations, even after daily limit
+                        <li className="block leading-relaxed">
+                          You can tap your pet anytime for fun animations and sounds, even after the daily bonus limit.
                         </li>
                       </ul>
                     </div>
 
                     {/* Section 4: Evolution & Stats */}
-                    <div className="rpg-inner-box p-3.5 space-y-2">
+                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
                           <TrendingUp className="w-4 h-4 text-white" />
                         </div>
                         <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Evolution & Stats</h4>
                       </div>
-                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          <strong>XP</strong> from scans and feeding levels up your partner
+                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="block leading-relaxed">
+                          <strong>XP</strong> from scans and feeding levels up your companion partner.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Evolution stages: <strong>Kitten → Young Cat → Adult Cat → Wise Cat → Legendary Cat</strong>
+                        <li className="block leading-relaxed">
+                          Evolution stages: <strong>Kitten → Young Cat → Adult Cat → Wise Cat → Legendary Cat</strong>.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          High happiness unlocks better evolution outcomes
+                        <li className="block leading-relaxed">
+                          High happiness unlocks better evolution outcomes and unique dialogs.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Rename your companion anytime from the partner card
+                        <li className="block leading-relaxed">
+                          Rename your companion anytime directly from the partner card.
                         </li>
                       </ul>
                     </div>
 
                     {/* Section 5: Hunter vs Guest Mode */}
-                    <div className="rpg-inner-box p-3.5 space-y-2">
+                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
                           <Cloud className="w-4 h-4 text-white" />
                         </div>
                         <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Hunter vs Guest Mode</h4>
                       </div>
-                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          <strong>Hunter Mode</strong> (Google login): progress saved to cloud, accessible on any device
+                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="block leading-relaxed">
+                          <strong>Hunter Mode</strong> (Google login): progress and registered products are saved to the cloud, accessible on any device.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          <strong>Guest Mode</strong>: progress stored in browser only — clearing data means losing progress
+                        <li className="block leading-relaxed">
+                          <strong>Guest Mode</strong>: progress is stored in browser only — clearing browser cache means losing local data.
                         </li>
-                        <li className="flex items-start gap-1.5">
-                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
-                          Switch modes from the landing page (exit first via Settings)
+                        <li className="block leading-relaxed">
+                          Switch modes from the landing page anytime (exit first safely via Settings).
                         </li>
                       </ul>
                     </div>
