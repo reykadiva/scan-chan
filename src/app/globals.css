@@ -365,6 +365,28 @@
     pointer-events: none;
   }
 
+  /* Scanner Laser Line Animation */
+  @keyframes scan-line {
+    0% {
+      top: 0%;
+      opacity: 0.85;
+    }
+    50% {
+      top: calc(100% - 3px);
+      opacity: 1;
+    }
+    100% {
+      top: 0%;
+      opacity: 0.85;
+    }
+  }
+
+  .animate-scan-line {
+    animation: scan-line 2.2s ease-in-out infinite;
+    will-change: top, opacity;
+  }
+
+
   /* Pixel typography helpers */
   .font-pixel {
     font-family: 'JetBrains Mono', monospace;

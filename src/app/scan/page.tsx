@@ -4,13 +4,15 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { useZxing, type BarcodeFormat } from 'react-zxing';
-import { ArrowLeft, Flashlight, FlashlightOff, Keyboard, X, Search } from 'lucide-react';
+import { ArrowLeft, Flashlight, FlashlightOff, Keyboard, X, Search, RefreshCw } from 'lucide-react';
 import { PixelCat } from '@/components/game/pixel-cat';
 import { usePlayerStore } from '@/stores/player-store';
 import { XpPopup } from '@/components/game/xp-popup';
 import { getDeviceType, formatBarcode } from '@/lib/utils';
-import { GAME_CONFIG } from '@/lib/game-config';
+import { GAME_CONFIG, GameMode } from '@/lib/game-config';
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
+import { playScannerBeep, playSuccessChime, playErrorBuzz } from '@/lib/sound-effects';
+import { haptics } from '@/lib/haptics';
 import type { Product } from '@/types/product';
 import { CATEGORY_EMOJIS, CATEGORY_COLORS } from '@/types';
 
@@ -53,6 +55,10 @@ export default function ScanPage() {
     setPaused(true);
     setPhase('loading');
 
+    // Immediate tactile & audible feedback upon barcode capture
+    playScannerBeep();
+    haptics.medium();
+
     try {
       const res = await fetch('/api/scan', {
         method: 'POST',
@@ -63,6 +69,8 @@ export default function ScanPage() {
       const json = await res.json();
 
       if (!json.success) {
+        playErrorBuzz();
+        haptics.error();
         setPhase('error');
         setErrorMsg(json.error || 'Scan failed');
         return;
@@ -72,24 +80,32 @@ export default function ScanPage() {
       const scanHistory = usePlayerStore.getState().scanHistory;
       const isNew = !scanHistory.includes(barcode);
 
+      // Play success chime and haptics
+      playSuccessChime();
+      haptics.success();
+
+      // Update state in store (works for both Guest Mode & Google OAuth Hunter Mode)
       recordScan(barcode, isNew, product?.category ?? 'Other');
+
+      // Persist to cloud database if signed in with Google OAuth Hunter Mode
+      if (mode === GameMode.ARASHU) {
+        usePlayerStore.getState().saveProfileToServer().catch(() => {});
+      }
 
       setResult({ found, product, isNew });
       setPhase(found ? 'found' : 'not-found');
     } catch {
+      playErrorBuzz();
+      haptics.error();
       setPhase('error');
       setErrorMsg('Network error. Check your connection.');
     }
-  }, [recordScan]);
+  }, [recordScan, mode]);
 
-  const { ref: videoRef, torch } = useZxing({
-    paused,
-    timeBetweenDecodingAttempts: GAME_CONFIG.scanner.fallbackIntervalMs,
-    constraints: { video: { facingMode: 'environment' } },
-    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] as BarcodeFormat[],
-    onDecodeResult: (decoded) => {
-      handleBarcode(decoded.rawValue);
-    },
+  const { videoRef, torch, cameraError, restartCamera } = useBarcodeScanner({
+    paused: paused || phase !== 'scanning',
+    scanIntervalMs: 80,
+    onScan: handleBarcode,
   });
 
   const handleManualSubmit = () => {
@@ -106,7 +122,9 @@ export default function ScanPage() {
     setErrorMsg('');
     setPaused(false);
     lastDecodedRef.current = '';
-    setTimeout(() => { cooldownRef.current = false; }, GAME_CONFIG.cooldowns.scanCooldownMs);
+    setTimeout(() => {
+      cooldownRef.current = false;
+    }, 400);
   };
 
   // ponytail: no permission-state UI — browser handles the prompt natively
@@ -130,7 +148,7 @@ export default function ScanPage() {
         <div className="flex gap-2">
           {torch.isAvailable && (
             <button
-              onClick={() => torch.isOn ? torch.off() : torch.on()}
+              onClick={() => torch.toggle()}
               className="min-w-[44px] min-h-[44px] bg-white border-2 border-[var(--theme-border)] rounded-xl flex items-center justify-center text-[var(--theme-text-dark)] hover:bg-[var(--theme-surface-inner)] shadow-[2px_2px_0_0_var(--theme-shadow)] transition-colors cursor-pointer shrink-0"
               aria-label="Toggle flashlight"
             >
@@ -148,7 +166,7 @@ export default function ScanPage() {
       </div>
 
       {/* Camera feed */}
-      <div className="flex-1 relative overflow-hidden">
+      <div className="flex-1 relative overflow-hidden bg-black">
         <video
           ref={videoRef}
           autoPlay
@@ -157,21 +175,50 @@ export default function ScanPage() {
           className="w-full h-full object-cover"
         />
 
+        {/* Camera error / permission issue banner */}
+        {cameraError && phase === 'scanning' && (
+          <div className="absolute inset-0 z-20 bg-black/85 flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 flex items-center justify-center text-2xl shadow-[2px_2px_0_0_var(--theme-shadow)]">
+              📷
+            </div>
+            <p className="font-nunito text-sm text-white/90 max-w-xs">{cameraError}</p>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => restartCamera()}
+                className="btn-arcade text-xs px-4 py-2.5 flex items-center gap-2 cursor-pointer bg-white text-[var(--theme-text-dark)]"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry Camera
+              </button>
+              <button
+                onClick={() => setShowManualInput(true)}
+                className="btn-arcade-primary text-xs px-4 py-2.5 cursor-pointer text-white"
+              >
+                Input Code
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Viewfinder overlay */}
-        {phase === 'scanning' && (
+        {phase === 'scanning' && !cameraError && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             {/* Darkened edges */}
             <div className="absolute inset-0 bg-black/40" />
             {/* Clear center window */}
-            <div className="relative w-[75vw] max-w-xs h-44 sm:h-56">
-              <div className="absolute inset-0 bg-transparent rounded-2xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.4)' }} />
+            <div className="relative w-[75vw] max-w-xs h-48 sm:h-56 overflow-hidden rounded-2xl">
+              <div className="absolute inset-0 bg-transparent rounded-2xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.45)' }} />
               {/* Corner brackets */}
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[var(--theme-primary)] rounded-tl-xl" />
               <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[var(--theme-primary)] rounded-tr-xl" />
               <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[var(--theme-primary)] rounded-bl-xl" />
               <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[var(--theme-primary)] rounded-br-xl" />
-              {/* Animated scan line */}
-              <div className="absolute left-2 right-2 h-0.5 bg-[var(--theme-accent)] shadow-[0_2px_0_0_var(--theme-shadow)] animate-scan-line" />
+              {/* Center crosshair dot */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
+                <div className="w-2 h-2 rounded-full bg-[var(--theme-accent)] shadow-[0_0_6px_var(--theme-accent)]" />
+              </div>
+              {/* Animated laser scan line */}
+              <div className="absolute left-2 right-2 h-1 bg-[var(--theme-accent)] shadow-[0_0_12px_2px_var(--theme-accent)] rounded-full animate-scan-line pointer-events-none" />
             </div>
             <p className="absolute bottom-8 text-white font-press-start text-[9px] bg-black/60 px-3 py-1.5 rounded-lg border border-white/20">
               Point camera at a barcode
