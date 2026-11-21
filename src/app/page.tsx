@@ -344,6 +344,15 @@ export default function TitleScreenPage() {
               >
                 Survive the hunt with your pixel companion cat
               </motion.p>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
+                className="text-[11px] sm:text-xs font-nunito font-bold text-white drop-shadow-[0_1.5px_3px_rgba(0,0,0,0.95)] max-w-lg mx-auto leading-relaxed px-3"
+              >
+                Scan-Chan is a casual web game where you scan everyday product barcodes with your device camera to feed and raise your virtual pixel cat. Play instantly in local Guest Mode or link your journey via Google for cloud saves.
+              </motion.p>
             </div>
 
             {/* Blinking "Press to start" prompt */}
@@ -351,7 +360,7 @@ export default function TitleScreenPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="mt-8 sm:mt-16 flex flex-col items-center gap-3"
+              className="mt-6 sm:mt-12 flex flex-col items-center gap-3"
             >
               <div className="animate-pulse flex items-center gap-2 px-4 sm:px-5 py-3 rounded-xl bg-white border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] min-h-[44px]">
                 <span className="text-[var(--theme-primary)] font-press-start text-[11px] sm:text-sm tracking-wider">
@@ -468,16 +477,18 @@ export default function TitleScreenPage() {
         )}
       </AnimatePresence>
 
-      {/* 6. Retro Landing Footer with Privacy Policy */}
-      <footer className="absolute bottom-3 inset-x-0 z-30 flex items-center justify-center gap-2.5 text-[10px] font-pixelify text-white/80 drop-shadow-md pointer-events-auto">
-        <span>Scan Chan © 2026</span>
-        <span>•</span>
-        <Link
-          href="/privacy"
-          className="underline hover:text-white transition-colors cursor-pointer"
-        >
-          Privacy Policy
-        </Link>
+      {/* 6. Retro Landing Footer with High-Contrast Privacy Policy Pill */}
+      <footer className="absolute bottom-3 inset-x-0 z-30 flex items-center justify-center pointer-events-auto px-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-xs border border-white/30 text-[11px] font-nunito font-bold text-white shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+          <span className="text-white/80">Scan Chan © 2026</span>
+          <span className="text-white/40">•</span>
+          <Link
+            href="/privacy"
+            className="text-white hover:text-amber-200 underline underline-offset-2 decoration-white/70 hover:decoration-amber-200 transition-colors cursor-pointer font-extrabold"
+          >
+            Privacy Policy
+          </Link>
+        </div>
       </footer>
     </div>
   );
