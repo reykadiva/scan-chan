@@ -4,11 +4,17 @@ import { GameMode, GAME_CONFIG } from '@/lib/game-config';
 import { applyStreakMultiplier } from '@/lib/streak-multiplier';
 import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
 
+// ─── Save queue (module-level, in-flight lock + pending dirty flag) ──────────
+let _isSavingProfile = false;
+let _hasPendingProfileSave = false;
+let _loadedUserId: string | null = null;
+
 // ─── State shape ─────────────────────────────────────────────────────────────
 
 export interface PlayerState {
   mode: GameMode | null;
   isProfileLoaded: boolean;
+  loadedUserId: string | null;
   nickname: string | null;
   userEmail: string | null;
   avatar: string | null;
@@ -69,11 +75,12 @@ export interface PlayerActions {
     isMaxedJustNow?: boolean;
   };
   renamePet: (name: string) => void;
+  setPetName: (name: string) => void;
   selectBorder: (border: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic') => void;
   selectTheme: (theme: string) => void;
   selectAccessory: (accessory: 'none' | 'cowboy' | 'wizard' | 'shades') => void;
   selectTitle: (title: string) => void;
-  loadProfile: () => Promise<void>;
+  loadProfile: (targetUserId?: string) => Promise<void>;
   saveProfileToServer: () => Promise<void>;
   selectRoom: (room: 'cozy' | 'kawaii-garden') => void;
 }
@@ -121,6 +128,7 @@ function generateCreatorId(): string {
 export const initialStoreState: PlayerState = {
   mode: null,
   isProfileLoaded: false,
+  loadedUserId: null,
   nickname: null,
   userEmail: null,
   avatar: null,
@@ -376,7 +384,10 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       resetPlayer: () => {
-        set({ ...initialStoreState, isProfileLoaded: false });
+        _loadedUserId = null;
+        _isSavingProfile = false;
+        _hasPendingProfileSave = false;
+        set({ ...initialStoreState, isProfileLoaded: false, loadedUserId: null });
       },
 
       feedPet: (barcode: string, category: string) => {
@@ -613,8 +624,16 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       renamePet: (name: string) => {
-        set({ petName: name, lastLocalMutationAt: Date.now() });
-        get().saveProfileToServer().catch(() => {});
+        const cleanName = String(name || '').trim();
+        if (!cleanName) return;
+        set({ petName: cleanName, lastLocalMutationAt: Date.now() });
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
+          get().saveProfileToServer().catch(() => {});
+        }
+      },
+
+      setPetName: (name: string) => {
+        get().renamePet(name);
       },
 
       selectBorder: (border) => {
@@ -638,19 +657,37 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       loadProfile: async () => {
+        // BLOCK if save is in-flight or pending — stale GET would overwrite fresh local state
+        if (_saveInFlight || _savePendingDirty) {
+          return;
+        }
+
+        // Skip if profile already loaded for this session (prevents re-mount / tab-switch re-fetch)
+        const currentState = get();
+        if (currentState.isProfileLoaded && currentState.mode === GameMode.ARASHU) {
+          return;
+        }
+
         set({ isLoading: true, error: null });
         try {
           const res = await fetch('/api/profile');
           if (!res.ok) {
             throw new Error(`Failed to load profile (${res.status})`);
           }
+
+          // Re-check after await: a save may have started while fetch was in-flight
+          if (_saveInFlight || _savePendingDirty) {
+            set({ isLoading: false });
+            return;
+          }
+
           const json = await res.json();
           if (json.success && json.data) {
             const d = json.data;
-            const currentState = get();
+            const afterFetchState = get();
             const todayStr = getTodayString();
             let streak = typeof d.streak === 'number' ? d.streak : 0;
-            const lastActiveDate = d.lastActiveDate ?? currentState.lastActiveDate;
+            const lastActiveDate = d.lastActiveDate ?? afterFetchState.lastActiveDate;
 
             // Audit streak upon loading: if user missed more than 1 day, reset to 0
             if (lastActiveDate && streak > 0) {
@@ -664,9 +701,9 @@ export const usePlayerStore = create<PlayerStore>()(
               }
             }
 
-            const localPetName = currentState.petName;
+            const localPetName = afterFetchState.petName;
             let finalPetName = d.petName || 'Scan-chan Jr.';
-            if (currentState.isProfileLoaded && (!d.petName || d.petName === 'Scan-chan Jr.') && localPetName && localPetName !== 'Scan-chan Jr.') {
+            if (afterFetchState.isProfileLoaded && (!d.petName || d.petName === 'Scan-chan Jr.') && localPetName && localPetName !== 'Scan-chan Jr.') {
               finalPetName = localPetName;
               setTimeout(() => {
                 get().saveProfileToServer().catch(() => {});
@@ -676,75 +713,78 @@ export const usePlayerStore = create<PlayerStore>()(
             // ANTI-ROLLBACK GUARD:
             // If local state was mutated recently (< 6 seconds) while already loaded,
             // or if a save is currently in-flight, preserve fresh local inventory & pet vitals!
-            const timeSinceLastMutation = Date.now() - (currentState.lastLocalMutationAt || 0);
-            const isRecentMutation = currentState.isProfileLoaded && timeSinceLastMutation < 6000;
-            const isSaving = currentState.isSaving;
+            const timeSinceLastMutation = Date.now() - (afterFetchState.lastLocalMutationAt || 0);
+            const isRecentMutation = afterFetchState.isProfileLoaded && timeSinceLastMutation < 6000;
+            const isSaving = afterFetchState.isSaving;
             const protectLocalVitals = isRecentMutation || isSaving;
 
             const finalHunger = protectLocalVitals
-              ? currentState.petHunger
+              ? afterFetchState.petHunger
               : (typeof d.petHunger === 'number' ? d.petHunger : 80);
 
             const finalAffection = protectLocalVitals
-              ? currentState.petAffection
+              ? afterFetchState.petAffection
               : (typeof d.petAffection === 'number' ? d.petAffection : 80);
 
             const finalFoodInventory = protectLocalVitals
-              ? currentState.foodInventory
+              ? afterFetchState.foodInventory
               : (d.foodInventory && typeof d.foodInventory === 'object' ? d.foodInventory : {});
 
             const finalLastFedBarcode = protectLocalVitals
-              ? currentState.lastFedBarcode
+              ? afterFetchState.lastFedBarcode
               : (d.lastFedBarcode || '');
 
             const todayKey = getLocalDateKey();
             const serverPetDate = d.lastPetDate || null;
             const finalLastPetDate = protectLocalVitals
-              ? currentState.lastPetDate
+              ? afterFetchState.lastPetDate
               : serverPetDate;
 
             const finalDailyPetCount = protectLocalVitals
-              ? currentState.dailyPetCount
+              ? afterFetchState.dailyPetCount
               : (serverPetDate === todayKey && typeof d.dailyPetCount === 'number' ? d.dailyPetCount : 0);
 
             const finalLastFedAt = protectLocalVitals
-              ? (currentState.lastFedAt || Date.now())
+              ? (afterFetchState.lastFedAt || Date.now())
               : (typeof d.lastFedAt === 'number' && d.lastFedAt > 0
                   ? d.lastFedAt
-                  : (currentState.lastFedAt || Date.now()));
+                  : (afterFetchState.lastFedAt || Date.now()));
 
             const finalLastHungerDecayAt = protectLocalVitals
-              ? (currentState.lastHungerDecayAt || Date.now())
+              ? (afterFetchState.lastHungerDecayAt || Date.now())
               : (typeof d.lastHungerDecayAt === 'number' && d.lastHungerDecayAt > 0
                   ? d.lastHungerDecayAt
-                  : (currentState.lastHungerDecayAt || Date.now()));
+                  : (afterFetchState.lastHungerDecayAt || Date.now()));
 
             const finalLastAffectionDecayAt = protectLocalVitals
-              ? (currentState.lastAffectionDecayAt || Date.now())
+              ? (afterFetchState.lastAffectionDecayAt || Date.now())
               : (typeof d.lastAffectionDecayAt === 'number' && d.lastAffectionDecayAt > 0
                   ? d.lastAffectionDecayAt
-                  : (currentState.lastAffectionDecayAt || Date.now()));
+                  : (afterFetchState.lastAffectionDecayAt || Date.now()));
 
             const serverXp = typeof d.xp === 'number' ? d.xp : 0;
-            const finalXp = Math.max(currentState.xp, serverXp);
+            const finalXp = Math.max(afterFetchState.xp, serverXp);
             const finalLevel = levelFromXp(finalXp);
             const finalStage = getPetStageFromLevel(finalLevel);
 
             const mergedRegisteredBarcodes = Array.from(new Set([
-              ...currentState.registeredBarcodes,
+              ...afterFetchState.registeredBarcodes,
               ...(Array.isArray(d.registeredBarcodes) ? d.registeredBarcodes : []),
             ]));
 
             const mergedScanHistory = Array.from(new Set([
-              ...currentState.scanHistory,
+              ...afterFetchState.scanHistory,
               ...(Array.isArray(d.scanHistory) ? d.scanHistory : []),
             ]));
+
+            // Record which user we loaded for
+            _loadedUserId = d.id || d.userId || null;
 
             set({
               isProfileLoaded: true,
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',
-              userEmail: d.email || currentState.userEmail || null,
+              userEmail: d.email || afterFetchState.userEmail || null,
               avatar: d.avatar || 'calico',
               xp: finalXp,
               level: finalLevel,
@@ -761,11 +801,11 @@ export const usePlayerStore = create<PlayerStore>()(
               dailyPetCount: finalDailyPetCount,
               lastPetDate: finalLastPetDate,
               lastAffectionDecayAt: finalLastAffectionDecayAt,
-              selectedTheme: d.selectedTheme || currentState.selectedTheme || 'default',
-              selectedBorder: d.selectedBorder || currentState.selectedBorder || 'none',
-              selectedAccessory: d.selectedAccessory || currentState.selectedAccessory || 'none',
-              selectedTitle: d.selectedTitle || currentState.selectedTitle || '',
-              selectedRoom: d.selectedRoom || currentState.selectedRoom || 'cozy',
+              selectedTheme: d.selectedTheme || afterFetchState.selectedTheme || 'default',
+              selectedBorder: d.selectedBorder || afterFetchState.selectedBorder || 'none',
+              selectedAccessory: d.selectedAccessory || afterFetchState.selectedAccessory || 'none',
+              selectedTitle: d.selectedTitle || afterFetchState.selectedTitle || '',
+              selectedRoom: d.selectedRoom || afterFetchState.selectedRoom || 'cozy',
               registeredBarcodes: mergedRegisteredBarcodes,
               scanHistory: mergedScanHistory,
               isLoading: false,
@@ -793,39 +833,58 @@ export const usePlayerStore = create<PlayerStore>()(
           return;
         }
 
+        // If a save is already in-flight, mark dirty and return — the in-flight save's
+        // finally block will re-fire with the latest snapshot
+        if (_saveInFlight) {
+          _savePendingDirty = true;
+          return;
+        }
+
+        _saveInFlight = true;
         set({ isSaving: true });
         try {
+          // Always snapshot from get() right before sending so we capture the latest mutations
+          const snap = get();
           await fetch('/api/profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              xp: state.xp,
-              streak: state.streak,
-              lastActiveDate: state.lastActiveDate,
-              petName: state.petName,
-              petStage: state.petStage,
-              petHunger: state.petHunger,
-              petAffection: state.petAffection,
-              foodInventory: state.foodInventory,
-              lastFedBarcode: state.lastFedBarcode,
-              lastFedAt: state.lastFedAt,
-              lastHungerDecayAt: state.lastHungerDecayAt,
-              dailyPetCount: state.dailyPetCount,
-              lastPetDate: state.lastPetDate,
-              lastAffectionDecayAt: state.lastAffectionDecayAt,
-              selectedTheme: state.selectedTheme,
-              selectedBorder: state.selectedBorder,
-              selectedAccessory: state.selectedAccessory,
-              selectedTitle: state.selectedTitle,
-              selectedRoom: state.selectedRoom,
-              registeredBarcodes: state.registeredBarcodes,
-              scanHistory: state.scanHistory,
+              xp: snap.xp,
+              streak: snap.streak,
+              lastActiveDate: snap.lastActiveDate,
+              petName: snap.petName,
+              petStage: snap.petStage,
+              petHunger: snap.petHunger,
+              petAffection: snap.petAffection,
+              foodInventory: snap.foodInventory,
+              lastFedBarcode: snap.lastFedBarcode,
+              lastFedAt: snap.lastFedAt,
+              lastHungerDecayAt: snap.lastHungerDecayAt,
+              dailyPetCount: snap.dailyPetCount,
+              lastPetDate: snap.lastPetDate,
+              lastAffectionDecayAt: snap.lastAffectionDecayAt,
+              selectedTheme: snap.selectedTheme,
+              selectedBorder: snap.selectedBorder,
+              selectedAccessory: snap.selectedAccessory,
+              selectedTitle: snap.selectedTitle,
+              selectedRoom: snap.selectedRoom,
+              registeredBarcodes: snap.registeredBarcodes,
+              scanHistory: snap.scanHistory,
             }),
           });
         } catch (err) {
           console.error('Failed to sync profile to server:', err);
         } finally {
-          set({ isSaving: false });
+          _saveInFlight = false;
+          // If more mutations happened while we were saving, flush one more save
+          // with the absolute latest state
+          if (_savePendingDirty) {
+            _savePendingDirty = false;
+            // Keep isSaving true so loadProfile stays blocked during the chained save
+            get().saveProfileToServer().catch(() => {});
+          } else {
+            set({ isSaving: false });
+          }
         }
       },
     }),
@@ -877,14 +936,17 @@ export const usePlayerStore = create<PlayerStore>()(
   )
 );
 
-// Auto-sync for ARASHU mode
+// Auto-sync for ARASHU mode — debounce to 1s, but the queue inside
+// saveProfileToServer ensures that the LATEST snapshot is always sent
 if (typeof window !== 'undefined') {
   let saveTimeout: any = null;
-  usePlayerStore.subscribe((state) => {
-    if (state.mode !== GameMode.ARASHU) return;
+  usePlayerStore.subscribe((state, prevState) => {
+    if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded) return;
+    // Only trigger on actual data mutations, not on isSaving/isLoading flag changes
+    if (state.lastLocalMutationAt === prevState.lastLocalMutationAt) return;
     if (saveTimeout) clearTimeout(saveTimeout);
     saveTimeout = setTimeout(() => {
-      state.saveProfileToServer();
+      usePlayerStore.getState().saveProfileToServer().catch(() => {});
     }, 1000);
   });
 }
