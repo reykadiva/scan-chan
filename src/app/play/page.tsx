@@ -97,6 +97,7 @@ export default function GameHubPage() {
 
   const {
     mode,
+    setMode,
     nickname,
     avatar,
     xp,
@@ -172,35 +173,36 @@ export default function GameHubPage() {
     checkDailyReset(localDateString);
   }, [mounted, mode, checkDailyReset]);
 
-  // Mode verification
+  // Mode & session verification
   useEffect(() => {
     if (!mounted || isSigningOutRef.current) return;
 
-    if (mode === null) {
-      router.push('/play/mode');
-      return;
-    }
-
-    if (mode === GameMode.GUEST && !nickname) {
-      setShowSetup(true);
-      return;
-    }
-
-    if (mode === GameMode.ARASHU) {
-      fetch('/api/auth/session')
-        .then((res) => res.json())
-        .then((data) => {
-          if (!data.authenticated) {
-            toast.error('Session expired. Please sign in again.');
-            resetPlayer();
-            router.push('/?auth=true');
-          } else {
-            loadProfile();
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          if (mode !== GameMode.ARASHU) {
+            setMode(GameMode.ARASHU);
           }
-        })
-        .catch(() => {});
-    }
-  }, [mode, nickname, mounted, router, loadProfile, resetPlayer]);
+          loadProfile();
+        } else if (mode === GameMode.GUEST) {
+          if (!nickname) {
+            setShowSetup(true);
+          }
+        } else if (mode === GameMode.ARASHU) {
+          toast.error('Session expired. Please sign in again.');
+          resetPlayer();
+          router.push('/?auth=true');
+        } else {
+          router.push('/play/mode');
+        }
+      })
+      .catch(() => {
+        if (mode === null) {
+          router.push('/play/mode');
+        }
+      });
+  }, [mounted, mode, nickname, router, setMode, loadProfile, resetPlayer]);
 
   // Load food inventory products
   useEffect(() => {

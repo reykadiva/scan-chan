@@ -1,8 +1,9 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { UserCheck, Play, ArrowLeft, ShieldCheck, Zap } from 'lucide-react';
+import { UserCheck, Play, ArrowLeft, ShieldCheck, Zap, Loader2 } from 'lucide-react';
 import { usePlayerStore } from '@/stores/player-store';
 import { GameMode } from '@/lib/game-config';
 import { PixelCat } from '@/components/game/pixel-cat';
@@ -11,6 +12,24 @@ import { toast } from 'sonner';
 export default function ModeSelectionPage() {
   const router = useRouter();
   const { setMode, initializePlayer } = usePlayerStore();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Auto-redirect if Google OAuth session is already active
+  useEffect(() => {
+    fetch('/api/auth/session')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setMode(GameMode.ARASHU);
+          router.replace('/play');
+        } else {
+          setCheckingAuth(false);
+        }
+      })
+      .catch(() => {
+        setCheckingAuth(false);
+      });
+  }, [router, setMode]);
 
   const handleSelectGuest = async () => {
     try {
@@ -23,6 +42,21 @@ export default function ModeSelectionPage() {
       setMode(GameMode.GUEST);
       initializePlayer('Guest Hunter', 'calico');
       router.push('/play');
+    }
+  };
+
+  const handleSelectHunter = async () => {
+    try {
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if (data.authenticated && data.user) {
+        setMode(GameMode.ARASHU);
+        router.replace('/play');
+      } else {
+        router.push('/?auth=true');
+      }
+    } catch {
+      router.push('/?auth=true');
     }
   };
 
@@ -74,9 +108,10 @@ export default function ModeSelectionPage() {
           </button>
 
           {/* Account Mode Card */}
-          <Link
-            href="/?auth=true"
-            className="p-4 sm:p-6 rounded-2xl bg-white border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] hover:bg-[var(--theme-surface-inner)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)] flex flex-col justify-between transition-all group cursor-pointer"
+          <button
+            type="button"
+            onClick={handleSelectHunter}
+            className="p-4 sm:p-6 rounded-2xl bg-white border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] hover:bg-[var(--theme-surface-inner)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)] flex flex-col justify-between transition-all group cursor-pointer text-left w-full"
           >
             <div className="space-y-4">
               <div className="w-12 h-12 rounded-xl bg-[var(--theme-surface-inner)] border-2 border-[var(--theme-border)] flex items-center justify-center text-[var(--theme-primary)] group-hover:scale-105 transition-transform shadow-[2px_2px_0_0_var(--theme-shadow)]">
@@ -99,7 +134,7 @@ export default function ModeSelectionPage() {
               <UserCheck className="w-3.5 h-3.5" />
               <span>Sign In with Google →</span>
             </div>
-          </Link>
+          </button>
         </div>
 
         <div>

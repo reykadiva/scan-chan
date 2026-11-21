@@ -20,6 +20,12 @@ export async function setSessionCookie(user: UserSessionData) {
       httpOnly: false,
       sameSite: 'lax',
     });
+    cookieStore.set('scan_mode', 'hunter', {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+      httpOnly: false,
+      sameSite: 'lax',
+    });
   } catch {
     // Ignore outside of Next.js server request context (e.g. CLI/tests)
   }
