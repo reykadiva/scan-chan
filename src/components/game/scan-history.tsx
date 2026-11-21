@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { usePlayerStore } from '@/stores/player-store';
 import { useProductStore } from '@/stores/product-store';
@@ -11,52 +11,49 @@ import { getCategoryVariant } from '@/lib/game-utils';
 
 export function ScanHistory() {
   const scanHistory = usePlayerStore((state) => state.scanHistory);
-  const productStoreMap = useProductStore((state) => state.products);
-  const upsertMultiple = useProductStore((state) => state.upsertMultipleProducts);
+  const products = useProductStore((state) => state.products);
 
-  // Optimistic Cache (SWR): initialize with products already in store immediately
-  const [products, setProducts] = useState<Record<string, Product>>(() => ({ ...productStoreMap }));
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 200);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Only run background fetch once per modal mount
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
+
     let active = true;
 
     async function fetchScannedProducts() {
-      if (scanHistory.length === 0) {
+      const currentHistory = usePlayerStore.getState().scanHistory;
+      if (!currentHistory || currentHistory.length === 0) {
+        if (active) setLoading(false);
         return;
       }
 
-      // If we don't have any matching products in local cache yet, show spinner
-      const hasAnyLocal = scanHistory.some((b) => Boolean(productStoreMap[b]));
-      if (!hasAnyLocal) {
-        setLoading(true);
-      }
-
       try {
-        const uniqueBarcodes = Array.from(new Set(scanHistory));
+        const uniqueBarcodes = Array.from(new Set(currentHistory));
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
 
         const res = await fetch(`/api/products?limit=50&barcodes=${uniqueBarcodes.join(',')}`, {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
 
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && active) {
-          const productMap: Record<string, Product> = {};
-          data.data.forEach((p: Product) => {
-            productMap[p.barcodeNumber] = p;
-          });
-          setProducts((prev) => ({ ...prev, ...productMap }));
-          upsertMultiple(data.data);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data) && active) {
+            useProductStore.getState().upsertMultipleProducts(data.data);
+          }
         }
-      } catch (err) {
-        // Stale cache already rendered, gracefully ignore network/timeout error
+      } catch {
+        // Gracefully ignore network/abort/timeout errors
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
@@ -65,20 +62,22 @@ export function ScanHistory() {
     return () => {
       active = false;
     };
-  }, [scanHistory, productStoreMap, upsertMultiple]);
+  }, []); // Run strictly once on mount
 
-  const filteredHistory = scanHistory.filter((barcode) => {
-    if (!debouncedSearch) return true;
-    const prod = products[barcode];
-    if (prod) {
-      return (
-        prod.productName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        barcode.includes(debouncedSearch) ||
-        (prod.brand && prod.brand.toLowerCase().includes(debouncedSearch.toLowerCase()))
-      );
-    }
-    return barcode.includes(debouncedSearch) || 'unregistered'.includes(debouncedSearch.toLowerCase());
-  });
+  const filteredHistory = useMemo(() => {
+    return scanHistory.filter((barcode) => {
+      if (!debouncedSearch) return true;
+      const prod = products[barcode];
+      if (prod) {
+        return (
+          prod.productName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+          barcode.includes(debouncedSearch) ||
+          (prod.brand && prod.brand.toLowerCase().includes(debouncedSearch.toLowerCase()))
+        );
+      }
+      return barcode.includes(debouncedSearch) || 'unregistered'.includes(debouncedSearch.toLowerCase());
+    });
+  }, [scanHistory, products, debouncedSearch]);
 
   return (
     <div className="space-y-4">
