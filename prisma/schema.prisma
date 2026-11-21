@@ -71,8 +71,8 @@ model Pet {
 model PetStats {
   id        String   @id @default(uuid())
   petId     String   @unique @map("pet_id")
-  hunger    Int      @default(50)
-  affection Int      @default(10)
+  hunger    Int      @default(80)
+  affection Int      @default(80)
   updatedAt DateTime @updatedAt @map("updated_at")
   pet       Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
 

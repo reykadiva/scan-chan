@@ -32,6 +32,8 @@ export interface PlayerState {
   dailyPetCount: number;
   lastPetDate: string | null;
   lastFedBarcode: string;
+  lastFedAt: number;
+  lastHungerDecayAt: number;
   lastAffectionDecayAt: number;
   selectedBorder: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic';
   selectedTheme: string;
@@ -57,6 +59,7 @@ export interface PlayerActions {
   clearPendingXpGain: () => void;
   resetPlayer: () => void;
   feedPet: (barcode: string, category: string) => void;
+  applyHungerDecay: () => void;
   applyAffectionDecay: () => void;
   petCat: () => {
     success: boolean;
@@ -141,6 +144,8 @@ export const initialStoreState: PlayerState = {
   dailyPetCount: 0,
   lastPetDate: null,
   lastFedBarcode: '',
+  lastFedAt: 0,
+  lastHungerDecayAt: 0,
   lastAffectionDecayAt: 0,
   selectedBorder: 'none',
   selectedTheme: 'default',
@@ -184,6 +189,9 @@ export const usePlayerStore = create<PlayerStore>()(
           lastActiveDate: null,
           petHunger: 80,
           petAffection: 80,
+          lastFedAt: Date.now(),
+          lastHungerDecayAt: Date.now(),
+          lastAffectionDecayAt: Date.now(),
         });
       },
 
@@ -345,21 +353,17 @@ export const usePlayerStore = create<PlayerStore>()(
           newStreak = 0;
         }
 
-        const isNewDay = !lastActiveDate || lastActiveDate !== todayStr;
         const isNewPetDay = state.lastPetDate !== todayStr;
         const newDailyPetCount = isNewPetDay ? 0 : (state.dailyPetCount || 0);
 
-        // Only decay hunger on day transition (NOT forced affection drop on refresh)
-        const newHunger = isNewDay ? Math.max(0, state.petHunger - 25) : state.petHunger;
-
         set({
           streak: newStreak,
-          petHunger: newHunger,
           dailyPetCount: newDailyPetCount,
           ...(isNewPetDay && { lastPetDate: todayStr }),
         });
 
-        // Apply time-based real-time affection decay accurately
+        // Apply time-based real-time hunger and affection decay accurately
+        get().applyHungerDecay();
         get().applyAffectionDecay();
 
         if (isNewPetDay && get().mode === GameMode.ARASHU && get().isProfileLoaded) {
@@ -430,6 +434,8 @@ export const usePlayerStore = create<PlayerStore>()(
             petAffection: newAffection,
             petStage: newStage,
             lastFedBarcode: cleanBarcode,
+            lastFedAt: now,
+            lastHungerDecayAt: now,
             lastAffectionDecayAt: now,
             xp: newTotalXp,
             level: newLevel,
@@ -438,6 +444,53 @@ export const usePlayerStore = create<PlayerStore>()(
         });
 
         // Instant cloud sync for Hunter Mode (anti-rollback)
+        if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
+          get().saveProfileToServer().catch(() => {});
+        }
+      },
+
+      applyHungerDecay: () => {
+        const state = get();
+        const now = Date.now();
+
+        // If no timestamp exists yet or unmigrated (<= 0), initialize to now without deducting hunger
+        if (!state.lastHungerDecayAt || state.lastHungerDecayAt <= 0) {
+          set({
+            lastHungerDecayAt: now,
+            lastFedAt: state.lastFedAt > 0 ? state.lastFedAt : now,
+          });
+          return;
+        }
+
+        const lastDecay = state.lastHungerDecayAt;
+        const elapsedMs = now - lastDecay;
+        if (elapsedMs <= 0) return;
+
+        // Proportional hunger decay: 1 point every 15 minutes (= 4 points / hour, ~25 hours from 100 to 0)
+        const intervalMs = 15 * 60 * 1000;
+        const decayPerInterval = 1;
+
+        const intervalsPassed = Math.floor(elapsedMs / intervalMs);
+        if (intervalsPassed <= 0) return;
+
+        // Sanity cap: never deduct more than 15 hunger points in a single calculation cycle
+        const rawDecay = intervalsPassed * decayPerInterval;
+        const totalDecay = Math.min(15, rawDecay);
+
+        const currentHunger = Math.max(0, Math.min(100, Number(state.petHunger) || 0));
+        const newHunger = Math.max(0, currentHunger - totalDecay);
+
+        // If elapsed time was exceptionally long (> 48h), reset anchor to now
+        const newLastDecayAt = elapsedMs > 48 * 60 * 60 * 1000
+          ? now
+          : lastDecay + intervalsPassed * intervalMs;
+
+        set({
+          petHunger: newHunger,
+          lastHungerDecayAt: newLastDecayAt,
+          lastLocalMutationAt: now,
+        });
+
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           get().saveProfileToServer().catch(() => {});
         }
@@ -654,6 +707,18 @@ export const usePlayerStore = create<PlayerStore>()(
               ? currentState.dailyPetCount
               : (serverPetDate === todayKey && typeof d.dailyPetCount === 'number' ? d.dailyPetCount : 0);
 
+            const finalLastFedAt = protectLocalVitals
+              ? (currentState.lastFedAt || Date.now())
+              : (typeof d.lastFedAt === 'number' && d.lastFedAt > 0
+                  ? d.lastFedAt
+                  : (currentState.lastFedAt || Date.now()));
+
+            const finalLastHungerDecayAt = protectLocalVitals
+              ? (currentState.lastHungerDecayAt || Date.now())
+              : (typeof d.lastHungerDecayAt === 'number' && d.lastHungerDecayAt > 0
+                  ? d.lastHungerDecayAt
+                  : (currentState.lastHungerDecayAt || Date.now()));
+
             const finalLastAffectionDecayAt = protectLocalVitals
               ? (currentState.lastAffectionDecayAt || Date.now())
               : (typeof d.lastAffectionDecayAt === 'number' && d.lastAffectionDecayAt > 0
@@ -691,6 +756,8 @@ export const usePlayerStore = create<PlayerStore>()(
               petAffection: finalAffection,
               foodInventory: finalFoodInventory,
               lastFedBarcode: finalLastFedBarcode,
+              lastFedAt: finalLastFedAt,
+              lastHungerDecayAt: finalLastHungerDecayAt,
               dailyPetCount: finalDailyPetCount,
               lastPetDate: finalLastPetDate,
               lastAffectionDecayAt: finalLastAffectionDecayAt,
@@ -704,7 +771,8 @@ export const usePlayerStore = create<PlayerStore>()(
               isLoading: false,
             });
 
-            // Calculate and apply accurate time-based affection decay
+            // Calculate and apply accurate time-based hunger and affection decay
+            get().applyHungerDecay();
             get().applyAffectionDecay();
 
             // If we protected local vitals against stale server data, trigger an instant save
@@ -740,6 +808,8 @@ export const usePlayerStore = create<PlayerStore>()(
               petAffection: state.petAffection,
               foodInventory: state.foodInventory,
               lastFedBarcode: state.lastFedBarcode,
+              lastFedAt: state.lastFedAt,
+              lastHungerDecayAt: state.lastHungerDecayAt,
               dailyPetCount: state.dailyPetCount,
               lastPetDate: state.lastPetDate,
               lastAffectionDecayAt: state.lastAffectionDecayAt,
@@ -793,6 +863,8 @@ export const usePlayerStore = create<PlayerStore>()(
         dailyPetCount: state.dailyPetCount,
         lastPetDate: state.lastPetDate,
         lastFedBarcode: state.lastFedBarcode,
+        lastFedAt: state.lastFedAt,
+        lastHungerDecayAt: state.lastHungerDecayAt,
         lastAffectionDecayAt: state.lastAffectionDecayAt,
         selectedBorder: state.selectedBorder,
         selectedTheme: state.selectedTheme,

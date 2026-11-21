@@ -21,6 +21,8 @@ export const profileUpdateSchema = z.object({
   dailyPetCount: z.number().int().min(0).optional(),
   lastPetDate: z.string().nullable().optional(),
   lastAffectionDecayAt: z.number().int().min(0).optional(),
+  lastFedAt: z.number().int().min(0).optional(),
+  lastHungerDecayAt: z.number().int().min(0).optional(),
 });
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

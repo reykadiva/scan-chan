@@ -115,6 +115,7 @@ export default function GameHubPage() {
     petCat,
     dailyPetCount,
     lastPetDate,
+    applyHungerDecay,
     applyAffectionDecay,
   } = usePlayerStore();
 
@@ -178,6 +179,7 @@ export default function GameHubPage() {
       const currentKey = getLocalDateKey();
       setTodayKey(currentKey);
       checkDailyReset(currentKey);
+      applyHungerDecay();
       applyAffectionDecay();
     };
 
@@ -200,7 +202,7 @@ export default function GameHubPage() {
       window.removeEventListener('focus', handleSync);
       clearInterval(interval);
     };
-  }, [mounted, mode, checkDailyReset, applyAffectionDecay]);
+  }, [mounted, mode, checkDailyReset, applyHungerDecay, applyAffectionDecay]);
 
   // Mode & session verification
   useEffect(() => {
@@ -221,6 +223,7 @@ export default function GameHubPage() {
               const currentKey = getLocalDateKey();
               setTodayKey(currentKey);
               checkDailyReset(currentKey);
+              applyHungerDecay();
               applyAffectionDecay();
             })
             .catch((err) => {

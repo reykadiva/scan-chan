@@ -134,6 +134,12 @@ function getLocalProfile(userId: string) {
     lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' && rawMeta.lastAffectionDecayAt > 0
       ? rawMeta.lastAffectionDecayAt
       : Date.now(),
+    lastFedAt: typeof rawMeta.lastFedAt === 'number' && rawMeta.lastFedAt > 0
+      ? rawMeta.lastFedAt
+      : Date.now(),
+    lastHungerDecayAt: typeof rawMeta.lastHungerDecayAt === 'number' && rawMeta.lastHungerDecayAt > 0
+      ? rawMeta.lastHungerDecayAt
+      : Date.now(),
   };
 }
 
@@ -162,6 +168,8 @@ function updateLocalProfile(userId: string, input: ProfileUpdateInput) {
     ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
     ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
     ...(input.lastAffectionDecayAt !== undefined && { lastAffectionDecayAt: input.lastAffectionDecayAt }),
+    ...(input.lastFedAt !== undefined && { lastFedAt: input.lastFedAt }),
+    ...(input.lastHungerDecayAt !== undefined && { lastHungerDecayAt: input.lastHungerDecayAt }),
   };
 
   let foodInv: Record<string, number> = {};
@@ -251,6 +259,9 @@ export async function getPlayerProfile(userId: string) {
                 selectedAccessory: 'none',
                 selectedTitle: '',
                 selectedRoom: 'cozy',
+                lastFedAt: Date.now(),
+                lastHungerDecayAt: Date.now(),
+                lastAffectionDecayAt: Date.now(),
               },
             },
           },
@@ -368,6 +379,12 @@ export async function getPlayerProfile(userId: string) {
       lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' && rawMeta.lastAffectionDecayAt > 0
         ? rawMeta.lastAffectionDecayAt
         : Date.now(),
+      lastFedAt: typeof rawMeta.lastFedAt === 'number' && rawMeta.lastFedAt > 0
+        ? rawMeta.lastFedAt
+        : Date.now(),
+      lastHungerDecayAt: typeof rawMeta.lastHungerDecayAt === 'number' && rawMeta.lastHungerDecayAt > 0
+        ? rawMeta.lastHungerDecayAt
+        : Date.now(),
     };
   } catch (error) {
     console.warn('[getPlayerProfile] Prisma error, using local fallback:', error);
@@ -430,6 +447,8 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
       ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
       ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
       ...(input.lastAffectionDecayAt !== undefined && { lastAffectionDecayAt: input.lastAffectionDecayAt }),
+      ...(input.lastFedAt !== undefined && { lastFedAt: input.lastFedAt }),
+      ...(input.lastHungerDecayAt !== undefined && { lastHungerDecayAt: input.lastHungerDecayAt }),
     };
 
     // Perform transactional or chained update
