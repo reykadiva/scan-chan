@@ -10,7 +10,7 @@ import {
   Flame,
   History,
   Package,
-  LogOut,
+  BookOpen,
   Edit2,
   Check,
   X,
@@ -18,6 +18,10 @@ import {
   Heart,
   Utensils,
   Settings,
+  Crosshair,
+  Sparkles,
+  TrendingUp,
+  Cloud,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PixelCat, type CatVariantId, type CatActionId } from '@/components/game/pixel-cat';
@@ -30,7 +34,7 @@ import { ProductList } from '@/components/game/product-list';
 import { ScanHistory } from '@/components/game/scan-history';
 import { XpPopup } from '@/components/game/xp-popup';
 import { CategoryIcon } from '@/components/ui/category-badge';
-import { hasScannedToday, getTodayString } from '@/lib/streak-helpers';
+import { hasScannedToday, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
 import type { Product } from '@/types';
 
 // Map evolution stages to cute pixel cat variants
@@ -78,7 +82,7 @@ function RegisterParamHandler({ onBarcode }: { onBarcode: (b: string) => void })
   return null;
 }
 
-type ModalTab = 'bag' | 'catalog' | 'history' | null;
+type ModalTab = 'bag' | 'catalog' | 'history' | 'guide' | null;
 
 export default function GameHubPage() {
   const router = useRouter();
@@ -109,6 +113,7 @@ export default function GameHubPage() {
     petCat,
     dailyPetCount,
     lastPetDate,
+    applyAffectionDecay,
   } = usePlayerStore();
 
   const [activeModal, setActiveModal] = useState<ModalTab>(null);
@@ -119,10 +124,11 @@ export default function GameHubPage() {
   const [mounted, setMounted] = useState(false);
   const isSigningOutRef = useRef(false);
 
-  // Real-time daily streak calculation (TikTok style)
-  const todayStr = useMemo(() => getTodayString(), []);
-  const scannedToday = hasScannedToday(lastActiveDate, todayStr);
-  const petsToday = lastPetDate === todayStr ? (dailyPetCount || 0) : 0;
+  // Real-time daily streak & reset calculation (uniform local date)
+  const [todayKey, setTodayKey] = useState(() => getLocalDateKey());
+  const scannedToday = hasScannedToday(lastActiveDate, todayKey);
+  const petsToday = lastPetDate === todayKey ? (dailyPetCount || 0) : 0;
+  const lastPetToastTimeRef = useRef(0);
 
   // Recent scans product cache
   const [recentScanProducts, setRecentScanProducts] = useState<Record<string, Product>>({});
@@ -159,11 +165,37 @@ export default function GameHubPage() {
     }
   }, [displayLevel, lastLevel, mounted]);
 
+  // Real-time automatic midnight, time-based decay & day transition watcher
   useEffect(() => {
     if (!mounted || mode === null) return;
-    const localDateString = new Date().toLocaleDateString('en-CA');
-    checkDailyReset(localDateString);
-  }, [mounted, mode, checkDailyReset]);
+
+    const handleSync = () => {
+      const currentKey = getLocalDateKey();
+      setTodayKey(currentKey);
+      checkDailyReset(currentKey);
+      applyAffectionDecay();
+    };
+
+    handleSync();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleSync();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleSync);
+
+    // Periodic time-based decay & day check every 60 seconds
+    const interval = setInterval(handleSync, 60000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleSync);
+      clearInterval(interval);
+    };
+  }, [mounted, mode, checkDailyReset, applyAffectionDecay]);
 
   // Mode & session verification
   useEffect(() => {
@@ -323,16 +355,21 @@ export default function GameHubPage() {
   const handleCatClick = () => {
     const petResult = petCat();
     let petBonusText = '';
-    if (!petResult.success) {
-      if (petResult.reason === 'cooldown') {
-        toast.info('Wait a moment before petting again! ⏳');
-      } else if (petResult.reason === 'daily_limit') {
-        toast.info('Daily pet limit reached (3/3 today)! 💖');
+    if (petResult.success) {
+      if (petResult.isMaxedJustNow) {
+        toast.success('Daily happiness bonus maxed (3/3)! You can still play with your pet 💕');
+      } else {
+        toast.success(`+5 Happiness! (${petResult.dailyCount}/3 daily pets) 💕`);
       }
-    } else {
-      toast.success('+5 Happiness! 💕');
       petBonusText = ' 💕 (+5 Happiness!)';
+    } else if (petResult.reason === 'daily_limit') {
+      const now = Date.now();
+      if (now - lastPetToastTimeRef.current > 25000) {
+        lastPetToastTimeRef.current = now;
+        toast.info('Daily happiness bonus maxed (3/3)! You can still play with your pet 💕');
+      }
     }
+    // If cooldown: NO toast at all. User can tap freely and enjoy the cat animations & meows!
 
     let dialogs: string[];
     let actionToSet: CatActionId = 'none';
@@ -487,6 +524,8 @@ export default function GameHubPage() {
             key="settings-modal"
             isOpen={showSettingsModal}
             onClose={() => setShowSettingsModal(false)}
+            onSignOut={handleSignOut}
+            isCloudMode={mode === GameMode.ARASHU}
           />
         )}
       </AnimatePresence>
@@ -567,15 +606,16 @@ export default function GameHubPage() {
               <span className="hidden md:inline">Settings</span>
             </button>
 
-            {/* Sign Out Button */}
+            {/* Guide Button */}
             <button
-              onClick={handleSignOut}
-              aria-label="Exit or sign out"
-              className="rpg-inner-box px-2 sm:px-2.5 py-1 min-h-[34px] sm:min-h-auto text-xs font-bold text-[var(--theme-primary)] hover:text-[var(--theme-text-dark)] hover:bg-[var(--theme-surface-inner)] cursor-pointer flex items-center justify-center gap-1 transition-colors shrink-0"
-              title="Sign out"
+              type="button"
+              onClick={() => setActiveModal('guide')}
+              aria-label="How to play"
+              className="rpg-inner-box px-2 sm:px-2.5 py-1 min-h-[34px] sm:min-h-auto text-xs font-bold text-[var(--theme-text-dark)] hover:text-[var(--theme-primary)] hover:bg-[var(--theme-surface-inner)] cursor-pointer flex items-center justify-center gap-1 transition-colors shrink-0"
+              title="How to Play"
             >
-              <LogOut className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden md:inline">Exit</span>
+              <BookOpen className="w-3.5 h-3.5 shrink-0" />
+              <span className="hidden md:inline">Guide</span>
             </button>
           </div>
         </header>
@@ -949,10 +989,12 @@ export default function GameHubPage() {
                   {activeModal === 'bag' && <ShoppingBag className="w-5 h-5 text-white shrink-0" />}
                   {activeModal === 'catalog' && <Package className="w-5 h-5 text-white shrink-0" />}
                   {activeModal === 'history' && <History className="w-5 h-5 text-white shrink-0" />}
+                  {activeModal === 'guide' && <BookOpen className="w-5 h-5 text-white shrink-0" />}
                   <h3 className="font-fredoka text-lg sm:text-xl font-black uppercase tracking-wider text-white drop-shadow-[1.5px_1.5px_0_var(--theme-dark)] truncate">
                     {activeModal === 'bag' && 'Food Bag'}
                     {activeModal === 'catalog' && 'Product Registry'}
                     {activeModal === 'history' && 'Scan History'}
+                    {activeModal === 'guide' && 'How to Play'}
                   </h3>
                 </div>
 
@@ -1044,6 +1086,147 @@ export default function GameHubPage() {
                 {activeModal === 'history' && (
                   <div>
                     <ScanHistory />
+                  </div>
+                )}
+
+                {/* 4. GUIDE MODAL */}
+                {activeModal === 'guide' && (
+                  <div className="space-y-4 text-white">
+                    {/* Section 1: Scan & Collect */}
+                    <div className="rpg-inner-box p-3.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
+                          <Crosshair className="w-4 h-4 text-white" />
+                        </div>
+                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Scan & Collect</h4>
+                      </div>
+                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Point your camera at any <strong>1D barcode</strong> (EAN-13, UPC-A, etc.) on snack/drink packaging
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Each unique scan gives <strong>+10 XP</strong> and adds <strong>1 food</strong> to your bag
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Register new products for <strong>+50 bonus XP</strong> as first discoverer
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Scan daily to maintain your <strong>streak</strong> (shown in the top bar)
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Section 2: Hunger & Feeding */}
+                    <div className="rpg-inner-box p-3.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
+                          <Utensils className="w-4 h-4 text-white" />
+                        </div>
+                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Hunger & Feeding</h4>
+                      </div>
+                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Feed your pet from the <strong>Food Bag</strong> using items you scanned
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Different categories restore different hunger: <strong>Dairy +20</strong>, <strong>Instant +15</strong>, <strong>Snack +10</strong>, <strong>Candy +8</strong>, <strong>Drink +5</strong>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Feeding a <strong>new food type</strong> gives <strong>+5 bonus happiness</strong>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          At <strong>0% hunger</strong> your pet faints. Feed to revive!
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Section 3: Happiness & Petting */}
+                    <div className="rpg-inner-box p-3.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
+                          <Heart className="w-4 h-4 text-white" />
+                        </div>
+                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Happiness & Petting</h4>
+                      </div>
+                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Tap your pet for <strong>+5 Happiness</strong> (up to <strong>3 times/day</strong>, 10s cooldown)
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Feeding <strong>different food</strong> gives <strong>+5 variety bonus</strong>, snack categories give <strong>+10 bonus</strong>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Happiness decays over time — pet and feed regularly to keep it high
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          You can tap your pet anytime for fun animations, even after daily limit
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Section 4: Evolution & Stats */}
+                    <div className="rpg-inner-box p-3.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
+                          <TrendingUp className="w-4 h-4 text-white" />
+                        </div>
+                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Evolution & Stats</h4>
+                      </div>
+                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          <strong>XP</strong> from scans and feeding levels up your partner
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Evolution stages: <strong>Kitten → Young Cat → Adult Cat → Wise Cat → Legendary Cat</strong>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          High happiness unlocks better evolution outcomes
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Rename your companion anytime from the partner card
+                        </li>
+                      </ul>
+                    </div>
+
+                    {/* Section 5: Hunter vs Guest Mode */}
+                    <div className="rpg-inner-box p-3.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
+                          <Cloud className="w-4 h-4 text-white" />
+                        </div>
+                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Hunter vs Guest Mode</h4>
+                      </div>
+                      <ul className="space-y-1 pl-1 text-xs font-nunito text-[var(--theme-text-dark)] font-semibold">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          <strong>Hunter Mode</strong> (Google login): progress saved to cloud, accessible on any device
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          <strong>Guest Mode</strong>: progress stored in browser only — clearing data means losing progress
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-[var(--theme-primary)] font-bold mt-0.5 shrink-0">•</span>
+                          Switch modes from the landing page (exit first via Settings)
+                        </li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>

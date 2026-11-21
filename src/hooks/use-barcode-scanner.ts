@@ -3,6 +3,37 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/library';
 
+/**
+ * Validates that scanned text is a genuine 1D retail product barcode.
+ * Rejects QR codes, promo URLs (http://, https://), and strings with complex symbols.
+ */
+export function isValidRetailBarcode(rawText: string): boolean {
+  if (!rawText) return false;
+  const trimmed = rawText.trim();
+
+  // 1. Explicitly ignore URLs and protocol links from packaging promo QR codes
+  if (/^(https?:\/\/|www\.|\/\/|[a-z0-9]+:\/\/)/i.test(trimmed)) {
+    return false;
+  }
+
+  // 2. Ignore text containing URL/query/JSON delimiters (?, &, =, #, /, \, {, }, [, ], ", ;, %)
+  if (/[?&=#\/\\{}\[\]";%<>]/.test(trimmed)) {
+    return false;
+  }
+
+  // 3. Retail 1D barcodes strictly consist of alphanumeric characters with standard hyphen/dash/dot (Code 128/39)
+  if (!/^[A-Za-z0-9\-._]+$/.test(trimmed)) {
+    return false;
+  }
+
+  // 4. Barcode length boundaries: consumer retail barcodes are between 4 and 48 characters
+  if (trimmed.length < 4 || trimmed.length > 48) {
+    return false;
+  }
+
+  return true;
+}
+
 interface UseBarcodeScannerOptions {
   onScan: (barcode: string) => void;
   paused?: boolean;
@@ -50,7 +81,7 @@ export function useBarcodeScanner({
     pausedRef.current = paused;
   }, [paused]);
 
-  // Initialize ZXing reader with broad 1D/2D format hints
+  // Initialize ZXing reader with strict 1D retail barcode formats (ignoring 2D/QR codes)
   useEffect(() => {
     const hints = new Map();
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -60,7 +91,6 @@ export function useBarcodeScanner({
       BarcodeFormat.UPC_E,
       BarcodeFormat.CODE_128,
       BarcodeFormat.CODE_39,
-      BarcodeFormat.QR_CODE,
       BarcodeFormat.ITF,
     ]);
     hints.set(DecodeHintType.TRY_HARDER, true);
@@ -68,7 +98,7 @@ export function useBarcodeScanner({
     const reader = new BrowserMultiFormatReader(hints);
     zxingReaderRef.current = reader;
 
-    // Check native W3C BarcodeDetector support
+    // Check native W3C BarcodeDetector support (whitelisted to 1D retail formats only)
     if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
       try {
         const NativeDetector = (window as any).BarcodeDetector;
@@ -80,9 +110,7 @@ export function useBarcodeScanner({
             'upc_e',
             'code_128',
             'code_39',
-            'qr_code',
             'itf',
-            'data_matrix',
           ],
         });
       } catch (e) {
@@ -259,6 +287,13 @@ export function useBarcodeScanner({
           }
 
           isProcessing = false;
+
+          // Validate that the detected text is a genuine 1D retail barcode (and not a QR code/URL)
+          if (detectedBarcode) {
+            if (!isValidRetailBarcode(detectedBarcode)) {
+              detectedBarcode = null;
+            }
+          }
 
           if (detectedBarcode && !pausedRef.current) {
             setIsScanning(false);

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GameMode, GAME_CONFIG } from '@/lib/game-config';
 import { applyStreakMultiplier } from '@/lib/streak-multiplier';
-import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString } from '@/lib/streak-helpers';
+import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
 
 // ─── State shape ─────────────────────────────────────────────────────────────
 
@@ -30,6 +30,7 @@ export interface PlayerState {
   dailyPetCount: number;
   lastPetDate: string | null;
   lastFedBarcode: string;
+  lastAffectionDecayAt: number;
   selectedBorder: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic';
   selectedTheme: string;
   selectedAccessory: 'none' | 'cowboy' | 'wizard' | 'shades';
@@ -50,11 +51,18 @@ export interface PlayerActions {
   recordScan: (barcode: string, isNewProduct: boolean, category: string) => void;
   registerProduct: (barcode: string, category: string) => void;
   unregisterProduct: (barcode: string) => void;
-  checkDailyReset: (localDateString: string) => void;
+  checkDailyReset: (localDateString?: string) => void;
   clearPendingXpGain: () => void;
   resetPlayer: () => void;
   feedPet: (barcode: string, category: string) => void;
-  petCat: () => { success: boolean; reason?: string };
+  applyAffectionDecay: () => void;
+  petCat: () => {
+    success: boolean;
+    reason?: 'cooldown' | 'daily_limit';
+    dailyCount?: number;
+    newAffection?: number;
+    isMaxedJustNow?: boolean;
+  };
   renamePet: (name: string) => void;
   selectBorder: (border: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic') => void;
   selectTheme: (theme: string) => void;
@@ -118,6 +126,7 @@ export const initialStoreState: PlayerState = {
   dailyPetCount: 0,
   lastPetDate: null,
   lastFedBarcode: '',
+  lastAffectionDecayAt: 0,
   selectedBorder: 'none',
   selectedTheme: 'default',
   selectedAccessory: 'none',
@@ -266,14 +275,15 @@ export const usePlayerStore = create<PlayerStore>()(
         }));
       },
 
-      checkDailyReset: (localDateString: string) => {
+      checkDailyReset: (localDateString?: string) => {
         const state = get();
+        const todayStr = localDateString || getLocalDateKey();
         const { lastActiveDate, streak } = state;
 
         let newStreak = streak;
         if (lastActiveDate) {
           const lastDateParts = lastActiveDate.split('-').map(Number);
-          const todayParts = localDateString.split('-').map(Number);
+          const todayParts = todayStr.split('-').map(Number);
           const last = new Date(lastDateParts[0], lastDateParts[1] - 1, lastDateParts[2]);
           const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
           const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
@@ -284,17 +294,26 @@ export const usePlayerStore = create<PlayerStore>()(
           }
         }
 
-        const newHunger = Math.max(0, state.petHunger - 25);
-        const newAffection = newHunger === 0 ? Math.max(0, state.petAffection - 5) : state.petAffection;
-        const isNewPetDay = state.lastPetDate !== localDateString;
-        const newDailyPetCount = isNewPetDay ? 0 : state.dailyPetCount;
+        const isNewDay = !lastActiveDate || lastActiveDate !== todayStr;
+        const isNewPetDay = state.lastPetDate !== todayStr;
+        const newDailyPetCount = isNewPetDay ? 0 : (state.dailyPetCount || 0);
+
+        // Only decay hunger on day transition (NOT forced affection drop on refresh)
+        const newHunger = isNewDay ? Math.max(0, state.petHunger - 25) : state.petHunger;
 
         set({
           streak: newStreak,
           petHunger: newHunger,
-          petAffection: newAffection,
           dailyPetCount: newDailyPetCount,
+          ...(isNewPetDay && { lastPetDate: todayStr }),
         });
+
+        // Apply time-based real-time affection decay accurately
+        get().applyAffectionDecay();
+
+        if (isNewPetDay && get().mode === GameMode.ARASHU) {
+          get().saveProfileToServer().catch(() => {});
+        }
       },
 
       clearPendingXpGain: () => {
@@ -365,6 +384,7 @@ export const usePlayerStore = create<PlayerStore>()(
             petAffection: newAffection,
             petStage: newStage,
             lastFedBarcode: cleanBarcode,
+            lastAffectionDecayAt: now,
             xp: newXp,
             level: newLevel,
             lastLocalMutationAt: now,
@@ -377,20 +397,90 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       },
 
+      applyAffectionDecay: () => {
+        const state = get();
+        const now = Date.now();
+        const lastDecay = state.lastAffectionDecayAt || now;
+
+        // If no timestamp exists yet, initialize to now without decaying
+        if (!state.lastAffectionDecayAt) {
+          set({ lastAffectionDecayAt: now });
+          return;
+        }
+
+        const elapsedMs = now - lastDecay;
+        if (elapsedMs <= 0) return;
+
+        const hunger = Number(state.petHunger) || 0;
+        let intervalMs: number;
+        let decayPerInterval: number;
+
+        if (hunger === 0) {
+          // Fainted condition: -5 Happiness every 1 hour
+          intervalMs = 60 * 60 * 1000;
+          decayPerInterval = 5;
+        } else if (hunger < 30) {
+          // Hungry condition: -2 Happiness every 1 hour
+          intervalMs = 60 * 60 * 1000;
+          decayPerInterval = 2;
+        } else {
+          // Normal condition (hunger >= 30): -1 Happiness every 2 hours
+          intervalMs = 2 * 60 * 60 * 1000;
+          decayPerInterval = 1;
+        }
+
+        const intervalsPassed = Math.floor(elapsedMs / intervalMs);
+        if (intervalsPassed <= 0) return;
+
+        const totalDecay = intervalsPassed * decayPerInterval;
+        const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
+        const newAffection = Math.max(0, currentAffection - totalDecay);
+        const newLastDecayAt = lastDecay + intervalsPassed * intervalMs;
+
+        let newStage = state.petStage;
+        if (newAffection >= 90) newStage = 'LEGENDARY_CAT';
+        else if (newAffection >= 75) newStage = 'WISE_CAT';
+        else if (newAffection >= 50) newStage = 'ADULT_CAT';
+        else if (newAffection >= 25) newStage = 'YOUNG_CAT';
+        else newStage = 'KITTEN';
+
+        set({
+          petAffection: newAffection,
+          petStage: newStage,
+          lastAffectionDecayAt: newLastDecayAt,
+          lastLocalMutationAt: now,
+        });
+
+        if (get().mode === GameMode.ARASHU) {
+          get().saveProfileToServer().catch(() => {});
+        }
+      },
+
       petCat: () => {
         const state = get();
         const now = Date.now();
-        const todayStr = getTodayString();
+        const todayStr = getLocalDateKey();
+
+        // Auto-detect new day transition on interaction
+        const isNewDay = state.lastPetDate !== todayStr;
+        const currentDailyPets = isNewDay ? 0 : (state.dailyPetCount || 0);
 
         // 10s cooldown check
         if (now - (state.lastPetTime || 0) < 10000) {
-          return { success: false, reason: 'cooldown' };
+          return {
+            success: false,
+            reason: 'cooldown' as const,
+            dailyCount: currentDailyPets,
+          };
         }
 
         // Daily limit check: max 3 pets per day
-        const currentDailyPets = state.lastPetDate === todayStr ? (state.dailyPetCount || 0) : 0;
         if (currentDailyPets >= 3) {
-          return { success: false, reason: 'daily_limit' };
+          return {
+            success: false,
+            reason: 'daily_limit' as const,
+            dailyCount: currentDailyPets,
+          };
         }
 
         const newDailyPets = currentDailyPets + 1;
@@ -409,6 +499,7 @@ export const usePlayerStore = create<PlayerStore>()(
           lastPetTime: now,
           dailyPetCount: newDailyPets,
           lastPetDate: todayStr,
+          lastAffectionDecayAt: now,
           lastLocalMutationAt: now,
         });
 
@@ -416,7 +507,12 @@ export const usePlayerStore = create<PlayerStore>()(
           get().saveProfileToServer().catch(() => {});
         }
 
-        return { success: true };
+        return {
+          success: true,
+          dailyCount: newDailyPets,
+          newAffection,
+          isMaxedJustNow: newDailyPets === 3,
+        };
       },
 
       renamePet: (name: string) => {
@@ -516,6 +612,12 @@ export const usePlayerStore = create<PlayerStore>()(
               ? currentState.lastPetDate
               : (d.lastPetDate || null);
 
+            const finalLastAffectionDecayAt = protectLocalVitals
+              ? (currentState.lastAffectionDecayAt || Date.now())
+              : (typeof d.lastAffectionDecayAt === 'number' && d.lastAffectionDecayAt > 0
+                  ? d.lastAffectionDecayAt
+                  : (currentState.lastAffectionDecayAt || Date.now()));
+
             const serverXp = typeof d.xp === 'number' ? d.xp : 0;
             const finalXp = Math.max(currentState.xp, serverXp);
             const finalLevel = levelFromXp(finalXp);
@@ -546,6 +648,7 @@ export const usePlayerStore = create<PlayerStore>()(
               lastFedBarcode: finalLastFedBarcode,
               dailyPetCount: finalDailyPetCount,
               lastPetDate: finalLastPetDate,
+              lastAffectionDecayAt: finalLastAffectionDecayAt,
               selectedTheme: d.selectedTheme || currentState.selectedTheme || 'default',
               selectedBorder: d.selectedBorder || currentState.selectedBorder || 'none',
               selectedAccessory: d.selectedAccessory || currentState.selectedAccessory || 'none',
@@ -555,6 +658,9 @@ export const usePlayerStore = create<PlayerStore>()(
               scanHistory: mergedScanHistory,
               isLoading: false,
             });
+
+            // Calculate and apply accurate time-based affection decay
+            get().applyAffectionDecay();
 
             // If we protected local vitals against stale server data, trigger an instant save
             if (protectLocalVitals) {
@@ -588,6 +694,7 @@ export const usePlayerStore = create<PlayerStore>()(
               lastFedBarcode: state.lastFedBarcode,
               dailyPetCount: state.dailyPetCount,
               lastPetDate: state.lastPetDate,
+              lastAffectionDecayAt: state.lastAffectionDecayAt,
               selectedTheme: state.selectedTheme,
               selectedBorder: state.selectedBorder,
               selectedAccessory: state.selectedAccessory,
@@ -637,6 +744,7 @@ export const usePlayerStore = create<PlayerStore>()(
         dailyPetCount: state.dailyPetCount,
         lastPetDate: state.lastPetDate,
         lastFedBarcode: state.lastFedBarcode,
+        lastAffectionDecayAt: state.lastAffectionDecayAt,
         selectedBorder: state.selectedBorder,
         selectedTheme: state.selectedTheme,
         selectedAccessory: state.selectedAccessory,

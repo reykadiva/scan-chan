@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerStore } from '@/stores/player-store';
@@ -15,6 +15,7 @@ import { ParticleSystem } from '@/components/ui/particle-system';
 import { MilestoneCelebration } from '@/components/ui/milestone-celebration';
 import { FoodCatIcons, ActionCatIcons, type CatIconColor } from '@/components/ui/cat-icon-variants';
 import { haptics } from '@/lib/haptics';
+import { getLocalDateKey } from '@/lib/streak-helpers';
 
 // ponytail: map evolution stages to cute pixel cat variants
 const STAGE_AVATARS: Record<string, CatVariantId> = {
@@ -34,12 +35,17 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export function PetPanel() {
-  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, avatar, petCat, dailyPetCount, lastPetDate } = usePlayerStore();
+  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, avatar, petCat, dailyPetCount, lastPetDate, applyAffectionDecay } = usePlayerStore();
   const selectedRoom = usePlayerStore((s) => s.selectedRoom);
   const roomTheme = getRoomTheme(selectedRoom);
   
-  const todayStr = new Date().toISOString().split('T')[0];
-  const petsToday = lastPetDate === todayStr ? (dailyPetCount || 0) : 0;
+  const todayKey = getLocalDateKey();
+  const petsToday = lastPetDate === todayKey ? (dailyPetCount || 0) : 0;
+  const lastToastTimeRef = useRef(0);
+
+  useEffect(() => {
+    applyAffectionDecay();
+  }, [applyAffectionDecay]);
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(petName);
@@ -157,20 +163,24 @@ export function PetPanel() {
 
     const petResult = petCat();
     let meowExtra = '';
-    if (!petResult.success) {
-      if (petResult.reason === 'cooldown') {
-        toast.info('Wait 10 seconds before petting again! ⏳');
-      } else if (petResult.reason === 'daily_limit') {
-        toast.info('Daily pet limit reached (3/3 today)! 💖');
+    if (petResult.success) {
+      if (petResult.isMaxedJustNow) {
+        toast.success('Daily happiness bonus maxed (3/3)! You can still play with your pet 💕');
+      } else {
+        toast.success(`+5 Happiness! (${petResult.dailyCount}/3 daily pets) 💕`);
       }
-    } else {
-      toast.success('+5 Happiness! 💕');
       meowExtra = ' 💕 (+5 Happiness)';
       const heartId = Date.now() + 1;
       setFedPopups((prev) => [...prev, { id: heartId, text: '+5 Happiness 💕' }]);
       setTimeout(() => {
         setFedPopups((prev) => prev.filter((p) => p.id !== heartId));
       }, 1500);
+    } else if (petResult.reason === 'daily_limit') {
+      const now = Date.now();
+      if (now - lastToastTimeRef.current > 25000) {
+        lastToastTimeRef.current = now;
+        toast.info('Daily happiness bonus maxed (3/3)! You can still play with your pet 💕');
+      }
     }
 
     let meows: string[];

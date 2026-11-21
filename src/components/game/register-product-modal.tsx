@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown, Flashlight, FlashlightOff } from 'lucide-react';
 import { CATEGORIES } from '@/types';
-import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
+import { useBarcodeScanner, isValidRetailBarcode } from '@/hooks/use-barcode-scanner';
 import { playScannerBeep } from '@/lib/sound-effects';
 import { toast } from 'sonner';
 import { WebcamCapture } from '@/components/game/webcam-capture';
@@ -50,6 +50,7 @@ function BarcodeScannerOverlay({
 
   const { videoRef, torch } = useBarcodeScanner({
     onScan: (barcode) => {
+      if (!isValidRetailBarcode(barcode)) return;
       setPaused(true);
       playScannerBeep();
       onScan(barcode);

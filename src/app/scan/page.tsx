@@ -10,7 +10,7 @@ import { usePlayerStore } from '@/stores/player-store';
 import { XpPopup } from '@/components/game/xp-popup';
 import { getDeviceType, formatBarcode } from '@/lib/utils';
 import { GAME_CONFIG, GameMode } from '@/lib/game-config';
-import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
+import { useBarcodeScanner, isValidRetailBarcode } from '@/hooks/use-barcode-scanner';
 import { playScannerBeep, playSuccessChime, playErrorBuzz } from '@/lib/sound-effects';
 import { haptics } from '@/lib/haptics';
 import type { Product } from '@/types/product';
@@ -48,6 +48,7 @@ export default function ScanPage() {
 
   const handleBarcode = useCallback(async (barcode: string) => {
     if (cooldownRef.current) return;
+    if (!isValidRetailBarcode(barcode)) return;
     if (barcode === lastDecodedRef.current) return;
 
     cooldownRef.current = true;

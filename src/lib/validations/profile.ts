@@ -20,6 +20,7 @@ export const profileUpdateSchema = z.object({
   lastFedBarcode: z.string().optional(),
   dailyPetCount: z.number().int().min(0).optional(),
   lastPetDate: z.string().nullable().optional(),
+  lastAffectionDecayAt: z.number().int().min(0).optional(),
 });
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

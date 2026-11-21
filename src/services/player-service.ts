@@ -115,6 +115,7 @@ function getLocalProfile(userId: string) {
     lastFedBarcode: typeof rawMeta.lastFedBarcode === 'string' ? rawMeta.lastFedBarcode : '',
     dailyPetCount: typeof rawMeta.dailyPetCount === 'number' ? rawMeta.dailyPetCount : 0,
     lastPetDate: typeof rawMeta.lastPetDate === 'string' ? rawMeta.lastPetDate : null,
+    lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' ? rawMeta.lastAffectionDecayAt : 0,
   };
 }
 
@@ -142,6 +143,7 @@ function updateLocalProfile(userId: string, input: ProfileUpdateInput) {
     ...(input.lastFedBarcode !== undefined && { lastFedBarcode: input.lastFedBarcode }),
     ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
     ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
+    ...(input.lastAffectionDecayAt !== undefined && { lastAffectionDecayAt: input.lastAffectionDecayAt }),
   };
 
   const foodInv = { ...(localUser.foodInventory || {}) };
@@ -326,6 +328,7 @@ export async function getPlayerProfile(userId: string) {
       lastFedBarcode: typeof rawMeta.lastFedBarcode === 'string' ? rawMeta.lastFedBarcode : '',
       dailyPetCount: typeof rawMeta.dailyPetCount === 'number' ? rawMeta.dailyPetCount : 0,
       lastPetDate: typeof rawMeta.lastPetDate === 'string' ? rawMeta.lastPetDate : null,
+      lastAffectionDecayAt: typeof rawMeta.lastAffectionDecayAt === 'number' ? rawMeta.lastAffectionDecayAt : 0,
     };
   } catch (error) {
     console.warn('[getPlayerProfile] Prisma error, using local fallback:', error);
@@ -364,6 +367,7 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
       ...(input.lastFedBarcode !== undefined && { lastFedBarcode: input.lastFedBarcode }),
       ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
       ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
+      ...(input.lastAffectionDecayAt !== undefined && { lastAffectionDecayAt: input.lastAffectionDecayAt }),
     };
 
     // Perform transactional or chained update
