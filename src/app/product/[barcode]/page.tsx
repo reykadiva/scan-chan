@@ -4,7 +4,7 @@ import { getProductByBarcode } from '@/services/product-service';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { formatDate, formatBarcode } from '@/lib/utils';
-import { CATEGORY_EMOJIS } from '@/types';
+import { CategoryBadge, CategoryIcon } from '@/components/ui/category-badge';
 import { ArrowLeft, ScanLine, Package, Tag, Calendar, BarChart3, Plus } from 'lucide-react';
 
 type Props = { params: Promise<{ barcode: string }> };
@@ -12,9 +12,9 @@ type Props = { params: Promise<{ barcode: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { barcode } = await params;
   const product = await getProductByBarcode(barcode);
-  if (!product) return { title: 'Product Not Found — Scan Chan' };
+  if (!product) return { title: 'Product Not Found - Scan Chan' };
   return {
-    title: `${product.productName} — Scan Chan`,
+    title: `${product.productName} - Scan Chan`,
     description: product.description ?? `${product.productName} by ${product.brand ?? 'Unknown brand'}. Barcode: ${barcode}`,
   };
 }
@@ -49,8 +49,6 @@ export default async function ProductPage({ params }: Props) {
     );
   }
 
-  const categoryEmoji = CATEGORY_EMOJIS[product.category ?? 'Other'] ?? '📦';
-
   return (
     <div className="max-w-3xl mx-auto space-y-6 py-4">
       {/* Navigation breadcrumb */}
@@ -74,14 +72,16 @@ export default async function ProductPage({ params }: Props) {
             />
           ) : (
             <div className="text-center space-y-2">
-              <span className="text-7xl block">{categoryEmoji}</span>
+              <div className="w-20 h-20 rounded-2xl bg-white border border-border flex items-center justify-center mx-auto shadow-xs">
+                <CategoryIcon category={product.category} size={42} />
+              </div>
               <p className="text-muted-foreground text-xs font-mono">No product photo</p>
             </div>
           )}
 
           {product.category && (
-            <div className="absolute top-4 left-4 px-3 py-1 rounded-lg bg-card text-foreground text-xs font-bold font-pixel border border-border shadow-xs">
-              {categoryEmoji} {product.category.toUpperCase()}
+            <div className="absolute top-4 left-4">
+              <CategoryBadge category={product.category} size="md" />
             </div>
           )}
         </div>

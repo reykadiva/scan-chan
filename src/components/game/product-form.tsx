@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'motion/react';
 import { Upload, X, ScanLine, Save, ArrowLeft, Image as ImageIcon, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { CATEGORIES, CATEGORY_EMOJIS, type Product } from '@/types';
+import { CATEGORIES, type Product } from '@/types';
 import { toast } from 'sonner';
 import { WebcamCapture } from './webcam-capture';
 
@@ -151,7 +151,7 @@ export function ProductForm({ initialData, mode, defaultBarcode }: ProductFormPr
 
       if (data.success) {
         toast.success(mode === 'create' ? 'Product registered!' : 'Product updated!');
-        router.push('/admin/products');
+        router.push('/play');
         router.refresh();
       } else if (res.status === 409) {
         setErrors({ barcodeNumber: 'A product with this barcode already exists' });
@@ -177,7 +177,7 @@ export function ProductForm({ initialData, mode, defaultBarcode }: ProductFormPr
     <div className="p-6 lg:p-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8 pt-12 lg:pt-0">
-        <Link href="/admin/products" className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
+        <Link href="/play" className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-50 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
@@ -250,7 +250,7 @@ export function ProductForm({ initialData, mode, defaultBarcode }: ProductFormPr
                   >
                     <option value="">Select category...</option>
                     {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{CATEGORY_EMOJIS[c]} {c}</option>
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
                 </Field>
@@ -352,7 +352,7 @@ export function ProductForm({ initialData, mode, defaultBarcode }: ProductFormPr
               )}
             </button>
 
-            <Link href="/admin/products" className="block w-full py-3 text-center border border-gray-200 rounded-xl text-gray-600 font-nunito font-semibold text-sm hover:bg-gray-50 transition-colors">
+            <Link href="/play" className="block w-full py-3 text-center border border-gray-200 rounded-xl text-gray-600 font-nunito font-semibold text-sm hover:bg-gray-50 transition-colors">
               Cancel
             </Link>
           </div>

@@ -14,7 +14,8 @@ import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
 import { playScannerBeep, playSuccessChime, playErrorBuzz } from '@/lib/sound-effects';
 import { haptics } from '@/lib/haptics';
 import type { Product } from '@/types/product';
-import { CATEGORY_EMOJIS, CATEGORY_COLORS } from '@/types';
+import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
+import { CATEGORY_COLORS } from '@/types';
 
 type ScanPhase = 'scanning' | 'loading' | 'found' | 'not-found' | 'error';
 
@@ -104,7 +105,7 @@ export default function ScanPage() {
 
   const { videoRef, torch, cameraError, restartCamera } = useBarcodeScanner({
     paused: paused || phase !== 'scanning',
-    scanIntervalMs: 80,
+    scanIntervalMs: 120,
     onScan: handleBarcode,
   });
 
@@ -324,8 +325,6 @@ export default function ScanPage() {
 }
 
 function ProductFoundSheet({ product, isNew, onReset }: { product: Product; isNew: boolean; onReset: () => void }) {
-  const emoji = CATEGORY_EMOJIS[product.category ?? 'Other'] ?? '📦';
-
   return (
     <div className="p-6 pb-10 space-y-5">
       <div className="flex items-start justify-between">
@@ -335,8 +334,8 @@ function ProductFoundSheet({ product, isNew, onReset }: { product: Product; isNe
           transition={{ type: 'spring', bounce: 0.5, delay: 0.1 }}
           className="flex items-center gap-3"
         >
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl bg-[var(--theme-surface-inner)] border-2 border-[var(--theme-border)] shadow-[2px_2px_0_0_var(--theme-shadow)]">
-            {emoji}
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[var(--theme-surface-inner)] border-2 border-[var(--theme-border)] shadow-[2px_2px_0_0_var(--theme-shadow)]">
+            <CategoryIcon category={product.category} size={28} />
           </div>
           <div>
             <h2 className="font-fredoka font-bold text-xl text-[var(--theme-text-dark)] leading-tight">{product.productName}</h2>
@@ -355,14 +354,14 @@ function ProductFoundSheet({ product, isNew, onReset }: { product: Product; isNe
         )}
       </div>
 
-      {product.category && (
-        <div className="flex items-center gap-2">
-          <span className="px-3 py-1 rounded-lg text-white text-xs font-nunito font-bold bg-[var(--theme-primary)] border border-[var(--theme-border)]">
-            {emoji} {product.category}
-          </span>
-          <span className="font-mono text-xs text-[var(--theme-text-dark)]/70">{formatBarcode(product.barcodeNumber)}</span>
-        </div>
-      )}
+      <div className="flex items-center justify-between gap-2">
+        {product.category && (
+          <CategoryBadge category={product.category} size="md" />
+        )}
+        <span className="font-mono text-xs bg-white/80 px-2.5 py-1 rounded-lg border border-[var(--theme-border)]/50 text-[var(--theme-text-dark)] font-bold">
+          {formatBarcode(product.barcodeNumber)}
+        </span>
+      </div>
 
       {product.imageUrl && (
         <motion.div

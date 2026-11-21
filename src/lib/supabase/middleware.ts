@@ -67,8 +67,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If user tries to visit login or register, redirect cleanly
-  if (pathname === '/login' || pathname === '/register') {
+  // If user tries to visit legacy login, register, or old auth pages, redirect cleanly
+  const legacyAuthPaths = ['/login', '/register', '/play/mode/arashu-login', '/arashu-login', '/forgot-password'];
+  if (legacyAuthPaths.includes(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = user ? '/play' : '/';
     if (!user) {

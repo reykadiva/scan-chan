@@ -5,10 +5,39 @@ import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown, Flashlight, FlashlightOff } from 'lucide-react';
 import { CATEGORIES } from '@/types';
-import { useZxing, type BarcodeFormat } from 'react-zxing';
-import { GAME_CONFIG } from '@/lib/game-config';
+import { useBarcodeScanner } from '@/hooks/use-barcode-scanner';
+import { playScannerBeep } from '@/lib/sound-effects';
 import { toast } from 'sonner';
 import { WebcamCapture } from '@/components/game/webcam-capture';
+
+function compressImageToDataUrl(
+  file: File,
+  maxDimension: number,
+  quality: number,
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > maxDimension || height > maxDimension) {
+        const ratio = Math.min(maxDimension / width, maxDimension / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('Canvas not supported')); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
+    img.src = objectUrl;
+  });
+}
 
 function BarcodeScannerOverlay({
   onScan,
@@ -19,18 +48,14 @@ function BarcodeScannerOverlay({
 }) {
   const [paused, setPaused] = useState(false);
 
-  const { ref: videoRef, torch } = useZxing({
-    paused,
-    timeBetweenDecodingAttempts: GAME_CONFIG.scanner.fallbackIntervalMs,
-    constraints: { video: { facingMode: 'environment' } },
-    formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] as BarcodeFormat[],
-    onDecodeResult: (decoded) => {
-      const barcode = decoded.rawValue;
-      if (barcode) {
-        setPaused(true);
-        onScan(barcode);
-      }
+  const { videoRef, torch } = useBarcodeScanner({
+    onScan: (barcode) => {
+      setPaused(true);
+      playScannerBeep();
+      onScan(barcode);
     },
+    paused,
+    scanIntervalMs: 120,
   });
 
   return (
@@ -53,7 +78,7 @@ function BarcodeScannerOverlay({
           {torch.isAvailable && (
             <button
               type="button"
-              onClick={() => torch.isOn ? torch.off() : torch.on()}
+              onClick={() => torch.toggle()}
               className="min-w-[44px] min-h-[44px] bg-white border-2 border-[var(--theme-border)] rounded-xl flex items-center justify-center text-[var(--theme-text-dark)] hover:bg-[var(--theme-surface-inner)] shadow-[2px_2px_0_0_var(--theme-shadow)] transition-colors cursor-pointer shrink-0"
             >
               {torch.isOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
@@ -133,16 +158,14 @@ export function RegisterProductModal({
     try {
       let imageUrl: string | null = null;
 
-      // Upload image first if one was selected
+      // Compress and encode image client-side (no /api/upload route needed)
       if (imageFile) {
-        const formData = new FormData();
-        formData.append('file', imageFile);
-        formData.append('barcode', form.barcodeNumber);
-
-        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-        const uploadData = await uploadRes.json();
-        if (!uploadData.success) throw new Error(uploadData.error || 'Image upload failed');
-        imageUrl = uploadData.data.url;
+        try {
+          imageUrl = await compressImageToDataUrl(imageFile, 800, 0.7);
+        } catch {
+          // Skip image on compression failure — registration can still proceed
+          imageUrl = null;
+        }
       }
 
       const res = await fetch('/api/products', {

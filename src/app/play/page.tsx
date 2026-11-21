@@ -29,6 +29,7 @@ import { SettingsModal } from '@/components/game/settings-modal';
 import { ProductList } from '@/components/game/product-list';
 import { ScanHistory } from '@/components/game/scan-history';
 import { XpPopup } from '@/components/game/xp-popup';
+import { CategoryIcon } from '@/components/ui/category-badge';
 import { hasScannedToday, getTodayString } from '@/lib/streak-helpers';
 import type { Product } from '@/types';
 
@@ -48,19 +49,6 @@ const STAGE_LABELS: Record<string, string> = {
   WISE_CAT: 'Wise Cat',
   LEGENDARY_CAT: 'Legendary Cat',
 };
-
-// ponytail: Quick semantic emoji mapper for Indonesian snacks & everyday items
-function getProductEmoji(name?: string, category?: string | null): string {
-  const text = `${name || ''} ${category || ''}`.toLowerCase();
-  if (text.includes('indomie') || text.includes('mie') || text.includes('noodle')) return '🍜';
-  if (text.includes('teh') || text.includes('botol') || text.includes('drink') || text.includes('air') || text.includes('water') || text.includes('soda')) return '🥤';
-  if (text.includes('susu') || text.includes('milk') || text.includes('dairy') || text.includes('cheese') || text.includes('keju')) return '🥛';
-  if (text.includes('kopi') || text.includes('coffee')) return '☕';
-  if (text.includes('snack') || text.includes('chiki') || text.includes('chip') || text.includes('wafer') || text.includes('biskuit')) return '🥨';
-  if (text.includes('roti') || text.includes('bread') || text.includes('bakery')) return '🍞';
-  if (text.includes('bento') || text.includes('nasi') || text.includes('rice')) return '🍱';
-  return '📦';
-}
 
 // ponytail: Lean relative time helper without moment/date-fns bloat
 function formatRelativeTime(timestamp?: number): string {
@@ -118,6 +106,9 @@ export default function GameHubPage() {
     checkDailyReset,
     loadProfile,
     resetPlayer,
+    petCat,
+    dailyPetCount,
+    lastPetDate,
   } = usePlayerStore();
 
   const [activeModal, setActiveModal] = useState<ModalTab>(null);
@@ -131,6 +122,7 @@ export default function GameHubPage() {
   // Real-time daily streak calculation (TikTok style)
   const todayStr = useMemo(() => getTodayString(), []);
   const scannedToday = hasScannedToday(lastActiveDate, todayStr);
+  const petsToday = lastPetDate === todayStr ? (dailyPetCount || 0) : 0;
 
   // Recent scans product cache
   const [recentScanProducts, setRecentScanProducts] = useState<Record<string, Product>>({});
@@ -329,6 +321,19 @@ export default function GameHubPage() {
 
   // Pet actions with debounced timer & dynamic mood-aware dialog
   const handleCatClick = () => {
+    const petResult = petCat();
+    let petBonusText = '';
+    if (!petResult.success) {
+      if (petResult.reason === 'cooldown') {
+        toast.info('Wait a moment before petting again! ⏳');
+      } else if (petResult.reason === 'daily_limit') {
+        toast.info('Daily pet limit reached (3/3 today)! 💖');
+      }
+    } else {
+      toast.success('+5 Happiness! 💕');
+      petBonusText = ' 💕 (+5 Happiness!)';
+    }
+
     let dialogs: string[];
     let actionToSet: CatActionId = 'none';
 
@@ -393,7 +398,7 @@ export default function GameHubPage() {
     }
 
     setCatAction(actionToSet);
-    const speech = dialogs[Math.floor(Math.random() * dialogs.length)];
+    const speech = dialogs[Math.floor(Math.random() * dialogs.length)] + petBonusText;
     setSpeechBubble(speech);
 
     if (bubbleTimerRef.current) {
@@ -416,11 +421,12 @@ export default function GameHubPage() {
   };
 
   const handleFeedItem = (barcode: string, category: string, productName?: string) => {
-    if (petHunger >= 100) {
+    const currentHunger = Number(petHunger) || 0;
+    if (currentHunger >= 100) {
       toast.info(`${petName || 'Scan-chan'} is already full! 😸`);
       return;
     }
-    const wasDead = petHunger === 0;
+    const wasDead = currentHunger === 0;
     feedPet(barcode, category || 'Snack');
 
     if (wasDead) {
@@ -615,9 +621,14 @@ export default function GameHubPage() {
                   </>
                 )}
               </div>
-              <p className="font-pixel text-[9px] text-white font-semibold leading-none drop-shadow-[1px_1px_0_var(--theme-dark)]">
-                {STAGE_LABELS[petStage] || 'Kitten'} • Stage {petStage}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="font-pixel text-[9px] text-white font-semibold leading-none drop-shadow-[1px_1px_0_var(--theme-dark)]">
+                  {STAGE_LABELS[petStage] || 'Kitten'} • Stage {petStage}
+                </p>
+                <span className="font-pixel text-[8px] bg-white/20 text-white px-1.5 py-0.5 rounded border border-white/30 drop-shadow-[1px_1px_0_var(--theme-dark)]">
+                  Pets: {petsToday}/3 💕
+                </span>
+              </div>
             </div>
 
             <div className="text-right shrink-0">
@@ -668,7 +679,7 @@ export default function GameHubPage() {
                     ? '[Feed to Revive! 🍖]'
                     : petHunger <= 25
                     ? '[Feed Me! 😿]'
-                    : '[Tap to Meow]'}
+                    : `[Tap to Pet • ${petsToday}/3 💕]`}
                 </span>
               </div>
             </div>
@@ -872,7 +883,6 @@ export default function GameHubPage() {
               {scanHistory.slice(0, 4).map((barcode, idx) => {
                 const prod = recentScanProducts[barcode];
                 const name = prod?.productName || `Scanned Item #${barcode.slice(-4)}`;
-                const emoji = getProductEmoji(name, prod?.category);
                 const time = formatRelativeTime(lastScanTime[barcode]);
                 return (
                   <div
@@ -880,12 +890,21 @@ export default function GameHubPage() {
                     className="rpg-inner-box px-3 py-2 flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 truncate">
-                      <span className="text-base shrink-0">{emoji}</span>
+                      <div className="w-8 h-8 rounded-lg bg-white border border-[var(--theme-border)]/60 flex items-center justify-center shrink-0 shadow-xs">
+                        <CategoryIcon category={prod?.category} size={16} />
+                      </div>
                       <div className="min-w-0 flex-1 truncate">
                         <p className="font-fredoka font-bold text-sm text-[var(--theme-text-dark)] truncate">
                           {name}
                         </p>
-                        <span className="font-pixel text-[8px] text-[var(--theme-text-dark)]/70">{time}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-pixel text-[8px] text-[var(--theme-text-dark)]/70">{time}</span>
+                          {prod?.category && (
+                            <span className="font-fredoka text-[10px] text-[var(--theme-primary)] font-semibold">
+                              • {prod.category}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 

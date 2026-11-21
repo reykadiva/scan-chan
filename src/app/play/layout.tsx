@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { GardenAmbientBackground } from '@/components/layout/garden-ambient-background';
 
 export const metadata: Metadata = {
-  title: 'Game Hub — Scan Chan',
+  title: 'Scan Chan - Barcode Pet Game',
   description: 'Your arcade companion garden and scanner dashboard',
 };
 

@@ -17,6 +17,9 @@ export const profileUpdateSchema = z.object({
   selectedRoom: z.string().max(80).optional(),
   registeredBarcodes: z.array(z.string()).optional(),
   scanHistory: z.array(z.string()).optional(),
+  lastFedBarcode: z.string().optional(),
+  dailyPetCount: z.number().int().min(0).optional(),
+  lastPetDate: z.string().nullable().optional(),
 });
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

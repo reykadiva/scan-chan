@@ -34,9 +34,12 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export function PetPanel() {
-  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, avatar } = usePlayerStore();
+  const { petName, petStage, petHunger, petAffection, feedPet, renamePet, foodInventory, avatar, petCat, dailyPetCount, lastPetDate } = usePlayerStore();
   const selectedRoom = usePlayerStore((s) => s.selectedRoom);
   const roomTheme = getRoomTheme(selectedRoom);
+  
+  const todayStr = new Date().toISOString().split('T')[0];
+  const petsToday = lastPetDate === todayStr ? (dailyPetCount || 0) : 0;
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(petName);
@@ -107,7 +110,8 @@ export function PetPanel() {
   };
 
   const handleFeed = (product: Product) => {
-    if (petHunger >= 100) {
+    const currentHunger = Number(petHunger) || 0;
+    if (currentHunger >= 100) {
       toast.info(`${petName} is full!`);
       return;
     }
@@ -122,12 +126,11 @@ export function PetPanel() {
     
     setTimeout(() => setCatAction('none'), 1500);
 
-    const prevHunger = petHunger;
-    const wasDead = petHunger === 0;
-    feedPet(product.barcodeNumber, product.category || 'Other');
+    const wasDead = currentHunger === 0;
+    feedPet(product.barcodeNumber, product.category || 'Snack');
     
     // Check if we hit 100%
-    if (prevHunger < 100 && petHunger + 10 >= 100) {
+    if (currentHunger < 100 && currentHunger + 15 >= 100) {
       setTimeout(() => {
         setCelebrationType('perfect');
         setShowCelebration(true);
@@ -151,6 +154,25 @@ export function PetPanel() {
 
   const handleCatClick = () => {
     haptics.light();
+
+    const petResult = petCat();
+    let meowExtra = '';
+    if (!petResult.success) {
+      if (petResult.reason === 'cooldown') {
+        toast.info('Wait 10 seconds before petting again! ⏳');
+      } else if (petResult.reason === 'daily_limit') {
+        toast.info('Daily pet limit reached (3/3 today)! 💖');
+      }
+    } else {
+      toast.success('+5 Happiness! 💕');
+      meowExtra = ' 💕 (+5 Happiness)';
+      const heartId = Date.now() + 1;
+      setFedPopups((prev) => [...prev, { id: heartId, text: '+5 Happiness 💕' }]);
+      setTimeout(() => {
+        setFedPopups((prev) => prev.filter((p) => p.id !== heartId));
+      }, 1500);
+    }
+
     let meows: string[];
     let actionToSet: CatActionId = 'say-hi';
 
@@ -304,9 +326,13 @@ export function PetPanel() {
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center flex-wrap">
               <span className={`${roomTheme.labelBg} ${roomTheme.labelText} text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0 shadow-sm`}>
                 {STAGE_LABELS[petStage]}
+              </span>
+              <span className="bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-400/30 text-xs font-fredoka font-bold px-3 py-1 rounded-full shrink-0 shadow-sm flex items-center gap-1">
+                <span>💕 Pets:</span>
+                <span>{petsToday}/3</span>
               </span>
             </div>
           </div>

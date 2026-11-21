@@ -112,6 +112,9 @@ function getLocalProfile(userId: string) {
     selectedRoom,
     registeredBarcodes: Array.isArray(rawMeta.registeredBarcodes) ? rawMeta.registeredBarcodes : [],
     scanHistory: Array.isArray(rawMeta.scanHistory) ? rawMeta.scanHistory : [],
+    lastFedBarcode: typeof rawMeta.lastFedBarcode === 'string' ? rawMeta.lastFedBarcode : '',
+    dailyPetCount: typeof rawMeta.dailyPetCount === 'number' ? rawMeta.dailyPetCount : 0,
+    lastPetDate: typeof rawMeta.lastPetDate === 'string' ? rawMeta.lastPetDate : null,
   };
 }
 
@@ -136,6 +139,9 @@ function updateLocalProfile(userId: string, input: ProfileUpdateInput) {
     ...(input.selectedRoom !== undefined && { selectedRoom: input.selectedRoom }),
     ...(input.registeredBarcodes !== undefined && { registeredBarcodes: input.registeredBarcodes }),
     ...(input.scanHistory !== undefined && { scanHistory: input.scanHistory }),
+    ...(input.lastFedBarcode !== undefined && { lastFedBarcode: input.lastFedBarcode }),
+    ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
+    ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
   };
 
   const foodInv = { ...(localUser.foodInventory || {}) };
@@ -317,6 +323,9 @@ export async function getPlayerProfile(userId: string) {
       selectedRoom,
       registeredBarcodes,
       scanHistory,
+      lastFedBarcode: typeof rawMeta.lastFedBarcode === 'string' ? rawMeta.lastFedBarcode : '',
+      dailyPetCount: typeof rawMeta.dailyPetCount === 'number' ? rawMeta.dailyPetCount : 0,
+      lastPetDate: typeof rawMeta.lastPetDate === 'string' ? rawMeta.lastPetDate : null,
     };
   } catch (error) {
     console.warn('[getPlayerProfile] Prisma error, using local fallback:', error);
@@ -352,6 +361,9 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
       ...(input.registeredBarcodes !== undefined && { registeredBarcodes: input.registeredBarcodes }),
       ...(input.scanHistory !== undefined && { scanHistory: input.scanHistory }),
       ...(input.lastActiveDate !== undefined && { lastActiveDate: input.lastActiveDate }),
+      ...(input.lastFedBarcode !== undefined && { lastFedBarcode: input.lastFedBarcode }),
+      ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
+      ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
     };
 
     // Perform transactional or chained update

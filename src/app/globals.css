@@ -365,25 +365,44 @@
     pointer-events: none;
   }
 
-  /* Scanner Laser Line Animation */
+  /* Scanner Laser Line Animation (GPU-accelerated via transform) */
   @keyframes scan-line {
     0% {
-      top: 0%;
-      opacity: 0.85;
+      transform: translateY(4px);
+      opacity: 0.8;
     }
     50% {
-      top: calc(100% - 3px);
+      transform: translateY(calc(var(--scan-h, 180px) - 8px));
       opacity: 1;
     }
     100% {
-      top: 0%;
-      opacity: 0.85;
+      transform: translateY(4px);
+      opacity: 0.8;
+    }
+  }
+
+  @media (min-width: 640px) {
+    @keyframes scan-line {
+      0% {
+        transform: translateY(4px);
+        opacity: 0.8;
+      }
+      50% {
+        transform: translateY(calc(var(--scan-h, 212px) - 8px));
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(4px);
+        opacity: 0.8;
+      }
     }
   }
 
   .animate-scan-line {
+    position: absolute;
+    top: 0;
     animation: scan-line 2.2s ease-in-out infinite;
-    will-change: top, opacity;
+    will-change: transform, opacity;
   }
 
 

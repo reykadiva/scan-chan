@@ -26,6 +26,10 @@ export interface PlayerState {
   petHunger: number;
   petAffection: number;
   foodInventory: Record<string, number>;
+  lastPetTime: number;
+  dailyPetCount: number;
+  lastPetDate: string | null;
+  lastFedBarcode: string;
   selectedBorder: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic';
   selectedTheme: string;
   selectedAccessory: 'none' | 'cowboy' | 'wizard' | 'shades';
@@ -33,6 +37,8 @@ export interface PlayerState {
   selectedRoom: 'cozy' | 'kawaii-garden';
   isLoading: boolean;
   error: string | null;
+  lastLocalMutationAt: number;
+  isSaving: boolean;
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -48,6 +54,7 @@ export interface PlayerActions {
   clearPendingXpGain: () => void;
   resetPlayer: () => void;
   feedPet: (barcode: string, category: string) => void;
+  petCat: () => { success: boolean; reason?: string };
   renamePet: (name: string) => void;
   selectBorder: (border: 'none' | 'bronze' | 'silver' | 'gold' | 'holographic') => void;
   selectTheme: (theme: string) => void;
@@ -107,6 +114,10 @@ export const initialStoreState: PlayerState = {
   petHunger: 50,
   petAffection: 10,
   foodInventory: {},
+  lastPetTime: 0,
+  dailyPetCount: 0,
+  lastPetDate: null,
+  lastFedBarcode: '',
   selectedBorder: 'none',
   selectedTheme: 'default',
   selectedAccessory: 'none',
@@ -114,6 +125,8 @@ export const initialStoreState: PlayerState = {
   selectedRoom: 'cozy',
   isLoading: false,
   error: null,
+  lastLocalMutationAt: 0,
+  isSaving: false,
 };
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -197,8 +210,13 @@ export const usePlayerStore = create<PlayerStore>()(
             level: newLevel,
             pendingXpGain: streakMultipliedXp,
             foodInventory: updatedFoodInventory,
+            lastLocalMutationAt: now,
           };
         });
+
+        if (get().mode === GameMode.ARASHU) {
+          get().saveProfileToServer().catch(() => {});
+        }
       },
 
       registerProduct: (barcode: string, category: string) => {
@@ -231,14 +249,20 @@ export const usePlayerStore = create<PlayerStore>()(
             level: newLevel,
             pendingXpGain: streakMultipliedXp,
             foodInventory: updatedFoodInventory,
+            lastLocalMutationAt: now,
           };
         });
+
+        if (get().mode === GameMode.ARASHU) {
+          get().saveProfileToServer().catch(() => {});
+        }
       },
 
       unregisterProduct: (barcode: string) => {
         set((state) => ({
           registeredBarcodes: state.registeredBarcodes.filter((b) => b !== barcode),
           lastDeleteTime: Date.now(),
+          lastLocalMutationAt: Date.now(),
         }));
       },
 
@@ -262,11 +286,14 @@ export const usePlayerStore = create<PlayerStore>()(
 
         const newHunger = Math.max(0, state.petHunger - 25);
         const newAffection = newHunger === 0 ? Math.max(0, state.petAffection - 5) : state.petAffection;
+        const isNewPetDay = state.lastPetDate !== localDateString;
+        const newDailyPetCount = isNewPetDay ? 0 : state.dailyPetCount;
 
         set({
           streak: newStreak,
           petHunger: newHunger,
           petAffection: newAffection,
+          dailyPetCount: newDailyPetCount,
         });
       },
 
@@ -279,27 +306,51 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       feedPet: (barcode: string, category: string) => {
+        const cleanBarcode = String(barcode || '').trim();
+        if (!cleanBarcode) return;
+
+        const now = Date.now();
         set((state) => {
-          const currentQty = state.foodInventory[barcode] || 0;
+          const rawQty = state.foodInventory[cleanBarcode];
+          const currentQty = typeof rawQty === 'number' ? rawQty : Number(rawQty) || 0;
           if (currentQty <= 0) return {};
 
           const updatedFoodInventory = { ...state.foodInventory };
-          updatedFoodInventory[barcode] = currentQty - 1;
-          if (updatedFoodInventory[barcode] <= 0) {
-            delete updatedFoodInventory[barcode];
+          const newQty = currentQty - 1;
+          if (newQty <= 0) {
+            delete updatedFoodInventory[cleanBarcode];
+          } else {
+            updatedFoodInventory[cleanBarcode] = newQty;
           }
 
-          let hungerGain = 10;
-          if (category === 'Snack') hungerGain = 15;
-          else if (category === 'Dairy') hungerGain = 20;
-          else if (category === 'Drink') hungerGain = 12;
+          const cat = (category || '').toLowerCase();
+          let hungerGain = 15;
+          if (cat.includes('dairy') || cat.includes('milk') || cat.includes('cheese') || cat.includes('yogurt')) {
+            hungerGain = 20;
+          } else if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice') || cat.includes('water')) {
+            hungerGain = 12;
+          } else if (cat.includes('instant') || cat.includes('noodle') || cat.includes('ramen') || cat.includes('meal')) {
+            hungerGain = 25;
+          } else if (cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit') || cat.includes('cookie') || cat.includes('food')) {
+            hungerGain = 15;
+          }
 
-          const affectionGain = 3;
+          const currentHunger = Math.max(0, Math.min(100, Number(state.petHunger) || 0));
+          const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
+          const currentXp = Math.max(0, Number(state.xp) || 0);
+
+          const wasDead = currentHunger === 0;
+          const isSpecialFood = cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit')
+            || cat.includes('treat') || cat.includes('cookie') || cat.includes('cake') || cat.includes('dessert');
+          const baseAffection = isSpecialFood ? 10 : 3;
+          const varietyBonus = cleanBarcode !== state.lastFedBarcode ? 5 : 0;
+          const revivalBonus = wasDead ? 6 : 0;
+          const affectionGain = baseAffection + varietyBonus + revivalBonus;
           const xpGain = 10;
 
-          const newHunger = Math.min(100, state.petHunger + hungerGain);
-          const newAffection = Math.min(100, state.petAffection + affectionGain);
-          const newXp = state.xp + xpGain;
+          const newHunger = Math.min(100, currentHunger + hungerGain);
+          const newAffection = Math.min(100, currentAffection + affectionGain);
+          const newXp = currentXp + xpGain;
           const newLevel = levelFromXp(newXp);
 
           let newStage = state.petStage;
@@ -313,14 +364,64 @@ export const usePlayerStore = create<PlayerStore>()(
             petHunger: newHunger,
             petAffection: newAffection,
             petStage: newStage,
+            lastFedBarcode: cleanBarcode,
             xp: newXp,
             level: newLevel,
+            lastLocalMutationAt: now,
           };
         });
+
+        // Instant cloud sync for Hunter Mode (anti-rollback)
+        if (get().mode === GameMode.ARASHU) {
+          get().saveProfileToServer().catch(() => {});
+        }
+      },
+
+      petCat: () => {
+        const state = get();
+        const now = Date.now();
+        const todayStr = getTodayString();
+
+        // 10s cooldown check
+        if (now - (state.lastPetTime || 0) < 10000) {
+          return { success: false, reason: 'cooldown' };
+        }
+
+        // Daily limit check: max 3 pets per day
+        const currentDailyPets = state.lastPetDate === todayStr ? (state.dailyPetCount || 0) : 0;
+        if (currentDailyPets >= 3) {
+          return { success: false, reason: 'daily_limit' };
+        }
+
+        const newDailyPets = currentDailyPets + 1;
+        const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
+        const newAffection = Math.min(100, currentAffection + 5);
+
+        let newStage = state.petStage;
+        if (newAffection >= 90) newStage = 'LEGENDARY_CAT';
+        else if (newAffection >= 75) newStage = 'WISE_CAT';
+        else if (newAffection >= 50) newStage = 'ADULT_CAT';
+        else if (newAffection >= 25) newStage = 'YOUNG_CAT';
+
+        set({
+          petAffection: newAffection,
+          petStage: newStage,
+          lastPetTime: now,
+          dailyPetCount: newDailyPets,
+          lastPetDate: todayStr,
+          lastLocalMutationAt: now,
+        });
+
+        if (get().mode === GameMode.ARASHU) {
+          get().saveProfileToServer().catch(() => {});
+        }
+
+        return { success: true };
       },
 
       renamePet: (name: string) => {
-        set({ petName: name });
+        set({ petName: name, lastLocalMutationAt: Date.now() });
+        get().saveProfileToServer().catch(() => {});
       },
 
       selectBorder: (border) => {
@@ -353,9 +454,10 @@ export const usePlayerStore = create<PlayerStore>()(
           const json = await res.json();
           if (json.success && json.data) {
             const d = json.data;
+            const currentState = get();
             const todayStr = getTodayString();
             let streak = typeof d.streak === 'number' ? d.streak : 0;
-            const lastActiveDate = d.lastActiveDate ?? get().lastActiveDate;
+            const lastActiveDate = d.lastActiveDate ?? currentState.lastActiveDate;
 
             // Audit streak upon loading: if user missed more than 1 day, reset to 0
             if (lastActiveDate && streak > 0) {
@@ -369,28 +471,95 @@ export const usePlayerStore = create<PlayerStore>()(
               }
             }
 
+            const localPetName = currentState.petName;
+            let finalPetName = d.petName || 'Scan-chan Jr.';
+            if ((!d.petName || d.petName === 'Scan-chan Jr.') && localPetName && localPetName !== 'Scan-chan Jr.') {
+              finalPetName = localPetName;
+              setTimeout(() => {
+                get().saveProfileToServer().catch(() => {});
+              }, 500);
+            }
+
+            // ANTI-ROLLBACK GUARD:
+            // If local state was mutated recently (< 6 seconds) or if a save is currently in-flight,
+            // preserve fresh local inventory & pet vitals from stale server responses!
+            const timeSinceLastMutation = Date.now() - (currentState.lastLocalMutationAt || 0);
+            const isRecentMutation = timeSinceLastMutation < 6000;
+            const isSaving = currentState.isSaving;
+            const protectLocalVitals = isRecentMutation || isSaving;
+
+            const finalHunger = protectLocalVitals
+              ? currentState.petHunger
+              : (typeof d.petHunger === 'number' ? d.petHunger : 50);
+
+            const finalAffection = protectLocalVitals
+              ? currentState.petAffection
+              : (typeof d.petAffection === 'number' ? d.petAffection : 10);
+
+            const finalStage = protectLocalVitals
+              ? currentState.petStage
+              : (d.petStage || 'KITTEN');
+
+            const finalFoodInventory = protectLocalVitals
+              ? currentState.foodInventory
+              : (d.foodInventory || {});
+
+            const finalLastFedBarcode = protectLocalVitals
+              ? currentState.lastFedBarcode
+              : (d.lastFedBarcode || '');
+
+            const finalDailyPetCount = protectLocalVitals
+              ? currentState.dailyPetCount
+              : (typeof d.dailyPetCount === 'number' ? d.dailyPetCount : 0);
+
+            const finalLastPetDate = protectLocalVitals
+              ? currentState.lastPetDate
+              : (d.lastPetDate || null);
+
+            const serverXp = typeof d.xp === 'number' ? d.xp : 0;
+            const finalXp = Math.max(currentState.xp, serverXp);
+            const finalLevel = levelFromXp(finalXp);
+
+            const mergedRegisteredBarcodes = Array.from(new Set([
+              ...currentState.registeredBarcodes,
+              ...(Array.isArray(d.registeredBarcodes) ? d.registeredBarcodes : []),
+            ]));
+
+            const mergedScanHistory = Array.from(new Set([
+              ...currentState.scanHistory,
+              ...(Array.isArray(d.scanHistory) ? d.scanHistory : []),
+            ]));
+
             set({
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',
               avatar: d.avatar || 'calico',
-              xp: typeof d.xp === 'number' ? d.xp : 0,
-              level: levelFromXp(d.xp || 0),
+              xp: finalXp,
+              level: finalLevel,
               streak,
               lastActiveDate,
-              petName: d.petName || 'Scan-chan Jr.',
-              petStage: d.petStage || 'KITTEN',
-              petHunger: typeof d.petHunger === 'number' ? d.petHunger : 50,
-              petAffection: typeof d.petAffection === 'number' ? d.petAffection : 10,
-              foodInventory: d.foodInventory || {},
-              selectedTheme: d.selectedTheme || 'default',
-              selectedBorder: d.selectedBorder || 'none',
-              selectedAccessory: d.selectedAccessory || 'none',
-              selectedTitle: d.selectedTitle || '',
-              selectedRoom: d.selectedRoom || 'cozy',
-              registeredBarcodes: Array.isArray(d.registeredBarcodes) ? d.registeredBarcodes : [],
-              scanHistory: Array.isArray(d.scanHistory) ? d.scanHistory : [],
+              petName: finalPetName,
+              petStage: finalStage,
+              petHunger: finalHunger,
+              petAffection: finalAffection,
+              foodInventory: finalFoodInventory,
+              lastFedBarcode: finalLastFedBarcode,
+              dailyPetCount: finalDailyPetCount,
+              lastPetDate: finalLastPetDate,
+              selectedTheme: d.selectedTheme || currentState.selectedTheme || 'default',
+              selectedBorder: d.selectedBorder || currentState.selectedBorder || 'none',
+              selectedAccessory: d.selectedAccessory || currentState.selectedAccessory || 'none',
+              selectedTitle: d.selectedTitle || currentState.selectedTitle || '',
+              selectedRoom: d.selectedRoom || currentState.selectedRoom || 'cozy',
+              registeredBarcodes: mergedRegisteredBarcodes,
+              scanHistory: mergedScanHistory,
               isLoading: false,
             });
+
+            // If we protected local vitals against stale server data, trigger an instant save
+            if (protectLocalVitals) {
+              get().saveProfileToServer().catch(() => {});
+            }
           }
         } catch (err: any) {
           console.warn('Profile load skipped or offline:', err);
@@ -402,6 +571,7 @@ export const usePlayerStore = create<PlayerStore>()(
         const state = get();
         if (state.mode !== GameMode.ARASHU) return;
 
+        set({ isSaving: true });
         try {
           await fetch('/api/profile', {
             method: 'POST',
@@ -415,6 +585,9 @@ export const usePlayerStore = create<PlayerStore>()(
               petHunger: state.petHunger,
               petAffection: state.petAffection,
               foodInventory: state.foodInventory,
+              lastFedBarcode: state.lastFedBarcode,
+              dailyPetCount: state.dailyPetCount,
+              lastPetDate: state.lastPetDate,
               selectedTheme: state.selectedTheme,
               selectedBorder: state.selectedBorder,
               selectedAccessory: state.selectedAccessory,
@@ -426,6 +599,8 @@ export const usePlayerStore = create<PlayerStore>()(
           });
         } catch (err) {
           console.error('Failed to sync profile to server:', err);
+        } finally {
+          set({ isSaving: false });
         }
       },
     }),
@@ -458,11 +633,16 @@ export const usePlayerStore = create<PlayerStore>()(
         petHunger: state.petHunger,
         petAffection: state.petAffection,
         foodInventory: state.foodInventory,
+        lastPetTime: state.lastPetTime,
+        dailyPetCount: state.dailyPetCount,
+        lastPetDate: state.lastPetDate,
+        lastFedBarcode: state.lastFedBarcode,
         selectedBorder: state.selectedBorder,
         selectedTheme: state.selectedTheme,
         selectedAccessory: state.selectedAccessory,
         selectedTitle: state.selectedTitle,
         selectedRoom: state.selectedRoom,
+        lastLocalMutationAt: state.lastLocalMutationAt,
       }),
     }
   )

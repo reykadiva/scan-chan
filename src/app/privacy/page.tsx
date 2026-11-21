@@ -4,7 +4,7 @@ import { ArrowLeft, ShieldCheck, Mail, Database, Camera, Trash2, KeyRound } from
 import { PixelCat } from '@/components/game/pixel-cat';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy — Scan Chan',
+  title: 'Privacy Policy - Scan Chan',
   description:
     'Privacy Policy for Scan Chan: how we handle Google OAuth, camera access, barcode scan data, and your rights to data deletion.',
 };
