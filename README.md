@@ -109,13 +109,13 @@ The leveling curve is calibrated mathematically to support a 60-day natural camp
 
 $$\text{Required XP}(L) = \lfloor 100 + 3 \cdot L^{1.6} \rfloor$$
 
-| Stage Tier | Level Range | Character Title | Unlock Privileges |
+| Stage Tier | Level Range | Companion Avatar & Visual Form | Unique Visual Features & Accessories |
 |:---|:---:|:---|:---|
-| **Kitten** | 1 – 9 | New Explorer | Default Room, Basic Inventory |
-| **Young Cat** | 10 – 19 | Curious Prowler | Bronze Border, Sound Customization |
-| **Adult Cat** | 20 – 34 | Master Hunter | Silver Border, Wizard Hat Accessory |
-| **Wise Cat** | 35 – 49 | Garden Sage | Gold Border, Shades Accessory |
-| **Legendary Cat** | 50 | Celestial Guardian | Holographic Aura, Kawaii Garden Backdrop |
+| **Kitten** | 1 – 9 | **Calico** (Tri-color Tortoiseshell) | Compact base kitten sprite, default meow dialogues |
+| **Young Cat** | 10 – 19 | **Ginger Tabby** (Sunburst Striped) | High-contrast orange fur, cowboy hat accessory unlock |
+| **Adult Cat** | 20 – 34 | **Midnight Shadow** (Deep Charcoal) | Stealth sleek silhouette, wizard hat accessory unlock |
+| **Wise Cat** | 35 – 49 | **Cyber Teal** (Electric Cyan) | Vibrant cyber glow palette, pixel shades sunglasses unlock |
+| **Legendary Cat** | 50 (MAX) | **Royal Celestial** (Arashu Princess Pink) | **Gold Royal Crown with Cyan Diamond Gems**, **Animated Wagging Tail**, peak affection dialogues |
 
 ### 4. TikTok-Style Daily Streak System
 
