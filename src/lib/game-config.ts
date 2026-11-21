@@ -28,7 +28,6 @@ export const GAME_CONFIG = {
   },
   ui: {
     xpPopupDurationMs: 1500,
-    achievementPopupDurationMs: 4000,
     toastDurationMs: 3000,
     animationBounceDelayMs: 100,
     collectionPageSize: 12,
@@ -44,5 +43,4 @@ export const GAME_CONFIG = {
     const levelMultiplier = Math.pow(level, 1.6); // Gentle exponential curve
     return Math.floor(baseXP + levelMultiplier * 3);
   },
-  dailyMissionsCount: 4,
 };

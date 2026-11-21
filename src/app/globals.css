@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;500;600;700&family=Silkscreen:wght@400;700&family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -9,23 +9,13 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-nunito);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: 'JetBrains Mono', monospace;
   --font-heading: var(--font-fredoka);
-  --font-fredoka: var(--font-fredoka);
-  --font-nunito: var(--font-nunito);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
+  --font-fredoka: 'Fredoka', cursive, sans-serif;
+  --font-nunito: 'Nunito', sans-serif;
+  --font-press-start: 'Press Start 2P', monospace;
+  --font-pixelify: 'Pixelify Sans', cursive, sans-serif;
+  --font-silkscreen: 'Silkscreen', monospace;
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -38,255 +28,430 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-  
-  /* Brand colors for bubbly theme */
-  --color-brand-cyan: #22d3ee;
-  --color-brand-cyan-light: #67e8f9;
-  --color-brand-pink: #f472b6;
-  --color-brand-yellow: #fde047;
-  --color-brand-mint: #86efac;
+  --color-theme-primary: var(--theme-primary);
+  --color-theme-surface-inner: var(--theme-surface-inner);
+  --color-theme-surface-card: var(--theme-surface-card);
+  --color-theme-surface: var(--theme-surface);
+  --color-theme-border: var(--theme-border);
+  --color-theme-dark: var(--theme-dark);
+  --color-theme-text-dark: var(--theme-text-dark);
+  --color-theme-accent: var(--theme-accent);
+  --color-theme-shadow: var(--theme-shadow);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
 }
 
 :root {
-  /* Soft cream/blue background */
-  --background: oklch(0.98 0.01 240);
-  --foreground: oklch(0.2 0.03 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.03 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.03 260);
-  /* Vibrant Cyan primary */
-  --primary: oklch(0.7 0.15 220);
-  --primary-foreground: oklch(1 0 0);
-  /* Soft pink secondary */
-  --secondary: oklch(0.85 0.1 340);
-  --secondary-foreground: oklch(0.3 0.1 340);
-  --muted: oklch(0.95 0.01 260);
-  --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.9 0.1 80); /* Soft yellow */
-  --accent-foreground: oklch(0.3 0.1 80);
-  --destructive: oklch(0.6 0.2 20);
-  --border: oklch(0.9 0.02 260);
-  --input: oklch(0.9 0.02 260);
-  --ring: oklch(0.7 0.15 220);
-  --radius: 1.5rem; /* Max rounded by default */
+  --background: #ffffff;
+  --foreground: #5c162e;
+  --card: #ffffff;
+  --card-foreground: #5c162e;
+  --popover: #ffffff;
+  --popover-foreground: #5c162e;
+  --primary: #d65a7a;
+  --primary-foreground: #ffffff;
+  --secondary: #fff0f5;
+  --secondary-foreground: #5c162e;
+  --muted: #fff0f5;
+  --muted-foreground: #8a344e;
+  --accent: #ff7597;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: #5c162e;
+  --input: #5c162e;
+  --ring: #d65a7a;
+  --radius: 0.875rem;
+
+  /* 6 Retro Color Themes CSS Variables (Default: Retro Pink & White) */
+  --theme-primary: #d65a7a;
+  --theme-surface-inner: #fff0f5;
+  --theme-surface-card: #ffffff;
+  --theme-surface: #fff0f5;
+  --theme-border: #5c162e;
+  --theme-dark: #5c162e;
+  --theme-text-dark: #5c162e;
+  --theme-accent: #ff7597;
+  --theme-shadow: #5c162e;
 }
 
-/* We will largely stick to light mode for the cheerful vibe, but here is a soft dark mode fallback */
+/* 1. Retro Pink & White (Default) */
+[data-app-theme="pink"] {
+  --theme-primary: #d65a7a;
+  --theme-surface-inner: #fff0f5;
+  --theme-surface-card: #ffffff;
+  --theme-surface: #fff0f5;
+  --theme-border: #5c162e;
+  --theme-dark: #5c162e;
+  --theme-text-dark: #5c162e;
+  --theme-accent: #ff7597;
+  --theme-shadow: #5c162e;
+  --primary: #d65a7a;
+  --foreground: #5c162e;
+  --border: #5c162e;
+  --secondary: #fff0f5;
+  --secondary-foreground: #5c162e;
+  --accent: #ff7597;
+}
+
+/* 2. Sage Green & Cream */
+[data-app-theme="sage"] {
+  --theme-primary: #7a9a78;
+  --theme-surface-inner: #f4f7f0;
+  --theme-surface-card: #fcfdf9;
+  --theme-surface: #f4f7f0;
+  --theme-border: #2d422c;
+  --theme-dark: #2d422c;
+  --theme-text-dark: #2d422c;
+  --theme-accent: #9ab897;
+  --theme-shadow: #2d422c;
+  --primary: #7a9a78;
+  --foreground: #2d422c;
+  --border: #2d422c;
+  --secondary: #f4f7f0;
+  --secondary-foreground: #2d422c;
+  --accent: #9ab897;
+}
+
+/* 3. Butter Yellow & Vanilla */
+[data-app-theme="butter"] {
+  --theme-primary: #e6c86e;
+  --theme-surface-inner: #fdf9eb;
+  --theme-surface-card: #fffdf5;
+  --theme-surface: #fdf9eb;
+  --theme-border: #594616;
+  --theme-dark: #594616;
+  --theme-text-dark: #594616;
+  --theme-accent: #f2d885;
+  --theme-shadow: #594616;
+  --primary: #e6c86e;
+  --foreground: #594616;
+  --border: #594616;
+  --secondary: #fdf9eb;
+  --secondary-foreground: #594616;
+  --accent: #f2d885;
+}
+
+/* 4. Powder Blue & Cloud */
+[data-app-theme="blue"] {
+  --theme-primary: #7ba7cc;
+  --theme-surface-inner: #f0f6fc;
+  --theme-surface-card: #ffffff;
+  --theme-surface: #f0f6fc;
+  --theme-border: #1f3f5c;
+  --theme-dark: #1f3f5c;
+  --theme-text-dark: #1f3f5c;
+  --theme-accent: #9ec2e0;
+  --theme-shadow: #1f3f5c;
+  --primary: #7ba7cc;
+  --foreground: #1f3f5c;
+  --border: #1f3f5c;
+  --secondary: #f0f6fc;
+  --secondary-foreground: #1f3f5c;
+  --accent: #9ec2e0;
+}
+
+/* 5. Lavender & Lilac */
+[data-app-theme="lavender"] {
+  --theme-primary: #9d8ec7;
+  --theme-surface-inner: #f4f1fa;
+  --theme-surface-card: #fcfaff;
+  --theme-surface: #f4f1fa;
+  --theme-border: #362859;
+  --theme-dark: #362859;
+  --theme-text-dark: #362859;
+  --theme-accent: #b8ace0;
+  --theme-shadow: #362859;
+  --primary: #9d8ec7;
+  --foreground: #362859;
+  --border: #362859;
+  --secondary: #f4f1fa;
+  --secondary-foreground: #362859;
+  --accent: #b8ace0;
+}
+
+/* 6. Terracotta & Beige */
+[data-app-theme="terracotta"] {
+  --theme-primary: #c48463;
+  --theme-surface-inner: #f9f2ec;
+  --theme-surface-card: #fffaf5;
+  --theme-surface: #f9f2ec;
+  --theme-border: #522b18;
+  --theme-dark: #522b18;
+  --theme-text-dark: #522b18;
+  --theme-accent: #d99f80;
+  --theme-shadow: #522b18;
+  --primary: #c48463;
+  --foreground: #522b18;
+  --border: #522b18;
+  --secondary: #f9f2ec;
+  --secondary-foreground: #522b18;
+  --accent: #d99f80;
+}
+
 .dark {
-  --background: oklch(0.15 0.03 260);
-  --foreground: oklch(0.95 0.01 260);
-  --card: oklch(0.2 0.03 260);
-  --card-foreground: oklch(0.95 0.01 260);
-  --popover: oklch(0.2 0.03 260);
-  --popover-foreground: oklch(0.95 0.01 260);
-  --primary: oklch(0.7 0.15 220);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.4 0.1 340);
-  --secondary-foreground: oklch(0.95 0.01 260);
-  --muted: oklch(0.25 0.03 260);
-  --muted-foreground: oklch(0.7 0.02 260);
-  --accent: oklch(0.4 0.1 80);
-  --accent-foreground: oklch(0.95 0.01 260);
-  --border: oklch(0.3 0.03 260);
-  --input: oklch(0.3 0.03 260);
-  --ring: oklch(0.7 0.15 220);
+  --background: #ffffff;
+  --foreground: #5c162e;
+  --card: #ffffff;
+  --card-foreground: #5c162e;
+  --popover: #ffffff;
+  --popover-foreground: #5c162e;
+  --primary: #d65a7a;
+  --primary-foreground: #ffffff;
+  --secondary: #fff0f5;
+  --secondary-foreground: #5c162e;
+  --muted: #fff0f5;
+  --muted-foreground: #8a344e;
+  --accent: #ff7597;
+  --accent-foreground: #ffffff;
+  --destructive: #f87171;
+  --border: #5c162e;
+  --input: #5c162e;
+  --ring: #d65a7a;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+    box-sizing: border-box;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-[#DCA1A1]/30 selection:text-[#2b1414];
     font-family: 'Nunito', sans-serif;
   }
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Fredoka', sans-serif;
+    font-family: 'Fredoka', cursive, sans-serif;
   }
 }
 
 @layer utilities {
-  /* Bubbly Game Button Style */
-  .btn-bubbly {
-    @apply relative overflow-hidden transition-all duration-200 ease-out rounded-full font-fredoka font-semibold;
-    box-shadow: 0 6px 0 -2px rgba(0,0,0,0.05), 0 12px 20px -8px rgba(0,0,0,0.1), inset 0 -4px 0 0 rgba(0,0,0,0.15), inset 0 2px 0 0 rgba(255,255,255,0.4);
+  /* Tactile Retro Arcade Game Button - Theme Responsive */
+  .btn-arcade {
+    @apply relative font-fredoka font-semibold px-5 py-2.5 rounded-xl transition-all duration-100 inline-flex items-center justify-center gap-2 select-none;
+    background-color: var(--theme-surface-card);
+    color: var(--theme-text-dark);
+    border: 2px solid var(--theme-border);
+    box-shadow: 3px 3px 0 0 var(--theme-shadow);
   }
-  .btn-bubbly:hover {
-    @apply brightness-110;
+  .btn-arcade:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 0 var(--theme-shadow);
   }
-  .btn-bubbly:active {
-    @apply translate-y-[4px];
-    box-shadow: 0 2px 0 -2px rgba(0,0,0,0.05), 0 4px 6px -4px rgba(0,0,0,0.1), inset 0 -2px 0 0 rgba(0,0,0,0.15), inset 0 2px 0 0 rgba(255,255,255,0.4);
+  .btn-arcade-primary {
+    @apply relative font-fredoka font-bold px-5 py-2.5 rounded-xl transition-all duration-100 inline-flex items-center justify-center gap-2 select-none border-2 border-white;
+    background-color: var(--theme-primary);
+    color: #ffffff;
+    box-shadow: 4px 4px 0 0 var(--theme-shadow);
+  }
+  .btn-arcade-primary:hover {
+    filter: brightness(0.95);
+  }
+  .btn-arcade-primary:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 0 var(--theme-shadow);
+  }
+  .btn-arcade-amber {
+    @apply relative font-fredoka font-semibold px-5 py-2.5 rounded-xl transition-all duration-100 inline-flex items-center justify-center gap-2 select-none;
+    background-color: var(--theme-surface-card);
+    color: var(--theme-text-dark);
+    border: 2px solid var(--theme-border);
+    box-shadow: 3px 3px 0 0 var(--theme-shadow);
+  }
+  .btn-arcade-amber:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 0 var(--theme-shadow);
+  }
+  .btn-arcade-emerald {
+    @apply relative font-fredoka font-semibold px-5 py-2.5 rounded-xl transition-all duration-100 inline-flex items-center justify-center gap-2 select-none;
+    background-color: var(--theme-surface-inner);
+    color: var(--theme-text-dark);
+    border: 2px solid var(--theme-border);
+    box-shadow: 3px 3px 0 0 var(--theme-shadow);
+  }
+  .btn-arcade-emerald:hover {
+    background-color: var(--theme-surface-card);
+  }
+  .btn-arcade-emerald:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 0 var(--theme-shadow);
   }
 
-  /* Soft Bubbly Card */
-  .card-bubbly {
-    @apply rounded-[2rem] bg-white border border-white/60;
-    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.06), inset 0 4px 0 0 rgba(255,255,255,0.9);
+  /* Crisp Game Container & Cards */
+  .card-arcade {
+    background-color: var(--theme-surface-card);
+    color: var(--theme-text-dark);
+    border: 2px solid var(--theme-border);
+    box-shadow: 4px 4px 0 0 var(--theme-shadow);
+    border-radius: 1rem;
+  }
+  .card-arcade-interactive {
+    background-color: var(--theme-surface-card);
+    color: var(--theme-text-dark);
+    border: 2px solid var(--theme-border);
+    box-shadow: 4px 4px 0 0 var(--theme-shadow);
+    border-radius: 1rem;
+    transition: all 100ms ease;
+  }
+  .card-arcade-interactive:hover {
+    background-color: var(--theme-surface-inner);
   }
 
-  /* Soft Bubbly Tab */
-  .tab-bubbly {
-    @apply rounded-full border border-white/60;
-    box-shadow: 0 6px 15px -5px rgba(0,0,0,0.08), inset 0 2px 0 0 rgba(255,255,255,0.4);
+  /* Solid Theme-Aware Retro Panels - 0% gradients, solid colors, hard drop shadows */
+  .rpg-panel {
+    background-color: var(--theme-primary);
+    border: 2px solid var(--theme-surface-card);
+    box-shadow: 4px 4px 0 0 var(--theme-shadow);
+    border-radius: 1rem;
+    color: var(--theme-surface-card);
+  }
+  .rpg-panel-gold {
+    background-color: var(--theme-primary);
+    border: 2px solid var(--theme-surface-card);
+    box-shadow: 4px 4px 0 0 var(--theme-shadow);
+    border-radius: 1rem;
+    color: var(--theme-surface-card);
+  }
+  .rpg-inner-box {
+    background-color: var(--theme-surface-card);
+    border: 2px solid var(--theme-border);
+    border-radius: 0.75rem;
+    color: var(--theme-text-dark);
+    box-shadow: 2px 2px 0 0 var(--theme-shadow);
+  }
+  .rpg-inner-box-pink {
+    background-color: var(--theme-surface-inner);
+    border: 2px solid var(--theme-border);
+    border-radius: 0.75rem;
+    color: var(--theme-text-dark);
+    box-shadow: 2px 2px 0 0 var(--theme-shadow);
+  }
+  .rpg-btn-menu {
+    background-color: var(--theme-surface-card);
+    border: 2px solid var(--theme-border);
+    box-shadow: 3px 3px 0 0 var(--theme-shadow);
+    border-radius: 0.875rem;
+    color: var(--theme-text-dark);
+    transition: all 100ms ease;
+  }
+  .rpg-btn-menu:hover {
+    background-color: var(--theme-surface-inner);
+    border-color: var(--theme-border);
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 0 var(--theme-shadow);
+  }
+  .rpg-btn-menu:active {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 0 var(--theme-shadow);
   }
 
-  /* Mesh gradient background for that playful iOS-like vibe */
-  .bg-mesh-soft {
-    background-color: #f0f7ff;
-    background-image: 
-      radial-gradient(at 40% 20%, hsla(28,100%,84%,0.4) 0px, transparent 50%),
-      radial-gradient(at 80% 0%, hsla(189,100%,76%,0.4) 0px, transparent 50%),
-      radial-gradient(at 0% 50%, hsla(355,100%,93%,0.4) 0px, transparent 50%),
-      radial-gradient(at 80% 50%, hsla(340,100%,86%,0.4) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(22,100%,87%,0.4) 0px, transparent 50%),
-      radial-gradient(at 80% 100%, hsla(242,100%,80%,0.4) 0px, transparent 50%),
-      radial-gradient(at 0% 0%, hsla(343,100%,86%,0.4) 0px, transparent 50%);
+  /* Scanner Reticle Elements */
+  .scanner-crosshair {
+    position: relative;
   }
-}
-
-/* Custom animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  33% { transform: translateY(-12px) rotate(3deg); }
-  66% { transform: translateY(-6px) rotate(-2deg); }
-}
-
-@keyframes pop-in {
-  0% { transform: scale(0.8); opacity: 0; }
-  60% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-pop-in {
-  animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-@keyframes scan-line {
-  0%, 100% { top: 8%; }
-  50% { top: 88%; }
-}
-
-.animate-scan-line {
-  animation: scan-line 2s ease-in-out infinite;
-}
-
-/* Pixel art theme animations */
-.pixelated {
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
-}
-
-@keyframes shine {
-  0% {
-    background-position: -200% 0;
+  .scanner-crosshair::before,
+  .scanner-crosshair::after {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-color: var(--theme-primary);
+    pointer-events: none;
   }
-  100% {
-    background-position: 200% 0;
+
+  /* Pixel typography helpers */
+  .font-pixel {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.05em;
   }
-}
-
-@keyframes pulse-slow {
-  0%, 100% {
-    opacity: 1;
+  .font-press-start {
+    font-family: 'Press Start 2P', monospace;
   }
-  50% {
-    opacity: 0.8;
+  .font-pixelify {
+    font-family: 'Pixelify Sans', cursive, sans-serif;
   }
-}
-
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
+  .font-silkscreen {
+    font-family: 'Silkscreen', monospace;
   }
-  to {
-    transform: rotate(360deg);
+
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
   }
-}
 
-@keyframes wiggle {
-  0%, 100% {
-    transform: rotate(-3deg);
+  .text-pixel-title {
+    font-family: 'Press Start 2P', monospace;
+    color: #ffffff;
+    text-shadow: 
+      3px 3px 0 var(--theme-dark),
+      -2px -2px 0 var(--theme-dark),
+      2px -2px 0 var(--theme-dark),
+      -2px 2px 0 var(--theme-dark),
+      0 4px 0 var(--theme-dark);
   }
-  50% {
-    transform: rotate(3deg);
+
+  .text-pixel-pink {
+    font-family: 'Press Start 2P', monospace;
+    color: var(--theme-primary);
+    text-shadow: 
+      2px 2px 0 var(--theme-dark),
+      -1px -1px 0 var(--theme-dark),
+      1px -1px 0 var(--theme-dark),
+      -1px 1px 0 var(--theme-dark);
   }
-}
 
-@keyframes particle-float {
-  0% {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+  .text-pixel-gold {
+    font-family: 'Press Start 2P', monospace;
+    color: #ffffff;
+    text-shadow: 
+      2px 2px 0 var(--theme-dark),
+      -1px -1px 0 var(--theme-dark),
+      1px -1px 0 var(--theme-dark),
+      -1px 1px 0 var(--theme-dark);
   }
-  100% {
-    transform: translateY(-100px) scale(0);
-    opacity: 0;
+
+  .dialog-pixel-box {
+    box-shadow: 
+      0 0 0 2px #ffffff,
+      0 0 0 4px var(--theme-dark),
+      6px 6px 0 0 var(--theme-dark);
   }
-}
 
-@keyframes confetti-fall {
-  0% {
-    transform: translateY(-100%) rotate(0deg);
-    opacity: 1;
+  /* Sonner Retro Toast Overrides */
+  [data-sonner-toaster] [data-sonner-toast] {
+    background: var(--theme-surface) !important;
+    color: var(--theme-dark) !important;
+    border: 2px solid var(--theme-dark) !important;
+    box-shadow: 4px 4px 0px var(--theme-dark) !important;
+    border-radius: 12px !important;
   }
-  100% {
-    transform: translateY(100vh) rotate(720deg);
-    opacity: 0;
+
+  [data-sonner-toaster] [data-sonner-toast] [data-title] {
+    color: var(--theme-dark) !important;
+    font-weight: 700 !important;
   }
-}
 
-.animate-shine {
-  animation: shine 2s linear infinite;
-}
+  [data-sonner-toaster] [data-sonner-toast] [data-description] {
+    color: var(--theme-dark) !important;
+    opacity: 0.85 !important;
+  }
 
-.animate-pulse-slow {
-  animation: pulse-slow 2s ease-in-out infinite;
-}
+  [data-sonner-toaster] [data-sonner-toast] [data-close-button] {
+    background: var(--theme-surface) !important;
+    color: var(--theme-dark) !important;
+    border: 2px solid var(--theme-dark) !important;
+  }
 
-.animate-spin-slow {
-  animation: spin-slow 3s linear infinite;
-}
-
-.animate-wiggle {
-  animation: wiggle 0.5s ease-in-out infinite;
-}
-
-.animate-particle-float {
-  animation: particle-float 2s ease-out forwards;
-}
-
-.animate-confetti-fall {
-  animation: confetti-fall 3s linear forwards;
-}
-
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: oklch(0.8 0 0);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.65 0 0);
+  [data-sonner-toaster] [data-sonner-toast][data-type='success'],
+  [data-sonner-toaster] [data-sonner-toast][data-type='info'],
+  [data-sonner-toaster] [data-sonner-toast][data-type='warning'],
+  [data-sonner-toaster] [data-sonner-toast][data-type='error'] {
+    background: var(--theme-surface) !important;
+    color: var(--theme-dark) !important;
+    border: 2px solid var(--theme-dark) !important;
+    box-shadow: 4px 4px 0px var(--theme-dark) !important;
+  }
 }

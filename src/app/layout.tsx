@@ -1,24 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Fredoka, Nunito } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { Analytics } from '@vercel/analytics/next';
-import { ErrorBoundary } from '@/components/shared';
-import { BottomNav } from '@/components/legacy/bottom-nav';
-
-const fredoka = Fredoka({
-  subsets: ['latin'],
-  variable: '--font-fredoka',
-  weight: ['400', '500', '600', '700'],
-  display: 'swap',
-});
-
-const nunito = Nunito({
-  subsets: ['latin'],
-  variable: '--font-nunito',
-  weight: ['400', '500', '600', '700', '800'],
-  display: 'swap',
-});
+import { BottomNav } from '@/components/layout/bottom-nav';
+import { AppHeader } from '@/components/layout/app-header';
+import { MainContentLayout } from '@/components/layout/main-content-layout';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { AudioProvider } from '@/components/providers/audio-provider';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -28,13 +16,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Scan Chan — Scan, Discover, Collect',
+  title: 'Scan Chan — Gamified Barcode Companion',
   description:
-    'Scan barcodes on physical products to discover, track and collect product information. A fun, gamified barcode scanning experience for everyone.',
-  keywords: ['barcode scanner', 'product lookup', 'Scan Chan', 'scan products'],
+    'Scan physical product barcodes, feed your pixel companion cat, collect food items, and climb levels with Scan Chan.',
+  keywords: ['barcode scanner', 'gamified scanning', 'virtual pet', 'pixel cat', 'product lookup'],
   openGraph: {
     title: 'Scan Chan',
-    description: 'Scan, Discover, Collect — Your barcode scanning adventure starts here!',
+    description: 'Turn everyday barcode scanning into an arcade adventure!',
     type: 'website',
   },
 };
@@ -46,13 +34,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${fredoka.variable} ${nunito.variable} font-nunito antialiased bg-mesh-soft min-h-[100dvh]`}>
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
-        <BottomNav />
-        <Toaster richColors position="top-right" />
-        <Analytics />
+      <body className="font-nunito bg-background text-foreground min-h-[100dvh] flex flex-col antialiased overflow-x-hidden">
+        <ThemeProvider>
+          <AudioProvider>
+            <AppHeader />
+            <MainContentLayout>{children}</MainContentLayout>
+            <BottomNav />
+            <Toaster position="top-right" />
+            <Analytics />
+          </AudioProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

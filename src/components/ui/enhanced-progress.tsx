@@ -20,39 +20,39 @@ interface ProgressBarProps {
 
 const variantStyles = {
   hunger: {
-    gradient: "from-orange-400 via-orange-500 to-amber-600",
-    glow: "shadow-orange-500/50",
+    gradient: "bg-[var(--theme-primary)]",
+    glow: "shadow-[var(--theme-shadow)]/50",
     IconComponent: StatusCatIcons.Hunger,
-    bg: "bg-orange-100",
-    border: "border-orange-300",
+    bg: "bg-[var(--theme-surface-inner)]",
+    border: "border-2 border-[var(--theme-border)]",
   },
   happiness: {
-    gradient: "from-pink-400 via-pink-500 to-rose-600",
-    glow: "shadow-pink-500/50",
+    gradient: "bg-[var(--theme-accent)]",
+    glow: "shadow-[var(--theme-shadow)]/50",
     IconComponent: StatusCatIcons.Happiness,
-    bg: "bg-pink-100",
-    border: "border-pink-300",
+    bg: "bg-[var(--theme-surface-inner)]",
+    border: "border-2 border-[var(--theme-border)]",
   },
   health: {
-    gradient: "from-green-400 via-green-500 to-emerald-600",
+    gradient: "bg-emerald-500",
     glow: "shadow-green-500/50",
     IconComponent: StatusCatIcons.Health,
-    bg: "bg-green-100",
-    border: "border-green-300",
+    bg: "bg-[var(--theme-surface-inner)]",
+    border: "border-2 border-[var(--theme-border)]",
   },
   xp: {
-    gradient: "from-cyan-400 via-cyan-500 to-blue-600",
-    glow: "shadow-cyan-500/50",
+    gradient: "bg-[var(--theme-primary)]",
+    glow: "shadow-[var(--theme-shadow)]/50",
     IconComponent: StatusCatIcons.XP,
-    bg: "bg-cyan-100",
-    border: "border-cyan-300",
+    bg: "bg-[var(--theme-surface-inner)]",
+    border: "border-2 border-[var(--theme-border)]",
   },
   energy: {
-    gradient: "from-yellow-400 via-yellow-500 to-amber-600",
+    gradient: "bg-amber-500",
     glow: "shadow-yellow-500/50",
     IconComponent: StatusCatIcons.Energy,
-    bg: "bg-yellow-100",
-    border: "border-yellow-300",
+    bg: "bg-[var(--theme-surface-inner)]",
+    border: "border-2 border-[var(--theme-border)]",
   },
 };
 
@@ -82,11 +82,11 @@ export function EnhancedProgress({
       {/* Label */}
       {showLabel && (
         <div className="flex items-center justify-between">
-          <span className={cn("font-medium capitalize flex items-center gap-2", sizes.text)}>
+          <span className={cn("font-bold text-[var(--theme-text-dark)] capitalize flex items-center gap-2", sizes.text)}>
             <IconComponent size={sizes.iconSize} /> {variant}
           </span>
           {showPercentage && (
-            <span className={cn("font-bold", sizes.text)}>
+            <span className={cn("font-bold font-pixel text-[10px] text-[var(--theme-text-dark)]", sizes.text)}>
               {value}/{max}
             </span>
           )}

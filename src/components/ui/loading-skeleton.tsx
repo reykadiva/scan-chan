@@ -145,7 +145,7 @@ export function LoadingScreen({ message = "Loading...", tip }: LoadingScreenProp
   const tips = [
     "💡 Pet your cat daily for happiness!",
     "💡 Scan healthy foods for bonus XP!",
-    "💡 Complete daily missions for rewards!",
+    "💡 Scan items daily to maintain your streak!",
     "💡 Feed your pet before they get too hungry!",
     "💡 Level up to unlock new features!",
   ];

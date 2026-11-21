@@ -40,13 +40,21 @@ export function truncate(str: string, length: number): string {
 }
 
 /**
- * Converts a Prisma Product record to a JSON-safe plain object
+ * Converts a Product record (Prisma or Local) to a JSON-safe plain object
  * with Date fields serialized to ISO strings.
  */
-export function serializeProduct(product: Product) {
+export function serializeProduct(product: any) {
   return {
     ...product,
-    createdAt: product.createdAt.toISOString(),
-    updatedAt: product.updatedAt.toISOString(),
+    brand: product.brand ?? null,
+    category: product.category ?? null,
+    description: product.description ?? null,
+    imageUrl: product.imageUrl ?? null,
+    creatorId: product.creatorId ?? null,
+    foodValue: product.foodValue ?? null,
+    rarity: product.rarity ?? null,
+    petReaction: product.petReaction ?? null,
+    createdAt: typeof product.createdAt === 'string' ? product.createdAt : product.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    updatedAt: typeof product.updatedAt === 'string' ? product.updatedAt : product.updatedAt?.toISOString?.() ?? new Date().toISOString(),
   };
 }

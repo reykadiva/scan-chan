@@ -1,11 +1,8 @@
 export type {
-  Achievement,
   AppMode,
   Inventory,
   InventoryItem,
   InventoryItemType,
-  Mission,
-  MissionStatus,
   Pet,
   PetStage,
   PetStats,

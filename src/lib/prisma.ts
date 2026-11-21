@@ -6,7 +6,7 @@ declare global {
 }
 
 export const prisma: PrismaClient =
-  globalThis._prisma ?? createPrismaClient(process.env.DATABASE_URL, 'legacy');
+  globalThis._prisma ?? createPrismaClient(process.env.DATABASE_URL, 'main');
 
 if (process.env.NODE_ENV !== 'production') {
   globalThis._prisma = prisma;

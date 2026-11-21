@@ -42,12 +42,43 @@ export function getStreakStatus(
 
 /**
  * Calculates new streak value based on status
+ * Returns 0 if broken, 1 for new, or incremented streak for continue
  */
 export function calculateNewStreak(currentStreak: number, status: 'continue' | 'broke' | 'new'): number {
   if (status === 'new') return 1;
   if (status === 'continue') return currentStreak + 1;
-  // status === 'broke'
-  return 1;
+  // status === 'broke': reset to 0
+  return 0;
+}
+
+/**
+ * Calculates new streak when a scan is performed today.
+ * - If user already scanned today: maintains streak (no double-increment).
+ * - If user scanned yesterday: increments streak + 1.
+ * - If user missed days or first scan: starts at 1.
+ */
+export function recordScanStreak(
+  currentStreak: number,
+  lastActiveDate: string | null,
+  todayString: string
+): { newStreak: number; incremented: boolean } {
+  if (hasScannedToday(lastActiveDate, todayString)) {
+    return { newStreak: currentStreak, incremented: false };
+  }
+
+  if (lastActiveDate) {
+    const lastDateParts = lastActiveDate.split('-').map(Number);
+    const todayParts = todayString.split('-').map(Number);
+    const last = new Date(lastDateParts[0], lastDateParts[1] - 1, lastDateParts[2]);
+    const today = new Date(todayParts[0], todayParts[1] - 1, todayParts[2]);
+    const diffDays = Math.round((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1 && currentStreak > 0) {
+      return { newStreak: currentStreak + 1, incremented: true };
+    }
+  }
+
+  return { newStreak: 1, incremented: true };
 }
 
 /**

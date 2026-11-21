@@ -3,7 +3,6 @@ import { barcodeSchema } from './product';
 
 export const appModeSchema = z.enum(['GUEST', 'ARASHU']);
 export const petStageSchema = z.enum(['KITTEN', 'YOUNG_CAT', 'ADULT_CAT', 'WISE_CAT', 'LEGENDARY_CAT']);
-export const missionStatusSchema = z.enum(['ACTIVE', 'COMPLETED', 'EXPIRED']);
 export const inventoryItemTypeSchema = z.enum(['PRODUCT', 'FOOD', 'MEMORY', 'FURNITURE', 'DECORATION']);
 
 export const userSchema = z.object({
@@ -41,29 +40,6 @@ export const scanHistorySchema = z.object({
   xpAwarded: z.number().int().min(0).optional().nullable(),
 });
 
-export const missionSchema = z.object({
-  userId: z.string().min(1),
-  templateId: z.string().min(1).max(120),
-  title: z.string().min(1).max(160),
-  description: z.string().optional().nullable(),
-  progress: z.number().int().min(0).default(0),
-  target: z.number().int().min(1).default(1),
-  status: missionStatusSchema.default('ACTIVE'),
-  xpReward: z.number().int().min(0).optional().nullable(),
-  date: z.coerce.date(),
-});
-
-export const achievementSchema = z.object({
-  userId: z.string().min(1).optional().nullable(),
-  title: z.string().min(1).max(160),
-  description: z.string().optional().nullable(),
-  category: z.string().max(120).optional().nullable(),
-  threshold: z.number().int().min(0).optional().nullable(),
-  xpReward: z.number().int().min(0).optional().nullable(),
-  badgeImage: z.string().url().optional().nullable(),
-  unlockedAt: z.coerce.date().optional().nullable(),
-});
-
 export const progressSchema = z.object({
   userId: z.string().min(1),
   xp: z.number().int().min(0).default(0),
@@ -92,8 +68,6 @@ export type PetInput = z.infer<typeof petSchema>;
 export type PetStatsInput = z.infer<typeof petStatsSchema>;
 export type InventoryItemInput = z.infer<typeof inventoryItemSchema>;
 export type ScanHistoryInput = z.infer<typeof scanHistorySchema>;
-export type MissionInput = z.infer<typeof missionSchema>;
-export type AchievementInput = z.infer<typeof achievementSchema>;
 export type ProgressInput = z.infer<typeof progressSchema>;
 export type SettingsInput = z.infer<typeof settingsSchema>;
 export type SyncMetadataInput = z.infer<typeof syncMetadataSchema>;

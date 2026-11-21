@@ -66,9 +66,9 @@ describe('Streak Helper Functions', () => {
       expect(calculateNewStreak(100, 'continue')).toBe(101);
     });
 
-    it('should reset to 1 for "broke" status', () => {
-      expect(calculateNewStreak(5, 'broke')).toBe(1);
-      expect(calculateNewStreak(100, 'broke')).toBe(1);
+    it('should reset to 0 for "broke" status', () => {
+      expect(calculateNewStreak(5, 'broke')).toBe(0);
+      expect(calculateNewStreak(100, 'broke')).toBe(0);
     });
   });
 
@@ -173,11 +173,10 @@ describe('Streak Helper Functions', () => {
 
       // Day 3: Missed a day - streak breaks
       expect(getStreakStatus('2026-07-07', '2026-07-09', 2)).toBe('broke');
-      expect(calculateNewStreak(2, 'broke')).toBe(1);
+      expect(calculateNewStreak(2, 'broke')).toBe(0);
 
       // Day 4: Restart streak
-      expect(getStreakStatus('2026-07-09', '2026-07-10', 1)).toBe('continue');
-      expect(calculateNewStreak(1, 'continue')).toBe(2);
+      expect(calculateNewStreak(0, 'new')).toBe(1);
     });
 
     it('should calculate correct XP with multiplier through streak', () => {

@@ -1,12 +1,9 @@
 export type { ApiResponse, PaginatedResponse } from './api';
 export type {
-  Achievement,
   AppMode,
   Inventory,
   InventoryItem,
   InventoryItemType,
-  Mission,
-  MissionStatus,
   Pet,
   PetStage,
   PetStats,
@@ -18,7 +15,6 @@ export type {
   SyncMetadata,
   User,
 } from './database';
-export type { GameAchievement, MissionProgress } from './game';
 export type { ProfileDomainBoundary } from './profile';
 export {
   CATEGORIES,

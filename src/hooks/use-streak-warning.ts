@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getHoursUntilMidnight, getStreakWarningMessage, getTodayString } from '@/lib/streak-helpers';
-import { usePlayerStore } from '@/stores/legacy/player-store';
+import { usePlayerStore } from '@/stores/player-store';
 
 /**
  * Hook that manages streak warning system

@@ -8,7 +8,6 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { PixelStar, PixelHeart, PixelSparkle } from "./pixel-illustrations";
-import { sounds } from "@/lib/sounds";
 import { haptics } from "@/lib/haptics";
 
 interface MilestoneCelebrationProps {
@@ -32,15 +31,12 @@ export function MilestoneCelebration({
     if (show) {
       setVisible(true);
       
-      // Play sound and haptic feedback
+      // Haptic feedback
       if (type === "levelup") {
-        sounds.play("levelup");
         haptics.heavy();
       } else if (type === "perfect") {
-        sounds.play("milestone");
         haptics.success();
       } else {
-        sounds.play("achievement");
         haptics.success();
       }
 
@@ -178,7 +174,6 @@ export function QuickCelebration({
   useEffect(() => {
     if (show) {
       setVisible(true);
-      sounds.play("success");
       haptics.light();
 
       const timer = setTimeout(() => {

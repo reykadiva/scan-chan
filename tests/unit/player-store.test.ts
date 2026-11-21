@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { usePlayerStore } from '@/stores/legacy/player-store';
+import { usePlayerStore } from '@/stores/player-store';
 
 describe('Player Store & Virtual Pet Mechanics', () => {
   beforeEach(() => {
@@ -77,6 +77,34 @@ describe('Player Store & Virtual Pet Mechanics', () => {
     expect(state.petAffection).toBe(30); // hunger not 0, affection stays same
   });
 
+  it('should reset streak to 0 if full calendar day is missed', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+
+    // User had a 5-day streak, but last scan was 2 days ago
+    usePlayerStore.setState({ streak: 5, lastActiveDate: '2026-07-04' });
+
+    // Check reset on July 6 (July 5 was completely missed)
+    usePlayerStore.getState().checkDailyReset('2026-07-06');
+
+    const state = usePlayerStore.getState();
+    expect(state.streak).toBe(0);
+  });
+
+  it('should increment streak only once per calendar day upon scan', () => {
+    const store = usePlayerStore.getState();
+    store.initializePlayer('TestPlayer', 'calico');
+
+    // First scan ever
+    usePlayerStore.setState({ streak: 0, lastActiveDate: null });
+    usePlayerStore.getState().recordScan('8991234567890', true, 'Snack');
+    expect(usePlayerStore.getState().streak).toBe(1);
+
+    // Second scan on the same day should NOT increment streak
+    usePlayerStore.getState().recordScan('8991234567891', true, 'Snack');
+    expect(usePlayerStore.getState().streak).toBe(1);
+  });
+
   it('should handle customized titles and pet accessories', () => {
     const store = usePlayerStore.getState();
     expect(store.selectedTitle).toBe('');
@@ -90,23 +118,6 @@ describe('Player Store & Virtual Pet Mechanics', () => {
     expect(state.selectedAccessory).toBe('wizard');
   });
 
-  it('should claim daily login rewards and increment calendar', () => {
-    const store = usePlayerStore.getState();
-    store.initializePlayer('TestPlayer', 'calico');
-
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    const reward = store.claimLoginReward(todayStr);
-
-    const state = usePlayerStore.getState();
-    expect(state.loginCalendar).toContain(todayStr);
-    expect(reward.xp).toBeGreaterThan(0);
-    expect(reward.food).toBe(true); // Day 1-3 gives food reward
-
-    // Claiming again today should yield no rewards
-    const secondReward = store.claimLoginReward(todayStr);
-    expect(secondReward.xp).toBe(0);
-  });
-
   it('should select room backgrounds', () => {
     const store = usePlayerStore.getState();
     store.initializePlayer('TestPlayer', 'calico');
@@ -114,38 +125,5 @@ describe('Player Store & Virtual Pet Mechanics', () => {
 
     store.selectRoom('kawaii-garden');
     expect(usePlayerStore.getState().selectedRoom).toBe('kawaii-garden');
-  });
-
-  it('should generate and complete bounty hunts on recordScan', () => {
-    const store = usePlayerStore.getState();
-    store.initializePlayer('TestPlayer', 'calico');
-    expect(store.activeBounty).toBeNull();
-
-    // Generate bounty
-    store.generateBounty();
-    const activeBounty = usePlayerStore.getState().activeBounty;
-    expect(activeBounty).not.toBeNull();
-    const category = activeBounty!.category;
-
-    // Scan a product matching the category
-    store.recordScan('barcode123', true, category);
-
-    // Bounty should be completed and rewards given
-    const state = usePlayerStore.getState();
-    expect(state.activeBounty).toBeNull();
-    expect(state.xp).toBeGreaterThan(0);
-  });
-
-  it('should track category scans', () => {
-    const store = usePlayerStore.getState();
-    store.initializePlayer('TestPlayer', 'calico');
-
-    store.recordScan('barcode1', true, 'Snack');
-    store.recordScan('barcode2', true, 'Snack');
-    store.recordScan('barcode3', true, 'Drink');
-
-    const state = usePlayerStore.getState();
-    expect(state.categoryScans['Snack']).toBe(2);
-    expect(state.categoryScans['Drink']).toBe(1);
   });
 });
