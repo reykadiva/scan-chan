@@ -17,22 +17,31 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://scanchan.vercel.app'),
-  title: 'Scan Chan — Gamified Barcode Companion',
+  title: 'Scan Chan - Barcode Pet Game',
   description:
     'Scan physical product barcodes, feed your pixel companion cat, collect food items, and climb levels with Scan Chan.',
   keywords: ['barcode scanner', 'gamified scanning', 'virtual pet', 'pixel cat', 'product lookup'],
   openGraph: {
-    title: 'Scan Chan — Gamified Barcode Companion',
+    title: 'Scan Chan - Barcode Pet Game',
     description: 'Scan everyday barcodes to feed & evolve your pixel cat!',
     url: 'https://scanchan.vercel.app',
     siteName: 'Scan Chan',
     locale: 'en_US',
     type: 'website',
+    images: [
+      {
+        url: '/og-preview.png',
+        width: 1200,
+        height: 630,
+        alt: 'Scan Chan - Barcode Pet Game Landing Screen',
+      },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Scan Chan — Gamified Barcode Companion',
+    title: 'Scan Chan - Barcode Pet Game',
     description: 'Scan everyday barcodes to feed & evolve your pixel cat!',
+    images: ['/og-preview.png'],
   },
 };
 
