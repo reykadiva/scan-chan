@@ -41,22 +41,12 @@ export async function updateSession(request: NextRequest) {
     supabaseResponse.cookies.set('scan_session', '', { path: '/', maxAge: 0 });
   }
 
-  const isGuest = request.cookies.get('scan_mode')?.value === 'guest';
   const pathname = request.nextUrl.pathname;
 
-  // Protected paths that require authentication or guest choice
-  const isProtectedPath =
-    pathname.startsWith('/play') ||
-    pathname.startsWith('/scan') ||
-    pathname.startsWith('/product');
-
-  // Allow choosing mode at /play/mode
-  const isModeSelection = pathname === '/play/mode';
-
-  if (isProtectedPath && !user && !isGuest && !isModeSelection) {
+  // SPA Architecture: /play, /scan, and /play/mode redirect directly to root /
+  if (pathname === '/play' || pathname === '/scan' || pathname === '/play/mode') {
     const url = request.nextUrl.clone();
     url.pathname = '/';
-    url.searchParams.set('auth', 'true');
     return NextResponse.redirect(url);
   }
 
@@ -64,7 +54,7 @@ export async function updateSession(request: NextRequest) {
   const legacyAuthPaths = ['/login', '/register', '/play/mode/arashu-login', '/arashu-login', '/forgot-password'];
   if (legacyAuthPaths.includes(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = user ? '/play' : '/';
+    url.pathname = '/';
     if (!user) {
       url.searchParams.set('auth', 'true');
     }

@@ -22,7 +22,10 @@ export function isMutationBlocked(state: PlayerState): boolean {
 
 // ─── State shape ─────────────────────────────────────────────────────────────
 
+export type ActiveView = 'TITLE' | 'LOBBY' | 'SCAN';
+
 export interface PlayerState {
+  activeView: ActiveView;
   mode: GameMode | null;
   isProfileLoaded: boolean;
   loadedUserId: string | null;
@@ -59,6 +62,7 @@ export interface PlayerState {
   selectedRoom: 'cozy' | 'kawaii-garden';
   isLoading: boolean;
   error: string | null;
+  lastCelebratedLevel: number;
   lastLocalMutationAt: number;
   isSaving: boolean;
 }
@@ -91,9 +95,11 @@ export interface PlayerActions {
   selectTheme: (theme: string) => void;
   selectAccessory: (accessory: 'none' | 'cowboy' | 'wizard' | 'shades') => void;
   selectTitle: (title: string) => void;
+  setLastCelebratedLevel: (level: number) => void;
   loadProfile: (targetUserId?: string) => Promise<void>;
   saveProfileToServer: () => Promise<void>;
   selectRoom: (room: 'cozy' | 'kawaii-garden') => void;
+  setActiveView: (view: ActiveView) => void;
 }
 
 export type PlayerStore = PlayerState & PlayerActions;
@@ -129,6 +135,14 @@ export function getPetStageFromLevel(
   return 'KITTEN';
 }
 
+export const FOOD_CATEGORIES = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
+
+export function isFoodCategory(category?: string | null): boolean {
+  if (!category) return true;
+  const lower = category.toLowerCase();
+  return FOOD_CATEGORIES.some((c) => lower.includes(c));
+}
+
 function generateCreatorId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -137,6 +151,7 @@ function generateCreatorId(): string {
 }
 
 export const initialStoreState: PlayerState = {
+  activeView: 'TITLE',
   mode: null,
   isProfileLoaded: false,
   loadedUserId: null,
@@ -173,6 +188,7 @@ export const initialStoreState: PlayerState = {
   selectedRoom: 'cozy',
   isLoading: false,
   error: null,
+  lastCelebratedLevel: 1,
   lastLocalMutationAt: 0,
   isSaving: false,
 };
@@ -194,6 +210,7 @@ export const usePlayerStore = create<PlayerStore>()(
             avatar,
             mode: state.mode || GameMode.GUEST,
             isProfileLoaded: true,
+            activeView: 'LOBBY',
           });
           return;
         }
@@ -204,6 +221,7 @@ export const usePlayerStore = create<PlayerStore>()(
           avatar,
           mode: GameMode.GUEST,
           isProfileLoaded: true,
+          activeView: 'LOBBY',
           creatorId: generateCreatorId(),
           streak: 0,
           lastActiveDate: null,
@@ -218,8 +236,13 @@ export const usePlayerStore = create<PlayerStore>()(
       setMode: (mode: GameMode | null) => {
         set((state) => ({
           mode,
-          ...(mode === GameMode.GUEST && { isProfileLoaded: true }),
+          ...(mode === GameMode.GUEST && { isProfileLoaded: true, activeView: 'LOBBY' }),
+          ...(mode === null && { activeView: 'TITLE' }),
         }));
+      },
+
+      setActiveView: (view: ActiveView) => {
+        set({ activeView: view });
       },
 
       addXP: (amount: number) => {
@@ -298,11 +321,13 @@ export const usePlayerStore = create<PlayerStore>()(
               const json = await res.json();
               if (json.success && json.data) {
                 const d = json.data;
+                const computedLevel = levelFromXp(d.xp);
+                const computedStage = getPetStageFromLevel(computedLevel);
                 set({
                   xp: d.xp,
-                  level: d.level,
-                  streak: d.streak,
-                  petStage: d.petStage,
+                  level: computedLevel,
+                  streak: typeof d.streak === 'number' ? d.streak : 0,
+                  petStage: computedStage,
                   foodInventory: d.foodInventory || get().foodInventory,
                   scanHistory: d.scanHistory || get().scanHistory,
                   lastActiveDate: d.lastActiveDate || get().lastActiveDate,
@@ -428,7 +453,7 @@ export const usePlayerStore = create<PlayerStore>()(
         _loadedUserId = null;
         _isSavingProfile = false;
         _hasPendingProfileSave = false;
-        set({ ...initialStoreState, isProfileLoaded: false, loadedUserId: null });
+        set({ ...initialStoreState, activeView: 'TITLE', isProfileLoaded: false, loadedUserId: null });
       },
 
       feedPet: (barcode: string, category: string) => {
@@ -530,14 +555,16 @@ export const usePlayerStore = create<PlayerStore>()(
               const json = await res.json();
               if (json.success && json.data) {
                 const d = json.data;
+                const computedLevel = levelFromXp(d.xp);
+                const computedStage = getPetStageFromLevel(computedLevel);
                 // Anti-flicker: Only reconcile full foodInventory when all pending feed requests have settled
                 if (_pendingFeedCount <= 1) {
                   set({
                     petHunger: d.petHunger,
                     petAffection: d.petAffection,
-                    petStage: d.petStage,
+                    petStage: computedStage,
                     xp: d.xp,
-                    level: d.level,
+                    level: computedLevel,
                     foodInventory: d.foodInventory,
                     lastFedBarcode: d.lastFedBarcode,
                     lastFedAt: d.lastFedAt,
@@ -828,6 +855,10 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ selectedRoom: room });
       },
 
+      setLastCelebratedLevel: (level: number) => {
+        set({ lastCelebratedLevel: Math.max(1, Math.floor(level || 1)) });
+      },
+
       loadProfile: async (targetUserId?: string) => {
         // BLOCK if save is in-flight or pending — stale GET would overwrite fresh local state
         if (_isSavingProfile || _hasPendingProfileSave || get().isSaving) {
@@ -846,9 +877,29 @@ export const usePlayerStore = create<PlayerStore>()(
 
         set({ isLoading: true, error: null });
         try {
-          const res = await fetch('/api/profile');
-          if (!res.ok) {
-            throw new Error(`Failed to load profile (${res.status})`);
+          let res: Response | null = null;
+          let fetchErr: any = null;
+
+          // Attempt 1: Fetch profile from server
+          try {
+            res = await fetch('/api/profile');
+          } catch (e) {
+            fetchErr = e;
+          }
+
+          // Resilient 1-shot retry on transient network error, cold start, or auth token refresh
+          if (!res || !res.ok) {
+            await new Promise((resolve) => setTimeout(resolve, 600));
+            try {
+              res = await fetch('/api/profile');
+            } catch (e) {
+              fetchErr = e;
+            }
+          }
+
+          if (!res || !res.ok) {
+            const statusMsg = res ? `(${res.status})` : (fetchErr?.message || 'Network error');
+            throw new Error(`Failed to load profile ${statusMsg}`);
           }
 
           // Re-check after await: jika save sedang in-flight atau pending, batalkan load agar tidak menimpa state klien
@@ -862,6 +913,8 @@ export const usePlayerStore = create<PlayerStore>()(
             const d = json.data;
             const afterFetchState = get();
             const todayStr = getTodayString();
+
+            // Authoritative server streak: synchronize directly without being blocked by local cache
             let streak = typeof d.streak === 'number' ? d.streak : 0;
             const lastActiveDate = d.lastActiveDate ?? afterFetchState.lastActiveDate;
 
@@ -935,10 +988,17 @@ export const usePlayerStore = create<PlayerStore>()(
                   ? d.lastAffectionDecayAt
                   : (afterFetchState.lastAffectionDecayAt || Date.now()));
 
+            // Cross-device authoritative XP, deterministic Level & Stage calculation
             const serverXp = typeof d.xp === 'number' ? d.xp : 0;
-            const finalXp = Math.max(afterFetchState.xp, serverXp);
+            const finalXp = serverXp;
             const finalLevel = levelFromXp(finalXp);
             const finalStage = getPetStageFromLevel(finalLevel);
+
+            // Hydration Level Guard: initialize lastCelebratedLevel so refresh NEVER triggers level-up celebration
+            const finalCelebratedLevel = Math.max(
+              afterFetchState.lastCelebratedLevel || 1,
+              finalLevel
+            );
 
             const mergedRegisteredBarcodes = Array.from(new Set([
               ...afterFetchState.registeredBarcodes,
@@ -955,6 +1015,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             set({
               isProfileLoaded: true,
+              activeView: 'LOBBY',
               loadedUserId: _loadedUserId,
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',
@@ -964,6 +1025,7 @@ export const usePlayerStore = create<PlayerStore>()(
               level: finalLevel,
               streak,
               lastActiveDate,
+              lastCelebratedLevel: finalCelebratedLevel,
               petName: finalPetName,
               petStage: finalStage,
               petHunger: finalHunger,
@@ -983,6 +1045,7 @@ export const usePlayerStore = create<PlayerStore>()(
               registeredBarcodes: mergedRegisteredBarcodes,
               scanHistory: mergedScanHistory,
               isLoading: false,
+              error: null,
             });
 
             // Calculate and apply accurate time-based hunger and affection decay
@@ -996,7 +1059,8 @@ export const usePlayerStore = create<PlayerStore>()(
           }
         } catch (err: any) {
           console.warn('Profile load skipped or offline:', err);
-          set({ isLoading: false, error: err.message });
+          // Retain gate and show retry: do NOT wipe local vitals or force isProfileLoaded
+          set({ isLoading: false, error: err.message || 'Sync failed' });
         }
       },
 
@@ -1093,6 +1157,7 @@ export const usePlayerStore = create<PlayerStore>()(
         selectedAccessory: state.selectedAccessory,
         selectedTitle: state.selectedTitle,
         selectedRoom: state.selectedRoom,
+        lastCelebratedLevel: state.lastCelebratedLevel,
         lastLocalMutationAt: state.lastLocalMutationAt,
       }),
     }

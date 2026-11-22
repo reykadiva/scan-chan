@@ -212,10 +212,6 @@ export function RegisterProductModal({
         // Server fetch failed, but local copy is already saved safely in productStore
       }
 
-      toast.success(
-        isSynced ? 'Product registered!' : 'Product saved locally! Will sync to cloud.',
-        { description: form.productName.trim() }
-      );
       onSuccess(cleanBarcode, form.category, form.productName.trim());
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');

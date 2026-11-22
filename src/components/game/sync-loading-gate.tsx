@@ -104,7 +104,13 @@ export function SyncLoadingGate({
               )}
               <button
                 type="button"
-                onClick={() => router.push('/')}
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.location.href = '/';
+                  } else {
+                    router.push('/');
+                  }
+                }}
                 className="rpg-button px-3.5 py-1.5 text-xs font-bold flex items-center justify-center gap-1.5 bg-[#8b1515] text-white cursor-pointer hover:brightness-110 active:scale-95 transition-all shadow-[2px_2px_0_0_#4a0b0b] border-2 border-[#4a0b0b]"
               >
                 <Home className="w-3.5 h-3.5" />

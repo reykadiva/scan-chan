@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const nextParam = requestUrl.searchParams.get('next');
 
-  // Always redirect directly to /play (avoid landing on /play/mode)
-  const targetPath = (!nextParam || nextParam === '/play/mode') ? '/play' : nextParam;
+  // SPA Single-URL: Always redirect directly to root /
+  const targetPath = (!nextParam || nextParam === '/play/mode' || nextParam === '/play') ? '/' : nextParam;
   const redirectUrl = new URL(targetPath, request.url);
   const response = NextResponse.redirect(redirectUrl);
 
