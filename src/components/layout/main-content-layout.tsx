@@ -5,9 +5,9 @@ import { usePathname } from 'next/navigation';
 export function MainContentLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Full-screen unconstrained container for Title Screen & Live Scanner
+  // Full-screen natural container for SPA (Title Screen, Lobby, & Live Scanner)
   if (pathname === '/' || pathname === '/scan') {
-    return <main className="flex-1 w-full h-full flex flex-col overflow-hidden">{children}</main>;
+    return <main className="flex-1 w-full min-h-screen flex flex-col">{children}</main>;
   }
 
   // Naturally scrolling single-column container for Game Hub & Privacy Policy

@@ -599,19 +599,19 @@ export function LobbyView() {
 
   return (
     <div className="relative w-full min-h-screen px-3 sm:px-4 py-4 sm:py-6 select-none overflow-x-hidden">
-      {/* 1. Main Pixel Art Garden Background */}
-      <div className="fixed inset-0 w-full h-full pixelated -z-10 pointer-events-none">
+      {/* 1. Main Pixel Art Garden Background (z-0) */}
+      <div className="fixed inset-0 w-full h-full pixelated z-0 pointer-events-none">
         <Image
           src="/images/garden-bg.webp"
           alt="Garden Background"
           fill
           priority
-          quality={90}
-          className="object-cover object-[center_75%] pixelated filter blur-[2px] brightness-90 scale-105"
+          quality={95}
+          className="object-cover object-[center_75%] pixelated filter blur-[1px] brightness-95 scale-105"
           sizes="100vw"
         />
         {/* Soft atmospheric overlay agar kartu retro RPG terbaca kontras dan tajam */}
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+        <div className="absolute inset-0 bg-black/35 backdrop-blur-[0.5px]" />
       </div>
 
       <Suspense fallback={null}>
@@ -643,8 +643,8 @@ export function LobbyView() {
         )}
       </AnimatePresence>
 
-      {/* ── Single-Column Centered Stack (max-w-2xl mx-auto space-y-4) ── */}
-      <div className="max-w-2xl mx-auto space-y-4">
+      {/* ── Single-Column Centered Stack with relative z-10 ── */}
+      <div className="relative z-10 max-w-2xl mx-auto space-y-4">
         {/* ─── 0. TOP FLOATING RETRO RPG HUD BAR ───────────────────────── */}
         <header className="rpg-panel px-2.5 sm:px-3.5 py-2 flex items-center justify-between gap-1.5 sm:gap-2.5 shadow-md overflow-x-hidden">
           {/* Brand / Title */}

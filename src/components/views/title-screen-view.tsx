@@ -121,7 +121,6 @@ export function TitleScreenView() {
       const data = await res.json();
 
       if (data.authenticated && data.user) {
-        toast.success(`Welcome back, ${data.user.nickname}! 🎮`);
         setMode(GameMode.ARASHU);
         const store = usePlayerStore.getState();
         if (!store.isProfileLoaded || store.loadedUserId !== data.user.id) {
