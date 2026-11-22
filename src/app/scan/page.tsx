@@ -186,8 +186,7 @@ export default function ScanPage() {
   if (mode === GameMode.ARASHU && (!isProfileLoaded || isLoading)) {
     return (
       <SyncLoadingGate
-        message="Syncing Scanner Data..."
-        submessage="Preparing your hunter bag & profile before scanning..."
+        message="LOADING..."
         onRetry={() => loadProfile()}
       />
     );

@@ -577,8 +577,7 @@ export default function GameHubPage() {
   if (isSyncing) {
     return (
       <SyncLoadingGate
-        message="Syncing Hunter Data..."
-        submessage="Restoring your partner, food bag & stats from cloud..."
+        message="LOADING..."
         error={error}
         onRetry={() => {
           setIsCheckingSession(true);
