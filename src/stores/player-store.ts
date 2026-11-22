@@ -9,6 +9,15 @@ let _isSavingProfile = false;
 let _hasPendingProfileSave = false;
 let _loadedUserId: string | null = null;
 
+/**
+ * Hard gate: Blocks any mutation or server push when profile is loading or unhydrated in cloud mode
+ */
+export function isMutationBlocked(state: PlayerState): boolean {
+  if (state.isLoading) return true;
+  if (state.mode === GameMode.ARASHU && !state.isProfileLoaded) return true;
+  return false;
+}
+
 // ─── State shape ─────────────────────────────────────────────────────────────
 
 export interface PlayerState {
@@ -176,7 +185,8 @@ export const usePlayerStore = create<PlayerStore>()(
       initializePlayer: (nickname: string, avatar: string) => {
         const state = get();
 
-        if (state.xp > 0 || state.petAffection > 10) {
+        // Never overwrite if user is in Hunter Mode, already loaded, or has existing progress!
+        if (state.mode === GameMode.ARASHU || state.isProfileLoaded || state.xp > 0 || state.petAffection > 10) {
           set({
             nickname,
             avatar,
@@ -211,6 +221,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       addXP: (amount: number) => {
+        if (isMutationBlocked(get())) return;
         const currentTotalXp = Math.max(0, Number(get().xp) || 0);
         const newTotalXp = currentTotalXp + amount;
         const newLevel = levelFromXp(newTotalXp);
@@ -225,6 +236,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       recordScan: (barcode: string, isNewProduct: boolean, category: string) => {
+        if (isMutationBlocked(get())) return;
         const now = Date.now();
         const lastScanTime = get().lastScanTime;
         const lastScan = lastScanTime[barcode] ?? 0;
@@ -278,6 +290,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       registerProduct: (barcode: string, category: string) => {
+        if (isMutationBlocked(get())) return;
         const cleanBarcode = String(barcode || '').trim();
         if (!cleanBarcode) return;
         const now = Date.now();
@@ -329,6 +342,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       unregisterProduct: (barcode: string) => {
+        if (isMutationBlocked(get())) return;
         set((state) => ({
           registeredBarcodes: state.registeredBarcodes.filter((b) => b !== barcode),
           lastDeleteTime: Date.now(),
@@ -337,6 +351,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       checkDailyReset: (localDateString?: string) => {
+        if (isMutationBlocked(get())) return;
         const state = get();
         const todayStr = localDateString || getLocalDateKey();
         const { lastActiveDate, streak } = state;
@@ -391,6 +406,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       feedPet: (barcode: string, category: string) => {
+        if (isMutationBlocked(get())) return;
         const cleanBarcode = String(barcode || '').trim();
         if (!cleanBarcode) return;
 
@@ -461,6 +477,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       applyHungerDecay: () => {
+        if (isMutationBlocked(get())) return;
         const state = get();
         const now = Date.now();
 
@@ -508,6 +525,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       applyAffectionDecay: () => {
+        if (isMutationBlocked(get())) return;
         const state = get();
         const now = Date.now();
 
@@ -570,6 +588,13 @@ export const usePlayerStore = create<PlayerStore>()(
 
       petCat: () => {
         const state = get();
+        if (isMutationBlocked(state)) {
+          return {
+            success: false,
+            reason: 'cooldown' as const,
+            dailyCount: state.dailyPetCount || 0,
+          };
+        }
         const now = Date.now();
         const todayStr = getLocalDateKey();
 
@@ -624,6 +649,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       renamePet: (name: string) => {
+        if (isMutationBlocked(get())) return;
         const cleanName = String(name || '').trim();
         if (!cleanName) return;
         set({ petName: cleanName, lastLocalMutationAt: Date.now() });
@@ -637,22 +663,27 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       selectBorder: (border) => {
+        if (isMutationBlocked(get())) return;
         set({ selectedBorder: border });
       },
 
       selectTheme: (theme) => {
+        if (isMutationBlocked(get())) return;
         set({ selectedTheme: theme });
       },
 
       selectAccessory: (accessory) => {
+        if (isMutationBlocked(get())) return;
         set({ selectedAccessory: accessory });
       },
 
       selectTitle: (title: string) => {
+        if (isMutationBlocked(get())) return;
         set({ selectedTitle: title });
       },
 
       selectRoom: (room) => {
+        if (isMutationBlocked(get())) return;
         set({ selectedRoom: room });
       },
 
@@ -830,8 +861,8 @@ export const usePlayerStore = create<PlayerStore>()(
 
       saveProfileToServer: async () => {
         const state = get();
-        // CRITICAL GUARD: Never save if not in Hunter Mode or if cloud profile has not been hydrated yet
-        if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded) {
+        // CRITICAL HARD GUARD: Never save if in loading/syncing phase, not in Hunter Mode, or unhydrated
+        if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded || state.isLoading) {
           return;
         }
 
@@ -947,7 +978,7 @@ export const usePlayerStore = create<PlayerStore>()(
 if (typeof window !== 'undefined') {
   let saveTimeout: any = null;
   usePlayerStore.subscribe((state, prevState) => {
-    if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded) return;
+    if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded || state.isLoading) return;
     // Only trigger on actual data mutations, not on isSaving/isLoading flag changes
     if (state.lastLocalMutationAt === prevState.lastLocalMutationAt) return;
     if (saveTimeout) clearTimeout(saveTimeout);

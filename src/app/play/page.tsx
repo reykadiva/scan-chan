@@ -37,6 +37,7 @@ import { CategoryIcon } from '@/components/ui/category-badge';
 import { hasScannedToday, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
 import type { Product } from '@/types';
 import { useProductStore } from '@/stores/product-store';
+import { SyncLoadingGate } from '@/components/game/sync-loading-gate';
 
 // Map evolution stages to cute pixel cat variants
 const STAGE_AVATARS: Record<string, CatVariantId> = {
@@ -117,6 +118,9 @@ export default function GameHubPage() {
     lastPetDate,
     applyHungerDecay,
     applyAffectionDecay,
+    isProfileLoaded,
+    isLoading,
+    error,
   } = usePlayerStore();
 
   const [activeModal, setActiveModal] = useState<ModalTab>(null);
@@ -125,6 +129,7 @@ export default function GameHubPage() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [registerInitialBarcode, setRegisterInitialBarcode] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const isSigningOutRef = useRef(false);
 
   // Real-time daily streak & reset calculation (uniform local date)
@@ -207,6 +212,7 @@ export default function GameHubPage() {
   // Mode & session verification
   useEffect(() => {
     if (!mounted || isSigningOutRef.current) return;
+    setIsCheckingSession(true);
 
     fetch('/api/auth/session')
       .then((res) => res.json())
@@ -232,24 +238,33 @@ export default function GameHubPage() {
               })
               .catch((err) => {
                 console.error('Failed to load Hunter profile:', err);
+              })
+              .finally(() => {
+                setIsCheckingSession(false);
               });
+          } else {
+            setIsCheckingSession(false);
           }
           // Sync any locally registered products to cloud in Hunter Mode
           useProductStore.getState().syncPendingToServer().catch(() => {});
           useProductStore.getState().fetchAndMergeCatalog().catch(() => {});
         } else if (mode === GameMode.GUEST) {
+          setIsCheckingSession(false);
           if (!nickname) {
             setShowSetup(true);
           }
         } else if (mode === GameMode.ARASHU) {
+          setIsCheckingSession(false);
           toast.error('Session expired. Please sign in again.');
           resetPlayer();
           router.push('/?auth=true');
         } else {
+          setIsCheckingSession(false);
           router.push('/play/mode');
         }
       })
       .catch(() => {
+        setIsCheckingSession(false);
         if (mode === null) {
           router.push('/play/mode');
         }
@@ -551,13 +566,25 @@ export default function GameHubPage() {
     return Object.values(foodInventory).reduce((acc, count) => acc + count, 0);
   }, [foodInventory]);
 
-  if (!mounted || mode === null) {
+  // Full-Screen Loading Gate: covers entire UI until session, cloud profile, and hydration have all settled
+  const isSyncing =
+    !mounted ||
+    mode === null ||
+    isCheckingSession ||
+    isLoading ||
+    (mode === GameMode.ARASHU && !isProfileLoaded);
+
+  if (isSyncing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#1c261d]">
-        <div className="rpg-panel p-6 text-center animate-pulse">
-          <p className="font-fredoka text-amber-300 font-bold">Loading Game Lobby...</p>
-        </div>
-      </div>
+      <SyncLoadingGate
+        message="Syncing Hunter Data..."
+        submessage="Restoring your partner, food bag & stats from cloud..."
+        error={error}
+        onRetry={() => {
+          setIsCheckingSession(true);
+          loadProfile().finally(() => setIsCheckingSession(false));
+        }}
+      />
     );
   }
 

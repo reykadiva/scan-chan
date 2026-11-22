@@ -18,6 +18,7 @@ import { CategoryIcon, CategoryBadge } from '@/components/ui/category-badge';
 import { CATEGORY_COLORS } from '@/types';
 import { RegisterProductModal } from '@/components/game/register-product-modal';
 import { useProductStore } from '@/stores/product-store';
+import { SyncLoadingGate } from '@/components/game/sync-loading-gate';
 import { toast } from 'sonner';
 
 type ScanPhase = 'scanning' | 'loading' | 'found' | 'not-found' | 'error';
@@ -33,6 +34,9 @@ export default function ScanPage() {
   const recordScan = usePlayerStore((s) => s.recordScan);
   const mode = usePlayerStore((s) => s.mode);
   const creatorId = usePlayerStore((s) => s.creatorId);
+  const isProfileLoaded = usePlayerStore((s) => s.isProfileLoaded);
+  const isLoading = usePlayerStore((s) => s.isLoading);
+  const loadProfile = usePlayerStore((s) => s.loadProfile);
 
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [result, setResult] = useState<ScanResultData | null>(null);
@@ -72,10 +76,30 @@ export default function ScanPage() {
   useEffect(() => {
     if (mode === null) {
       router.replace('/play/mode');
+      return;
     }
-  }, [mode, router]);
+
+    if (mode === GameMode.ARASHU && !isProfileLoaded) {
+      fetch('/api/auth/session')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.authenticated && data.user) {
+            loadProfile(data.user.id).catch(() => {});
+          } else {
+            router.replace('/play/mode');
+          }
+        })
+        .catch(() => {
+          router.replace('/play/mode');
+        });
+    }
+  }, [mode, isProfileLoaded, router, loadProfile]);
 
   const handleBarcode = useCallback(async (barcode: string) => {
+    if (usePlayerStore.getState().isLoading || (mode === GameMode.ARASHU && !usePlayerStore.getState().isProfileLoaded)) {
+      toast.warning('Still syncing player data. Please wait a moment...');
+      return;
+    }
     if (cooldownRef.current) return;
     if (!isValidRetailBarcode(barcode)) return;
     if (barcode === lastDecodedRef.current) return;
@@ -157,6 +181,17 @@ export default function ScanPage() {
       cooldownRef.current = false;
     }, 400);
   };
+
+  // Full-Screen Loading Gate: covers scanner UI until cloud profile is completely hydrated
+  if (mode === GameMode.ARASHU && (!isProfileLoaded || isLoading)) {
+    return (
+      <SyncLoadingGate
+        message="Syncing Scanner Data..."
+        submessage="Preparing your hunter bag & profile before scanning..."
+        onRetry={() => loadProfile()}
+      />
+    );
+  }
 
   // ponytail: no permission-state UI — browser handles the prompt natively
   return (
