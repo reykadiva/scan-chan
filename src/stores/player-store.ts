@@ -656,16 +656,20 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ selectedRoom: room });
       },
 
-      loadProfile: async () => {
+      loadProfile: async (targetUserId?: string) => {
         // BLOCK if save is in-flight or pending — stale GET would overwrite fresh local state
-        if (_saveInFlight || _savePendingDirty) {
+        if (_isSavingProfile || _hasPendingProfileSave || get().isSaving) {
           return;
         }
 
-        // Skip if profile already loaded for this session (prevents re-mount / tab-switch re-fetch)
+        // Kunci loadProfile agar hanya jalan sekali per sesi login:
+        // Jika isProfileLoaded === true dan loadedUserId === currentUserId, jangan pernah memanggil loadProfile() ulang
         const currentState = get();
         if (currentState.isProfileLoaded && currentState.mode === GameMode.ARASHU) {
-          return;
+          const effectiveUserId = targetUserId || _loadedUserId;
+          if (!targetUserId || (currentState.loadedUserId && currentState.loadedUserId === effectiveUserId)) {
+            return;
+          }
         }
 
         set({ isLoading: true, error: null });
@@ -675,8 +679,8 @@ export const usePlayerStore = create<PlayerStore>()(
             throw new Error(`Failed to load profile (${res.status})`);
           }
 
-          // Re-check after await: a save may have started while fetch was in-flight
-          if (_saveInFlight || _savePendingDirty) {
+          // Re-check after await: jika save sedang in-flight atau pending, batalkan load agar tidak menimpa state klien
+          if (_isSavingProfile || _hasPendingProfileSave || get().isSaving) {
             set({ isLoading: false });
             return;
           }
@@ -702,21 +706,18 @@ export const usePlayerStore = create<PlayerStore>()(
             }
 
             const localPetName = afterFetchState.petName;
-            let finalPetName = d.petName || 'Scan-chan Jr.';
-            if (afterFetchState.isProfileLoaded && (!d.petName || d.petName === 'Scan-chan Jr.') && localPetName && localPetName !== 'Scan-chan Jr.') {
-              finalPetName = localPetName;
-              setTimeout(() => {
-                get().saveProfileToServer().catch(() => {});
-              }, 500);
-            }
 
             // ANTI-ROLLBACK GUARD:
             // If local state was mutated recently (< 6 seconds) while already loaded,
             // or if a save is currently in-flight, preserve fresh local inventory & pet vitals!
             const timeSinceLastMutation = Date.now() - (afterFetchState.lastLocalMutationAt || 0);
             const isRecentMutation = afterFetchState.isProfileLoaded && timeSinceLastMutation < 6000;
-            const isSaving = afterFetchState.isSaving;
+            const isSaving = afterFetchState.isSaving || _isSavingProfile || _hasPendingProfileSave;
             const protectLocalVitals = isRecentMutation || isSaving;
+
+            const finalPetName = (protectLocalVitals && localPetName && localPetName !== 'Scan-chan Jr.')
+              ? localPetName
+              : (d.petName || localPetName || 'Scan-chan Jr.');
 
             const finalHunger = protectLocalVitals
               ? afterFetchState.petHunger
@@ -778,10 +779,11 @@ export const usePlayerStore = create<PlayerStore>()(
             ]));
 
             // Record which user we loaded for
-            _loadedUserId = d.id || d.userId || null;
+            _loadedUserId = d.id || d.userId || targetUserId || null;
 
             set({
               isProfileLoaded: true,
+              loadedUserId: _loadedUserId,
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',
               userEmail: d.email || afterFetchState.userEmail || null,
@@ -833,58 +835,61 @@ export const usePlayerStore = create<PlayerStore>()(
           return;
         }
 
-        // If a save is already in-flight, mark dirty and return — the in-flight save's
-        // finally block will re-fire with the latest snapshot
-        if (_saveInFlight) {
-          _savePendingDirty = true;
+        // Sequential save queue: if save is in-flight, mark dirty and return
+        if (_isSavingProfile) {
+          _hasPendingProfileSave = true;
           return;
         }
 
-        _saveInFlight = true;
+        _isSavingProfile = true;
         set({ isSaving: true });
+
         try {
-          // Always snapshot from get() right before sending so we capture the latest mutations
-          const snap = get();
-          await fetch('/api/profile', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              xp: snap.xp,
-              streak: snap.streak,
-              lastActiveDate: snap.lastActiveDate,
-              petName: snap.petName,
-              petStage: snap.petStage,
-              petHunger: snap.petHunger,
-              petAffection: snap.petAffection,
-              foodInventory: snap.foodInventory,
-              lastFedBarcode: snap.lastFedBarcode,
-              lastFedAt: snap.lastFedAt,
-              lastHungerDecayAt: snap.lastHungerDecayAt,
-              dailyPetCount: snap.dailyPetCount,
-              lastPetDate: snap.lastPetDate,
-              lastAffectionDecayAt: snap.lastAffectionDecayAt,
-              selectedTheme: snap.selectedTheme,
-              selectedBorder: snap.selectedBorder,
-              selectedAccessory: snap.selectedAccessory,
-              selectedTitle: snap.selectedTitle,
-              selectedRoom: snap.selectedRoom,
-              registeredBarcodes: snap.registeredBarcodes,
-              scanHistory: snap.scanHistory,
-            }),
-          });
-        } catch (err) {
-          console.error('Failed to sync profile to server:', err);
-        } finally {
-          _saveInFlight = false;
-          // If more mutations happened while we were saving, flush one more save
-          // with the absolute latest state
-          if (_savePendingDirty) {
-            _savePendingDirty = false;
-            // Keep isSaving true so loadProfile stays blocked during the chained save
-            get().saveProfileToServer().catch(() => {});
-          } else {
-            set({ isSaving: false });
+          while (true) {
+            _hasPendingProfileSave = false;
+            // Always snapshot from get() right before sending so we capture the latest mutations
+            const snap = get();
+            try {
+              await fetch('/api/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  xp: snap.xp,
+                  streak: snap.streak,
+                  lastActiveDate: snap.lastActiveDate,
+                  petName: snap.petName,
+                  petStage: snap.petStage,
+                  petHunger: snap.petHunger,
+                  petAffection: snap.petAffection,
+                  foodInventory: snap.foodInventory,
+                  lastFedBarcode: snap.lastFedBarcode,
+                  lastFedAt: snap.lastFedAt,
+                  lastHungerDecayAt: snap.lastHungerDecayAt,
+                  dailyPetCount: snap.dailyPetCount,
+                  lastPetDate: snap.lastPetDate,
+                  lastAffectionDecayAt: snap.lastAffectionDecayAt,
+                  selectedTheme: snap.selectedTheme,
+                  selectedBorder: snap.selectedBorder,
+                  selectedAccessory: snap.selectedAccessory,
+                  selectedTitle: snap.selectedTitle,
+                  selectedRoom: snap.selectedRoom,
+                  registeredBarcodes: snap.registeredBarcodes,
+                  scanHistory: snap.scanHistory,
+                }),
+              });
+            } catch (err) {
+              console.error('Failed to sync profile to server:', err);
+            }
+
+            // If no new mutations arrived while saving, queue is drained!
+            if (!_hasPendingProfileSave) {
+              break;
+            }
           }
+        } finally {
+          _isSavingProfile = false;
+          _hasPendingProfileSave = false;
+          set({ isSaving: false });
         }
       },
     }),
@@ -904,6 +909,7 @@ export const usePlayerStore = create<PlayerStore>()(
       // Persist only essential offline state for guest mode
       partialize: (state) => ({
         mode: state.mode,
+        loadedUserId: state.loadedUserId,
         nickname: state.nickname,
         avatar: state.avatar,
         creatorId: state.creatorId,

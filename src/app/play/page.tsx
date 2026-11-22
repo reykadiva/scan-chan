@@ -212,23 +212,28 @@ export default function GameHubPage() {
       .then((res) => res.json())
       .then((data) => {
         if (data.authenticated && data.user) {
+          const currentUserId = data.user.id;
           if (data.user.email) {
             usePlayerStore.setState({ userEmail: data.user.email });
           }
           if (mode !== GameMode.ARASHU) {
             setMode(GameMode.ARASHU);
           }
-          loadProfile()
-            .then(() => {
-              const currentKey = getLocalDateKey();
-              setTodayKey(currentKey);
-              checkDailyReset(currentKey);
-              applyHungerDecay();
-              applyAffectionDecay();
-            })
-            .catch((err) => {
-              console.error('Failed to load Hunter profile:', err);
-            });
+          const store = usePlayerStore.getState();
+          // Kunci loadProfile: hanya panggil jika profil belum dimuat ATAU user login berbeda
+          if (!store.isProfileLoaded || store.loadedUserId !== currentUserId) {
+            loadProfile(currentUserId)
+              .then(() => {
+                const currentKey = getLocalDateKey();
+                setTodayKey(currentKey);
+                checkDailyReset(currentKey);
+                applyHungerDecay();
+                applyAffectionDecay();
+              })
+              .catch((err) => {
+                console.error('Failed to load Hunter profile:', err);
+              });
+          }
           // Sync any locally registered products to cloud in Hunter Mode
           useProductStore.getState().syncPendingToServer().catch(() => {});
           useProductStore.getState().fetchAndMergeCatalog().catch(() => {});
