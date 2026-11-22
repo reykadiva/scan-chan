@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { GameMode, GAME_CONFIG } from '@/lib/game-config';
 import { applyStreakMultiplier } from '@/lib/streak-multiplier';
 import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
+import { isConsumableCategory, isFoodCategory, CONSUMABLE_CATEGORIES } from '@/types';
 
 // ─── Save queue (module-level, in-flight lock + pending dirty flag) ──────────
 let _isSavingProfile = false;
@@ -135,23 +136,7 @@ export function getPetStageFromLevel(
   return 'KITTEN';
 }
 
-export const FOOD_CATEGORIES = [
-  'snack',
-  'drink',
-  'beverage',
-  'candy',
-  'biscuit',
-  'dairy',
-  'instant',
-  'food',
-  'meal',
-];
-
-export function isFoodCategory(category?: string | null): boolean {
-  if (!category) return false;
-  const lower = category.toLowerCase();
-  return FOOD_CATEGORIES.some((c) => lower.includes(c));
-}
+export { isConsumableCategory, isFoodCategory, CONSUMABLE_CATEGORIES };
 
 function generateCreatorId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -376,7 +361,32 @@ export const usePlayerStore = create<PlayerStore>()(
         });
 
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
-          get().saveProfileToServer().catch(() => {});
+          fetch('/api/actions/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barcodeNumber: cleanBarcode }),
+          })
+            .then(async (res) => {
+              if (!res.ok) return;
+              const json = await res.json();
+              if (json.success && json.data) {
+                const d = json.data;
+                const computedLevel = levelFromXp(d.xp);
+                const computedStage = getPetStageFromLevel(computedLevel);
+                set({
+                  xp: d.xp,
+                  level: computedLevel,
+                  streak: typeof d.streak === 'number' ? d.streak : 0,
+                  petStage: computedStage,
+                  foodInventory: d.foodInventory || get().foodInventory,
+                  scanHistory: d.scanHistory || get().scanHistory,
+                  lastActiveDate: d.lastActiveDate || get().lastActiveDate,
+                });
+              }
+            })
+            .catch((err) => {
+              console.warn('[registerProduct] Server action sync failed:', err);
+            });
         }
       },
 

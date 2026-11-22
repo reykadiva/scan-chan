@@ -36,6 +36,68 @@ export const CATEGORIES = [
 
 export type Category = (typeof CATEGORIES)[number];
 
+export const CONSUMABLE_CATEGORIES = [
+  'Drink',
+  'Snack',
+  'Candy',
+  'Biscuit',
+  'Dairy',
+  'Instant',
+  'Frozen',
+] as const;
+
+export type ConsumableCategory = (typeof CONSUMABLE_CATEGORIES)[number];
+
+const CONSUMABLE_KEYWORDS = [
+  'drink',
+  'beverage',
+  'water',
+  'juice',
+  'tea',
+  'coffee',
+  'soda',
+  'minuman',
+  'air mineral',
+  'snack',
+  'camilan',
+  'candy',
+  'permen',
+  'sweet',
+  'chocolate',
+  'cokelat',
+  'biscuit',
+  'biskuit',
+  'cookie',
+  'wafer',
+  'dairy',
+  'milk',
+  'susu',
+  'cheese',
+  'keju',
+  'yogurt',
+  'instant',
+  'noodle',
+  'ramen',
+  'mie',
+  'frozen',
+  'es krim',
+  'food',
+  'makanan',
+  'meal',
+];
+
+export function isConsumableCategory(category?: string | null): boolean {
+  if (!category) return false;
+  const lower = category.trim().toLowerCase();
+  if (CONSUMABLE_CATEGORIES.some((c) => c.toLowerCase() === lower)) {
+    return true;
+  }
+  return CONSUMABLE_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
+/** Backward-compatible alias for existing imports */
+export const isFoodCategory = isConsumableCategory;
+
 export const CATEGORY_COLORS: Record<string, string> = {
   Snack: '#FF9800',
   Drink: '#2196F3',

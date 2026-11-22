@@ -4,7 +4,8 @@ import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Flashlight, FlashlightOff, RefreshCw } from 'lucide-react';
 import { PixelCat } from '@/components/game/pixel-cat';
-import { usePlayerStore, levelFromXp, getPetStageFromLevel, isFoodCategory } from '@/stores/player-store';
+import { usePlayerStore, levelFromXp, getPetStageFromLevel } from '@/stores/player-store';
+import { isConsumableCategory } from '@/types';
 import { XpPopup } from '@/components/game/xp-popup';
 import { getDeviceType, formatBarcode } from '@/lib/utils';
 import { GameMode } from '@/lib/game-config';
@@ -58,7 +59,7 @@ export function ScannerView({ onClose }: ScannerViewProps) {
       const cleanBarcode = barcode.trim();
       usePlayerStore.getState().registerProduct(cleanBarcode, category);
       setShowRegisterModal(false);
-      const isFood = isFoodCategory(category);
+      const isFood = isConsumableCategory(category);
       if (isFood) {
         toast.success('🎉 Product registered & added to Food Bag! 📦🍖', {
           description: productName ? `${productName} (+1 food in bag)` : '+1 food added to your bag',
@@ -393,7 +394,7 @@ function ProductFoundSheet({
               DISCOVERY! 🌟
             </span>
           )}
-          {isFoodCategory(product.category) ? (
+          {isConsumableCategory(product.category) ? (
             <span className="font-press-start text-[9px] bg-[var(--theme-primary)] text-white px-2 py-1 rounded-lg border-2 border-[var(--theme-border)] shadow-[1px_1px_0_0_var(--theme-shadow)]">
               +1 FOOD 🍖
             </span>

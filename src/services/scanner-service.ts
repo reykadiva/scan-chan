@@ -3,22 +3,114 @@ import { localDb } from '@/lib/database/local-db';
 import { GAME_CONFIG } from '@/lib/game-config';
 import { calculateStreakMultiplier } from '@/lib/streak-multiplier';
 import { serializeProduct } from '@/lib/utils';
+import { isConsumableCategory } from '@/types';
 
 function mapOpenFoodFactsCategory(categoriesStr = ''): string {
   const cats = categoriesStr.toLowerCase();
-  if (cats.includes('beverage') || cats.includes('drink') || cats.includes('soda') || cats.includes('juice') || cats.includes('tea') || cats.includes('water')) return 'Drink';
-  if (cats.includes('candy') || cats.includes('sweet') || cats.includes('chocolate') || cats.includes('confectionery')) return 'Candy';
-  if (cats.includes('biscuit') || cats.includes('cookie') || cats.includes('wafer')) return 'Biscuit';
-  if (cats.includes('snack') || cats.includes('chip') || cats.includes('crisp') || cats.includes('popcorn')) return 'Snack';
-  if (cats.includes('dairy') || cats.includes('milk') || cats.includes('cheese') || cats.includes('yogurt')) return 'Dairy';
-  if (cats.includes('frozen')) return 'Frozen';
-  if (cats.includes('noodle') || cats.includes('ramen') || cats.includes('instant')) return 'Instant';
-  if (cats.includes('seasoning') || cats.includes('sauce') || cats.includes('spice') || cats.includes('salt')) return 'Seasoning';
-  if (cats.includes('personal care') || cats.includes('soap') || cats.includes('shampoo') || cats.includes('toothpaste') || cats.includes('hygiene')) return 'Personal Care';
+  if (
+    cats.includes('beverage') ||
+    cats.includes('drink') ||
+    cats.includes('soda') ||
+    cats.includes('juice') ||
+    cats.includes('tea') ||
+    cats.includes('water') ||
+    cats.includes('coffee') ||
+    cats.includes('minuman') ||
+    cats.includes('air mineral') ||
+    cats.includes('teh') ||
+    cats.includes('kopi')
+  ) {
+    return 'Drink';
+  }
+  if (
+    cats.includes('candy') ||
+    cats.includes('sweet') ||
+    cats.includes('chocolate') ||
+    cats.includes('confectionery') ||
+    cats.includes('permen') ||
+    cats.includes('cokelat') ||
+    cats.includes('coklat')
+  ) {
+    return 'Candy';
+  }
+  if (
+    cats.includes('biscuit') ||
+    cats.includes('cookie') ||
+    cats.includes('wafer') ||
+    cats.includes('biskuit') ||
+    cats.includes('kukis')
+  ) {
+    return 'Biscuit';
+  }
+  if (
+    cats.includes('snack') ||
+    cats.includes('chip') ||
+    cats.includes('crisp') ||
+    cats.includes('popcorn') ||
+    cats.includes('camilan') ||
+    cats.includes('keripik') ||
+    cats.includes('snak')
+  ) {
+    return 'Snack';
+  }
+  if (
+    cats.includes('dairy') ||
+    cats.includes('milk') ||
+    cats.includes('cheese') ||
+    cats.includes('yogurt') ||
+    cats.includes('susu') ||
+    cats.includes('keju')
+  ) {
+    return 'Dairy';
+  }
+  if (
+    cats.includes('frozen') ||
+    cats.includes('ice cream') ||
+    cats.includes('es krim') ||
+    cats.includes('gelato')
+  ) {
+    return 'Frozen';
+  }
+  if (
+    cats.includes('noodle') ||
+    cats.includes('ramen') ||
+    cats.includes('instant') ||
+    cats.includes('mie') ||
+    cats.includes('mi instan')
+  ) {
+    return 'Instant';
+  }
+  if (
+    cats.includes('seasoning') ||
+    cats.includes('sauce') ||
+    cats.includes('spice') ||
+    cats.includes('salt') ||
+    cats.includes('bumbu') ||
+    cats.includes('saus') ||
+    cats.includes('kecap') ||
+    cats.includes('sambal')
+  ) {
+    return 'Seasoning';
+  }
+  if (
+    cats.includes('personal care') ||
+    cats.includes('soap') ||
+    cats.includes('shampoo') ||
+    cats.includes('toothpaste') ||
+    cats.includes('hygiene') ||
+    cats.includes('sabun') ||
+    cats.includes('sampo') ||
+    cats.includes('pasta gigi')
+  ) {
+    return 'Personal Care';
+  }
+  if (cats.includes('food') || cats.includes('makanan')) {
+    return 'Snack';
+  }
   return 'Other';
 }
 
-export async function processBarcodeScan(barcodeNumber: string, userId?: string | null, deviceType?: string) {
+export async function lookupOrRegisterProduct(barcodeNumber: string) {
   let product: any = null;
   let isNewProduct = false;
 
@@ -28,7 +120,7 @@ export async function processBarcodeScan(barcodeNumber: string, userId?: string 
       where: { barcodeNumber },
     });
   } catch (err) {
-    console.warn('[processBarcodeScan] Prisma find product failed, checking local store:', err);
+    console.warn('[lookupOrRegisterProduct] Prisma find product failed, checking local store:', err);
   }
 
   if (!product) {
@@ -88,6 +180,17 @@ export async function processBarcodeScan(barcodeNumber: string, userId?: string 
     }
   }
 
+  return { product, isNewProduct };
+}
+
+export async function processBarcodeScan(
+  barcodeNumber: string,
+  userId?: string | null,
+  deviceType?: string,
+  options?: { skipLog?: boolean }
+) {
+  const { product, isNewProduct } = await lookupOrRegisterProduct(barcodeNumber);
+
   // Calculate base XP
   let baseXP = isNewProduct ? GAME_CONFIG.xp.scanNew : GAME_CONFIG.xp.scanExisting;
   let multiplier = 1;
@@ -110,33 +213,33 @@ export async function processBarcodeScan(barcodeNumber: string, userId?: string 
 
   const xpAwarded = Math.round(baseXP * multiplier);
 
-  // 3. Log scan history
-  try {
-    await prisma.scanHistory.create({
-      data: {
+  // 3. Log scan history (only if skipLog is not true)
+  if (!options?.skipLog) {
+    try {
+      await prisma.scanHistory.create({
+        data: {
+          barcodeNumber,
+          productId: product?.id ?? null,
+          deviceType: deviceType ?? 'webcam',
+          userId: userId ?? null,
+          xpAwarded,
+        },
+      });
+    } catch {
+      localDb.addScanHistory({
+        id: `scan_${Date.now()}`,
         barcodeNumber,
         productId: product?.id ?? null,
         deviceType: deviceType ?? 'webcam',
         userId: userId ?? null,
         xpAwarded,
-      },
-    });
-  } catch {
-    localDb.addScanHistory({
-      id: `scan_${Date.now()}`,
-      barcodeNumber,
-      productId: product?.id ?? null,
-      deviceType: deviceType ?? 'webcam',
-      userId: userId ?? null,
-      xpAwarded,
-      scannedAt: new Date().toISOString(),
-    });
+        scannedAt: new Date().toISOString(),
+      });
+    }
   }
 
   // Note: Inventory & progression mutation is handled authoritatively by executeScanAction.
-  // processBarcodeScan serves strictly for product lookup, registration, and raw log.
-  const cat = product?.category || 'Other';
-  const foodEligible = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy', 'Instant'].includes(cat);
+  const foodEligible = isConsumableCategory(product?.category);
 
   return {
     found: !!product,

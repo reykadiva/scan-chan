@@ -5,6 +5,7 @@ import { recordScanStreak, getWibDateKey } from '@/lib/streak-helpers';
 import { localDb, type LocalUser } from '@/lib/database/local-db';
 import type { ProfileUpdateInput, ProfilePreferencesInput } from '@/lib/validations/profile';
 import { processBarcodeScan } from '@/services/scanner-service';
+import { isConsumableCategory } from '@/types';
 
 export function xpForLevel(level: number): number {
   if (level <= 1) return 0;
@@ -623,13 +624,15 @@ export async function executeFeedAction(userId: string, barcode: string, categor
 
     const cat = (category || '').toLowerCase();
     let hungerGain = 15;
-    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('cheese') || cat.includes('yogurt')) {
+    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('susu') || cat.includes('cheese') || cat.includes('yogurt')) {
       hungerGain = 20;
-    } else if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice') || cat.includes('water')) {
+    } else if (cat.includes('drink') || cat.includes('beverage') || cat.includes('minuman') || cat.includes('air mineral') || cat.includes('juice') || cat.includes('water') || cat.includes('teh') || cat.includes('kopi')) {
       hungerGain = 12;
-    } else if (cat.includes('instant') || cat.includes('noodle') || cat.includes('ramen') || cat.includes('meal')) {
+    } else if (cat.includes('instant') || cat.includes('noodle') || cat.includes('ramen') || cat.includes('mie') || cat.includes('meal')) {
       hungerGain = 25;
-    } else if (cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit') || cat.includes('cookie') || cat.includes('food')) {
+    } else if (cat.includes('frozen') || cat.includes('ice cream') || cat.includes('es krim')) {
+      hungerGain = 18;
+    } else if (cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit') || cat.includes('cookie') || cat.includes('camilan') || cat.includes('food') || cat.includes('makanan')) {
       hungerGain = 15;
     }
 
@@ -639,7 +642,8 @@ export async function executeFeedAction(userId: string, barcode: string, categor
 
     const wasDead = currentHunger === 0;
     const isSpecialFood = cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit')
-      || cat.includes('treat') || cat.includes('cookie') || cat.includes('cake') || cat.includes('dessert');
+      || cat.includes('treat') || cat.includes('cookie') || cat.includes('cake') || cat.includes('dessert')
+      || cat.includes('permen') || cat.includes('cokelat') || cat.includes('coklat') || cat.includes('camilan');
     const baseAffection = isSpecialFood ? 10 : 3;
 
     const currentMeta = (userSettings?.metadata as any) || {};
@@ -743,8 +747,8 @@ export async function executeScanAction(
   const now = Date.now();
   const todayWIB = getWibDateKey();
 
-  // 1. Process barcode lookup & registration
-  const scanResult = await processBarcodeScan(cleanBarcode, userId, deviceType);
+  // 1. Process barcode lookup & registration (without writing scanHistory before transaction)
+  const scanResult = await processBarcodeScan(cleanBarcode, userId, deviceType, { skipLog: true });
   const { product, isNewProduct } = scanResult;
 
   // 2. Perform atomic progress & inventory update in transaction
@@ -774,6 +778,22 @@ export async function executeScanAction(
     let newTotalXp = userProgress.xp;
 
     if (!recentScan) {
+      // 1. Record scan history atomically inside transaction
+      try {
+        await tx.scanHistory.create({
+          data: {
+            barcodeNumber: cleanBarcode,
+            productId: product?.id ?? null,
+            deviceType: deviceType ?? 'webcam',
+            userId: userId ?? null,
+            xpAwarded: 0,
+            scannedAt: new Date(now),
+          },
+        });
+      } catch (e) {
+        console.warn('[executeScanAction] Scan log write error:', e);
+      }
+
       const lastActiveDateWIB = userProgress.lastActiveDate
         ? getWibDateKey(userProgress.lastActiveDate)
         : null;
@@ -804,10 +824,8 @@ export async function executeScanAction(
         data: { stage: newStage },
       });
 
-      // Atomically add food item to inventory ONLY if eligible food/drink category
-      const cat = (product?.category || '').toLowerCase();
-      const foodKeywords = ['snack', 'drink', 'beverage', 'candy', 'biscuit', 'dairy', 'instant', 'food', 'meal'];
-      const isFood = cat ? foodKeywords.some((c) => cat.includes(c)) : false;
+      // Atomically add consumable item to inventory ONLY if eligible consumable category
+      const isFood = isConsumableCategory(product?.category);
 
       if (isFood) {
         const inv = await tx.inventory.upsert({
