@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
@@ -258,19 +259,19 @@ export function LobbyView() {
           if (!nickname) {
             setShowSetup(true);
           }
-        } else if (mode === GameMode.ARASHU) {
-          setIsCheckingSession(false);
-          toast.error('Session expired. Please sign in again.');
-          resetPlayer();
-          setActiveView('TITLE');
         } else {
+          // Unauthenticated / Session Expired / 401
           setIsCheckingSession(false);
+          if (mode === GameMode.ARASHU) {
+            toast.error('Session expired. Please sign in again.');
+            resetPlayer();
+          }
           setActiveView('TITLE');
         }
       })
       .catch(() => {
         setIsCheckingSession(false);
-        if (mode === null) {
+        if (mode !== GameMode.GUEST) {
           setActiveView('TITLE');
         }
       });
@@ -390,16 +391,16 @@ export function LobbyView() {
       setShowRegisterModal(false);
       const isFood = isFoodCategory(category);
       if (isFood) {
-        toast.success('🎉 Product registered & added to Food Bag! (+60 XP total) 📦🍖', {
+        toast.success('🎉 Product registered & added to Food Bag! 📦🍖', {
           description: productName
             ? `${productName} (+1 food in bag)`
             : '+1 food added to your bag',
         });
       } else {
-        toast.success('🎉 Product registered to Catalog! (+60 XP total) 📋✨', {
+        toast.success('🎉 Product registered to Catalog! 📋✨', {
           description: productName
-            ? `${productName} (+60 XP catalog discovery)`
-            : '+60 XP catalog discovery',
+            ? `${productName} (Added to catalog)`
+            : 'Added to catalog',
         });
       }
     },
@@ -575,15 +576,12 @@ export function LobbyView() {
     return Object.values(foodInventory).reduce((acc, count) => acc + count, 0);
   }, [foodInventory]);
 
-  // Full-Screen Loading Gate: covers entire UI until session, cloud profile, and hydration have all settled
+  // Full-Screen Loading Gate: covers entire UI only if in Hunter mode and waiting for profile hydration
   const isSyncing =
     !mounted ||
-    mode === null ||
-    isCheckingSession ||
-    isLoading ||
-    (mode === GameMode.ARASHU && !isProfileLoaded);
+    (mode === GameMode.ARASHU && (!isProfileLoaded || isLoading));
 
-  if (isSyncing) {
+  if (isSyncing && mode === GameMode.ARASHU) {
     return (
       <SyncLoadingGate
         message="LOADING..."
@@ -600,7 +598,22 @@ export function LobbyView() {
   const catVariant = (avatar as CatVariantId) || STAGE_AVATARS[effectiveStage] || 'calico';
 
   return (
-    <div className="w-full min-h-screen px-3 sm:px-4 py-4 sm:py-6 select-none">
+    <div className="relative w-full min-h-screen px-3 sm:px-4 py-4 sm:py-6 select-none overflow-x-hidden">
+      {/* 1. Main Pixel Art Garden Background */}
+      <div className="fixed inset-0 w-full h-full pixelated -z-10 pointer-events-none">
+        <Image
+          src="/images/garden-bg.webp"
+          alt="Garden Background"
+          fill
+          priority
+          quality={90}
+          className="object-cover object-[center_75%] pixelated filter blur-[2px] brightness-90 scale-105"
+          sizes="100vw"
+        />
+        {/* Soft atmospheric overlay agar kartu retro RPG terbaca kontras dan tajam */}
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px]" />
+      </div>
+
       <Suspense fallback={null}>
         <RegisterParamHandler onBarcode={handleRegisterParam} />
       </Suspense>
@@ -932,16 +945,10 @@ export function LobbyView() {
                 )}
               </div>
             ) : (
-              <div className="rpg-inner-box px-3 py-2 flex items-center justify-between gap-2 text-xs">
-                <span className="text-[11px] sm:text-xs text-[var(--theme-text-dark)] font-medium truncate min-w-0">
+              <div className="rpg-inner-box px-3 py-2 flex items-center justify-center text-center text-xs">
+                <span className="text-[11px] sm:text-xs text-[var(--theme-text-dark)] font-medium">
                   🥨 Bag is empty! Scan items for treats
                 </span>
-                <Link
-                  href="/scan"
-                  className="px-2.5 py-1 rounded-lg bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white font-fredoka font-bold text-xs whitespace-nowrap shrink-0 shadow-[2px_2px_0_0_var(--theme-shadow)] border border-white transition-all inline-flex items-center gap-1"
-                >
-                  Scan →
-                </Link>
               </div>
             )}
           </div>
@@ -1054,13 +1061,16 @@ export function LobbyView() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-pixel text-[9px] text-[var(--theme-text-dark)] bg-[var(--theme-surface-inner)] px-2 py-0.5 rounded border border-[var(--theme-border)]">
-                        +10 XP
-                      </span>
-                      <span className="font-pixel text-[9px] text-[var(--theme-text-dark)] bg-white px-2 py-0.5 rounded border border-[var(--theme-border)]">
-                        +1 🍖
-                      </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isFoodCategory(prod?.category) ? (
+                        <span className="font-pixel text-[9px] text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 font-bold flex items-center gap-1">
+                          +1 Food 🍖
+                        </span>
+                      ) : (
+                        <span className="font-pixel text-[9px] text-[var(--theme-text-dark)]/80 bg-[var(--theme-surface-inner)] px-2 py-0.5 rounded border border-[var(--theme-border)] font-semibold flex items-center gap-1">
+                          Cataloged 📋
+                        </span>
+                      )}
                     </div>
                   </div>
                 );

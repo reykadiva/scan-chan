@@ -53,6 +53,7 @@ interface UseBarcodeScannerResult {
   cameraError: string | null;
   torch: TorchState;
   restartCamera: () => Promise<void>;
+  resume: () => Promise<void>;
 }
 
 export function useBarcodeScanner({
@@ -233,15 +234,48 @@ export function useBarcodeScanner({
     }
   }, [torchAvailable, torchOn]);
 
+  const animIdRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
+  const isLoopActiveRef = useRef(false);
+  const scanFrameRef = useRef<(timestamp: number) => void>(() => {});
+
+  // Resume camera & ensure scanner loop is actively listening
+  const resumeCamera = useCallback(async () => {
+    setIsScanning(true);
+    const video = videoRef.current;
+    if (video) {
+      if (video.paused) {
+        try {
+          await video.play();
+        } catch (e) {
+          console.warn('[useBarcodeScanner] resume play() failed:', e);
+        }
+      }
+    }
+
+    const hasLiveTrack = streamRef.current?.getVideoTracks().some((t) => t.readyState === 'live');
+    if (!hasLiveTrack) {
+      await startCamera();
+    }
+
+    // Ensure requestAnimationFrame loop is active
+    if (!isLoopActiveRef.current && isMountedRef.current) {
+      isLoopActiveRef.current = true;
+      animIdRef.current = requestAnimationFrame((ts) => scanFrameRef.current(ts));
+    }
+  }, [startCamera]);
+
   // Main scanning loop
   useEffect(() => {
-    let animId: number;
-    let isMounted = true;
+    isMountedRef.current = true;
     let isProcessing = false;
     let lastScanTime = 0;
 
     const scanFrame = async (timestamp: number) => {
-      if (!isMounted) return;
+      if (!isMountedRef.current) {
+        isLoopActiveRef.current = false;
+        return;
+      }
 
       if (!pausedRef.current && timestamp - lastScanTime >= scanIntervalMs) {
         lastScanTime = timestamp;
@@ -298,24 +332,31 @@ export function useBarcodeScanner({
           if (detectedBarcode && !pausedRef.current) {
             setIsScanning(false);
             onScanRef.current(detectedBarcode);
-            return; // Pause loop until parent resets
+            // Do NOT terminate animation loop with return!
+            // Frame loop continues and idle-skips while parent sets paused=true.
           }
         }
       }
 
-      animId = requestAnimationFrame(scanFrame);
+      animIdRef.current = requestAnimationFrame((ts) => scanFrameRef.current(ts));
     };
 
+    scanFrameRef.current = scanFrame;
+
     startCamera().then(() => {
-      if (isMounted) {
+      if (isMountedRef.current) {
         setIsScanning(true);
-        animId = requestAnimationFrame(scanFrame);
+        isLoopActiveRef.current = true;
+        animIdRef.current = requestAnimationFrame((ts) => scanFrameRef.current(ts));
       }
     });
 
     return () => {
-      isMounted = false;
-      cancelAnimationFrame(animId);
+      isMountedRef.current = false;
+      isLoopActiveRef.current = false;
+      if (animIdRef.current) {
+        cancelAnimationFrame(animIdRef.current);
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -337,5 +378,6 @@ export function useBarcodeScanner({
       toggle: toggleTorch,
     },
     restartCamera: startCamera,
+    resume: resumeCamera,
   };
 }

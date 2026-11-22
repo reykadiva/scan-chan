@@ -135,10 +135,20 @@ export function getPetStageFromLevel(
   return 'KITTEN';
 }
 
-export const FOOD_CATEGORIES = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
+export const FOOD_CATEGORIES = [
+  'snack',
+  'drink',
+  'beverage',
+  'candy',
+  'biscuit',
+  'dairy',
+  'instant',
+  'food',
+  'meal',
+];
 
 export function isFoodCategory(category?: string | null): boolean {
-  if (!category) return true;
+  if (!category) return false;
   const lower = category.toLowerCase();
   return FOOD_CATEGORIES.some((c) => lower.includes(c));
 }
@@ -279,18 +289,9 @@ export const usePlayerStore = create<PlayerStore>()(
           const todayStr = getLocalDateKey();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
-          const baseXpGain = isNewProduct
-            ? GAME_CONFIG.xp.scanNew
-            : GAME_CONFIG.xp.scanExisting;
-
-          const streakMultipliedXp = applyStreakMultiplier(baseXpGain, newStreak);
-          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
-          const newTotalXp = currentTotalXp + streakMultipliedXp;
-          const newLevel = levelFromXp(newTotalXp);
-          const newStage = getPetStageFromLevel(newLevel);
-
-          const foodCategories = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
-          const isFood = !category || foodCategories.some((c) => (category || '').toLowerCase().includes(c));
+          // GAME LOOP CLEANUP: XP ONLY FROM FEEDING!
+          // Scans advance daily streak & logs, and grant treats to bag only if food/drink.
+          const isFood = isFoodCategory(category);
           const updatedFoodInventory = isFood
             ? { ...state.foodInventory, [barcode]: (state.foodInventory[barcode] || 0) + 1 }
             : state.foodInventory;
@@ -300,10 +301,7 @@ export const usePlayerStore = create<PlayerStore>()(
             lastScanTime: { ...state.lastScanTime, [barcode]: now },
             streak: newStreak,
             lastActiveDate: todayStr,
-            xp: newTotalXp,
-            level: newLevel,
-            petStage: newStage,
-            pendingXpGain: streakMultipliedXp,
+            pendingXpGain: 0,
             foodInventory: updatedFoodInventory,
             lastLocalMutationAt: now,
           };
@@ -353,16 +351,9 @@ export const usePlayerStore = create<PlayerStore>()(
           const todayStr = getLocalDateKey();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
-          // +10 XP scan + 50 XP discovery bonus = 60 XP total
-          const totalXpGain = GAME_CONFIG.xp.registerProduct + GAME_CONFIG.xp.scanExisting;
-          const streakMultipliedXp = applyStreakMultiplier(totalXpGain, newStreak);
-          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
-          const newTotalXp = currentTotalXp + streakMultipliedXp;
-          const newLevel = levelFromXp(newTotalXp);
-          const newStage = getPetStageFromLevel(newLevel);
-
-          const foodCategories = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'];
-          const isFood = !category || foodCategories.some((c) => (category || '').toLowerCase().includes(c));
+          // GAME LOOP CLEANUP: XP ONLY FROM FEEDING!
+          // Catalog registration discovers items and grants food if food/drink category.
+          const isFood = isFoodCategory(category);
           const updatedFoodInventory = isFood
             ? { ...state.foodInventory, [cleanBarcode]: (state.foodInventory[cleanBarcode] || 0) + 1 }
             : state.foodInventory;
@@ -378,10 +369,7 @@ export const usePlayerStore = create<PlayerStore>()(
             lastRegisterTime: now,
             streak: newStreak,
             lastActiveDate: todayStr,
-            xp: newTotalXp,
-            level: newLevel,
-            petStage: newStage,
-            pendingXpGain: streakMultipliedXp,
+            pendingXpGain: 0,
             foodInventory: updatedFoodInventory,
             lastLocalMutationAt: now,
           };
@@ -887,6 +875,21 @@ export const usePlayerStore = create<PlayerStore>()(
             fetchErr = e;
           }
 
+          // If 401 Unauthorized, session is definitively expired / unauthenticated:
+          // Immediately reset auth/profile state and abort without error banner or retries!
+          if (res?.status === 401) {
+            _loadedUserId = null;
+            set({
+              isLoading: false,
+              isProfileLoaded: false,
+              loadedUserId: null,
+              mode: null,
+              error: null,
+              activeView: 'TITLE',
+            });
+            return;
+          }
+
           // Resilient 1-shot retry on transient network error, cold start, or auth token refresh
           if (!res || !res.ok) {
             await new Promise((resolve) => setTimeout(resolve, 600));
@@ -895,6 +898,19 @@ export const usePlayerStore = create<PlayerStore>()(
             } catch (e) {
               fetchErr = e;
             }
+          }
+
+          if (res?.status === 401) {
+            _loadedUserId = null;
+            set({
+              isLoading: false,
+              isProfileLoaded: false,
+              loadedUserId: null,
+              mode: null,
+              error: null,
+              activeView: 'TITLE',
+            });
+            return;
           }
 
           if (!res || !res.ok) {
@@ -1015,7 +1031,6 @@ export const usePlayerStore = create<PlayerStore>()(
 
             set({
               isProfileLoaded: true,
-              activeView: 'LOBBY',
               loadedUserId: _loadedUserId,
               mode: GameMode.ARASHU,
               nickname: d.nickname || 'Hunter',

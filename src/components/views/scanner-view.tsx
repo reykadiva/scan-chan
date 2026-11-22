@@ -60,12 +60,12 @@ export function ScannerView({ onClose }: ScannerViewProps) {
       setShowRegisterModal(false);
       const isFood = isFoodCategory(category);
       if (isFood) {
-        toast.success('🎉 Product registered & added to Food Bag! (+60 XP total) 📦🍖', {
+        toast.success('🎉 Product registered & added to Food Bag! 📦🍖', {
           description: productName ? `${productName} (+1 food in bag)` : '+1 food added to your bag',
         });
       } else {
-        toast.success('🎉 Product registered to Catalog! (+60 XP total) 📋✨', {
-          description: productName ? `${productName} (+60 XP catalog discovery)` : '+60 XP catalog discovery',
+        toast.success('🎉 Product registered to Catalog! 📋✨', {
+          description: productName ? `${productName} (Added to catalog)` : 'Added to catalog',
         });
       }
       const cached = useProductStore.getState().products[cleanBarcode];
@@ -123,6 +123,8 @@ export function ScannerView({ onClose }: ScannerViewProps) {
             haptics.error();
             setPhase('error');
             setErrorMsg(json.error || 'Scan failed');
+            cooldownRef.current = false;
+            lastDecodedRef.current = '';
             return;
           }
 
@@ -164,6 +166,8 @@ export function ScannerView({ onClose }: ScannerViewProps) {
             haptics.error();
             setPhase('error');
             setErrorMsg(json.error || 'Scan failed');
+            cooldownRef.current = false;
+            lastDecodedRef.current = '';
             return;
           }
 
@@ -184,27 +188,28 @@ export function ScannerView({ onClose }: ScannerViewProps) {
         haptics.error();
         setPhase('error');
         setErrorMsg('Network error. Check your connection.');
+        cooldownRef.current = false;
+        lastDecodedRef.current = '';
       }
     },
     [recordScan, mode]
   );
 
-  const { videoRef, torch, cameraError, restartCamera } = useBarcodeScanner({
+  const { videoRef, torch, cameraError, restartCamera, resume } = useBarcodeScanner({
     paused: paused || phase !== 'scanning',
     scanIntervalMs: 120,
     onScan: handleBarcode,
   });
 
-  const resetScanner = () => {
+  const resetScanner = useCallback(() => {
     setPhase('scanning');
     setResult(null);
     setErrorMsg('');
     setPaused(false);
     lastDecodedRef.current = '';
-    setTimeout(() => {
-      cooldownRef.current = false;
-    }, 400);
-  };
+    cooldownRef.current = false;
+    resume().catch(() => {});
+  }, [resume]);
 
   return (
     <div className="fixed inset-0 z-40 bg-black flex flex-col overflow-hidden select-none">
@@ -382,11 +387,22 @@ function ProductFoundSheet({
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <CategoryBadge category={product.category ?? 'Other'} />
-        {isNew && (
-          <span className="font-press-start text-[9px] bg-[var(--theme-primary)] text-white px-2.5 py-1 rounded-lg border-2 border-[var(--theme-border)] shadow-[1px_1px_0_0_var(--theme-shadow)]">
-            +50 XP DISCOVERY!
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {isNew && (
+            <span className="font-press-start text-[9px] bg-emerald-600 text-white px-2 py-1 rounded-lg border-2 border-[var(--theme-border)] shadow-[1px_1px_0_0_var(--theme-shadow)]">
+              DISCOVERY! 🌟
+            </span>
+          )}
+          {isFoodCategory(product.category) ? (
+            <span className="font-press-start text-[9px] bg-[var(--theme-primary)] text-white px-2 py-1 rounded-lg border-2 border-[var(--theme-border)] shadow-[1px_1px_0_0_var(--theme-shadow)]">
+              +1 FOOD 🍖
+            </span>
+          ) : (
+            <span className="font-press-start text-[9px] bg-slate-700 text-white px-2 py-1 rounded-lg border-2 border-[var(--theme-border)] shadow-[1px_1px_0_0_var(--theme-shadow)]">
+              CATALOGED 📋
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex items-start gap-4">

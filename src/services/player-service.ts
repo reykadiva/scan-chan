@@ -781,9 +781,10 @@ export async function executeScanAction(
       const streakCalc = recordScanStreak(userProgress.streak, lastActiveDateWIB, todayWIB);
       newStreak = streakCalc.newStreak;
 
-      const baseXp = isNewProduct ? GAME_CONFIG.xp.scanNew : GAME_CONFIG.xp.scanExisting;
-      xpAwarded = applyStreakMultiplier(baseXp, newStreak);
-      newTotalXp = userProgress.xp + xpAwarded;
+      // GAME LOOP CLEANUP: XP ONLY FROM FEEDING PET!
+      // Scan advances streak, records scan logs, and yields food for pet feeding.
+      xpAwarded = 0;
+      newTotalXp = userProgress.xp;
 
       const newLevel = levelFromXp(newTotalXp);
       const newStage = getPetStageFromLevel(newLevel);
@@ -803,11 +804,11 @@ export async function executeScanAction(
         data: { stage: newStage },
       });
 
-      // Atomically add food item to inventory if eligible
+      // Atomically add food item to inventory ONLY if eligible food/drink category
       const cat = (product?.category || '').toLowerCase();
-      const isFood = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'].some((c) =>
-        cat.includes(c)
-      );
+      const foodKeywords = ['snack', 'drink', 'beverage', 'candy', 'biscuit', 'dairy', 'instant', 'food', 'meal'];
+      const isFood = cat ? foodKeywords.some((c) => cat.includes(c)) : false;
+
       if (isFood) {
         const inv = await tx.inventory.upsert({
           where: { userId },

@@ -15,14 +15,16 @@ export default function SinglePageApp() {
     mode,
     setMode,
     isProfileLoaded,
-    loadedUserId,
     isLoading,
+    error,
     loadProfile,
   } = usePlayerStore();
 
   const [sessionChecked, setSessionChecked] = useState(false);
 
-  // 1. Initial Auth & Session Hydration
+  // 1. Initial Auth & Background Hydration on Startup
+  // Users always land on the 'TITLE' screen (Press To Start) upon initial load or refresh,
+  // while valid Hunter sessions and cloud profiles hydrate quietly in the background.
   useEffect(() => {
     let isCancelled = false;
 
@@ -41,22 +43,33 @@ export default function SinglePageApp() {
             usePlayerStore.setState({ userEmail: data.user.email });
           }
 
+          // Quietly hydrate cloud profile in background while user enjoys the Title screen
           const currentStore = usePlayerStore.getState();
           if (!currentStore.isProfileLoaded || currentStore.loadedUserId !== data.user.id) {
             await loadProfile(data.user.id);
           }
-          setActiveView('LOBBY');
-        } else if (mode === GameMode.GUEST) {
-          setActiveView('LOBBY');
         } else {
-          setActiveView('TITLE');
+          // Unauthenticated / 401: Clear stale Hunter session state so we never get stuck
+          if (mode === GameMode.ARASHU) {
+            setMode(null);
+            usePlayerStore.setState({
+              isProfileLoaded: false,
+              loadedUserId: null,
+              isLoading: false,
+              error: null,
+            });
+          }
         }
       } catch {
         if (!isCancelled) {
-          if (mode === GameMode.GUEST) {
-            setActiveView('LOBBY');
-          } else {
-            setActiveView('TITLE');
+          if (mode === GameMode.ARASHU) {
+            setMode(null);
+            usePlayerStore.setState({
+              isProfileLoaded: false,
+              loadedUserId: null,
+              isLoading: false,
+              error: null,
+            });
           }
         }
       } finally {
@@ -71,7 +84,7 @@ export default function SinglePageApp() {
     return () => {
       isCancelled = true;
     };
-  }, [mode, setMode, loadProfile, setActiveView]);
+  }, []); // Run once on startup
 
   // 2. Hardware / Browser Back Button Integration for SPA (popstate)
   useEffect(() => {
@@ -92,22 +105,34 @@ export default function SinglePageApp() {
     }
   }, [activeView]);
 
-  // 3. Top-level Loading Gate during Cloud Profile Hydration
-  const isHydratingCloud =
-    !sessionChecked ||
-    isLoading ||
-    (mode === GameMode.ARASHU && !isProfileLoaded);
-
-  if (isHydratingCloud && mode === GameMode.ARASHU) {
-    return <SyncLoadingGate message="SYNCING WITH CLOUD..." />;
+  // 3. Render Active View
+  // Always render Title Screen first when at 'TITLE' (never block Title with a loading gate)
+  if (activeView === 'TITLE') {
+    return <TitleScreenView />;
   }
 
-  // 4. Render Active View
+  // Camera Barcode Scanner View
   if (activeView === 'SCAN') {
     return <ScannerView onClose={() => setActiveView('LOBBY')} />;
   }
 
+  // Lobby Garden View: Only show Loading Gate if in Hunter mode and waiting for cloud profile
   if (activeView === 'LOBBY') {
+    const isWaitingHunterProfile =
+      mode === GameMode.ARASHU && (!isProfileLoaded || isLoading);
+
+    if (isWaitingHunterProfile) {
+      return (
+        <SyncLoadingGate
+          message="SYNCING WITH CLOUD..."
+          error={error}
+          onRetry={() => {
+            loadProfile();
+          }}
+        />
+      );
+    }
+
     return <LobbyView />;
   }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { usePlayerStore } from '@/stores/player-store';
+import { usePlayerStore, isFoodCategory } from '@/stores/player-store';
 import { useProductStore } from '@/stores/product-store';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
@@ -148,9 +148,15 @@ export function ScanHistory() {
 
                 <div>
                   {product ? (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-50 text-green-700 rounded-full text-xs font-fredoka font-bold border border-green-200">
-                      <PixelCat variant="cyan" size={16} /> Found
-                    </span>
+                    isFoodCategory(product.category) ? (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-fredoka font-bold border border-emerald-200">
+                        <PixelCat variant="cyan" size={16} /> +1 Food 🍖
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-50 text-slate-700 rounded-full text-xs font-fredoka font-bold border border-slate-200">
+                        <PixelCat variant="tabby" size={16} /> Cataloged 📋
+                      </span>
+                    )
                   ) : (
                     <Link href={`/play?register=${barcode}`}>
                       <button className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-pink/10 hover:bg-brand-pink/20 text-brand-pink rounded-full text-xs font-fredoka font-bold transition-colors overflow-hidden">

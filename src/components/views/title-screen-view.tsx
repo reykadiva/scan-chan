@@ -66,7 +66,7 @@ const INITIAL_CATS: WanderingCat[] = [
 ];
 
 export function TitleScreenView() {
-  const { setMode, initializePlayer, setActiveView } = usePlayerStore();
+  const { mode, setMode, initializePlayer, setActiveView, loadProfile } = usePlayerStore();
   const { unlockAndPlay } = useAudio();
 
   const [checkingAuth, setCheckingAuth] = useState(false);
@@ -123,16 +123,26 @@ export function TitleScreenView() {
       if (data.authenticated && data.user) {
         toast.success(`Welcome back, ${data.user.nickname}! 🎮`);
         setMode(GameMode.ARASHU);
+        const store = usePlayerStore.getState();
+        if (!store.isProfileLoaded || store.loadedUserId !== data.user.id) {
+          loadProfile(data.user.id).catch(() => {});
+        }
+        setActiveView('LOBBY');
+      } else if (mode === GameMode.GUEST) {
         setActiveView('LOBBY');
       } else {
         setShowModal(true);
       }
     } catch {
-      setShowModal(true);
+      if (mode === GameMode.GUEST) {
+        setActiveView('LOBBY');
+      } else {
+        setShowModal(true);
+      }
     } finally {
       setCheckingAuth(false);
     }
-  }, [checkingAuth, showModal, unlockAndPlay, setMode, setActiveView]);
+  }, [checkingAuth, showModal, unlockAndPlay, setMode, setActiveView, loadProfile, mode]);
 
   // Global Keyboard listener for Enter or Space
   useEffect(() => {
