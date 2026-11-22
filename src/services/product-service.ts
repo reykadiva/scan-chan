@@ -3,7 +3,6 @@ import { Prisma } from '@prisma/client';
 import { localDb } from '@/lib/database/local-db';
 import { serializeProduct } from '@/lib/utils';
 import type { ProductCreateInput, ProductUpdateInput } from '@/lib/validations/product';
-import { clearBarcodeNegativeCache } from '@/services/scanner-service';
 
 export async function getProducts(options: {
   search?: string;
@@ -127,9 +126,6 @@ export async function createProduct(input: ProductCreateInput, creatorId?: strin
       });
     } catch {}
 
-    // Clear from negative cache since product is now registered
-    clearBarcodeNegativeCache(input.barcodeNumber);
-
     return serializeProduct(product);
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
@@ -169,7 +165,7 @@ export async function updateProduct(barcode: string, input: ProductUpdateInput, 
     });
 
     if (existing) {
-      if (existing.creatorId && existing.creatorId !== 'openfoodfacts' && userId && existing.creatorId !== userId) {
+      if (existing.creatorId && userId && existing.creatorId !== userId) {
         throw new Error('Unauthorized: You can only edit products you created');
       }
 
@@ -185,9 +181,6 @@ export async function updateProduct(barcode: string, input: ProductUpdateInput, 
         }
       } catch {}
 
-      // Clear from negative cache since product is now updated
-      clearBarcodeNegativeCache(barcode);
-
       return serializeProduct(product);
     }
   } catch (err: any) {
@@ -202,7 +195,7 @@ export async function updateProduct(barcode: string, input: ProductUpdateInput, 
     throw new Error('Product not found');
   }
 
-  if (existingLocal.creatorId && existingLocal.creatorId !== 'openfoodfacts' && userId && existingLocal.creatorId !== userId) {
+  if (existingLocal.creatorId && userId && existingLocal.creatorId !== userId) {
     throw new Error('Unauthorized: You can only edit products you created');
   }
 
@@ -221,7 +214,7 @@ export async function deleteProduct(barcode: string, userId?: string | null) {
     });
 
     if (existing) {
-      if (existing.creatorId && existing.creatorId !== 'openfoodfacts' && userId && existing.creatorId !== userId) {
+      if (existing.creatorId && userId && existing.creatorId !== userId) {
         throw new Error('Unauthorized: You can only delete products you created');
       }
 
@@ -244,7 +237,7 @@ export async function deleteProduct(barcode: string, userId?: string | null) {
     throw new Error('Product not found');
   }
 
-  if (existingLocal.creatorId && existingLocal.creatorId !== 'openfoodfacts' && userId && existingLocal.creatorId !== userId) {
+  if (existingLocal.creatorId && userId && existingLocal.creatorId !== userId) {
     throw new Error('Unauthorized: You can only delete products you created');
   }
 

@@ -237,11 +237,15 @@ export function useBarcodeScanner({
   const animIdRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
   const isLoopActiveRef = useRef(false);
+  const isProcessingRef = useRef(false);
   const scanFrameRef = useRef<(timestamp: number) => void>(() => {});
 
   // Resume camera & ensure scanner loop is actively listening
   const resumeCamera = useCallback(async () => {
     setIsScanning(true);
+    pausedRef.current = false;
+    isProcessingRef.current = false;
+
     const video = videoRef.current;
     if (video) {
       if (video.paused) {
@@ -258,8 +262,13 @@ export function useBarcodeScanner({
       await startCamera();
     }
 
-    // Ensure requestAnimationFrame loop is active
-    if (!isLoopActiveRef.current && isMountedRef.current) {
+    // Cancel any stale animation frame before scheduling a fresh tick
+    if (animIdRef.current) {
+      cancelAnimationFrame(animIdRef.current);
+      animIdRef.current = null;
+    }
+
+    if (isMountedRef.current) {
       isLoopActiveRef.current = true;
       animIdRef.current = requestAnimationFrame((ts) => scanFrameRef.current(ts));
     }
@@ -268,7 +277,7 @@ export function useBarcodeScanner({
   // Main scanning loop
   useEffect(() => {
     isMountedRef.current = true;
-    let isProcessing = false;
+    isProcessingRef.current = false;
     let lastScanTime = 0;
 
     const scanFrame = async (timestamp: number) => {
@@ -285,42 +294,46 @@ export function useBarcodeScanner({
           video &&
           video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA &&
           video.videoWidth > 0 &&
-          !isProcessing
+          !isProcessingRef.current
         ) {
-          isProcessing = true;
+          isProcessingRef.current = true;
           let detectedBarcode: string | null = null;
 
-          // 1. Try Native BarcodeDetector first (GPU-accelerated, ultra fast)
-          if (nativeDetectorRef.current) {
-            try {
-              const barcodes = await nativeDetectorRef.current.detect(video);
-              if (barcodes && barcodes.length > 0) {
-                const raw = barcodes[0].rawValue?.trim();
-                if (raw) {
-                  detectedBarcode = raw;
+          try {
+            // 1. Try Native BarcodeDetector first (GPU-accelerated, ultra fast)
+            if (nativeDetectorRef.current) {
+              try {
+                const barcodes = await nativeDetectorRef.current.detect(video);
+                if (barcodes && barcodes.length > 0) {
+                  const raw = barcodes[0].rawValue?.trim();
+                  if (raw) {
+                    detectedBarcode = raw;
+                  }
                 }
+              } catch {
+                // Native detector error on this frame, fall through to ZXing
               }
-            } catch {
-              // Native detector error on this frame, fall through to ZXing
             }
-          }
 
-          // 2. Fallback to ZXing pure JS engine (Safari, iOS, Firefox, unsupported native)
-          if (!detectedBarcode && zxingReaderRef.current) {
-            try {
-              const result = zxingReaderRef.current.decode(video);
-              if (result) {
-                const text = result.getText()?.trim();
-                if (text) {
-                  detectedBarcode = text;
+            // 2. Fallback to ZXing pure JS engine (Safari, iOS, Firefox, unsupported native)
+            if (!detectedBarcode && zxingReaderRef.current) {
+              try {
+                const result = zxingReaderRef.current.decode(video);
+                if (result) {
+                  const text = result.getText()?.trim();
+                  if (text) {
+                    detectedBarcode = text;
+                  }
                 }
+              } catch {
+                // No barcode found in current frame, normal loop
               }
-            } catch {
-              // No barcode found in current frame, normal loop
             }
+          } catch (detectionErr) {
+            console.warn('[useBarcodeScanner] Detection frame error:', detectionErr);
+          } finally {
+            isProcessingRef.current = false;
           }
-
-          isProcessing = false;
 
           // Validate that the detected text is a genuine 1D retail barcode (and not a QR code/URL)
           if (detectedBarcode) {
@@ -331,7 +344,11 @@ export function useBarcodeScanner({
 
           if (detectedBarcode && !pausedRef.current) {
             setIsScanning(false);
-            onScanRef.current(detectedBarcode);
+            try {
+              onScanRef.current(detectedBarcode);
+            } catch (scanCallbackErr) {
+              console.warn('[useBarcodeScanner] onScan callback error:', scanCallbackErr);
+            }
             // Do NOT terminate animation loop with return!
             // Frame loop continues and idle-skips while parent sets paused=true.
           }

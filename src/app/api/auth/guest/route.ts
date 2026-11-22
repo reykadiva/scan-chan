@@ -8,10 +8,9 @@ export async function POST() {
     mode: 'GUEST',
   });
 
-  // Set cookie for 30 days
+  // Set ephemeral session-only cookie (no maxAge: deleted when browser/tab closes)
   response.cookies.set('scan_mode', 'guest', {
     path: '/',
-    maxAge: 60 * 60 * 24 * 30,
     httpOnly: false,
     sameSite: 'lax',
   });

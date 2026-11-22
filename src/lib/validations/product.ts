@@ -11,10 +11,19 @@ export const productCreateSchema = z.object({
   barcodeNumber: barcodeSchema,
   productName: z
     .string()
+    .trim()
     .min(1, 'Product name is required')
     .max(255, 'Product name too long'),
-  brand: z.string().max(255).optional().nullable(),
-  category: z.string().max(255).optional().nullable(),
+  brand: z
+    .string()
+    .trim()
+    .min(1, 'Brand is required')
+    .max(255, 'Brand too long'),
+  category: z
+    .string()
+    .trim()
+    .min(1, 'Category is required')
+    .max(255, 'Category too long'),
   description: z.string().optional().nullable(),
   imageUrl: z.string().optional().nullable(),
   creatorId: z.string().max(255).optional().nullable(),

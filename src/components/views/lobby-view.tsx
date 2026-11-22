@@ -614,7 +614,7 @@ export function LobbyView() {
   }
 
   const effectiveStage = getPetStageFromLevel(displayLevel);
-  const catVariant = (avatar as CatVariantId) || STAGE_AVATARS[effectiveStage] || 'calico';
+  const catVariant = STAGE_AVATARS[effectiveStage] || (avatar as CatVariantId) || 'calico';
 
   return (
     <div className="relative w-full min-h-screen px-3 sm:px-4 py-4 sm:py-6 select-none overflow-x-hidden">
@@ -1121,7 +1121,7 @@ export function LobbyView() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="rpg-panel-gold w-[94vw] max-w-2xl max-h-[85dvh] flex flex-col p-3.5 sm:p-6 shadow-[6px_6px_0_0_var(--theme-shadow)] relative overflow-hidden"
+              className={`rpg-panel-gold w-[94vw] ${activeModal === 'guide' ? 'max-w-4xl' : 'max-w-2xl'} max-h-[85dvh] flex flex-col p-3.5 sm:p-6 shadow-[6px_6px_0_0_var(--theme-shadow)] relative overflow-hidden`}
             >
               {/* Modal Header (Sticky) */}
               <div className="flex items-center justify-between border-b border-white/20 pb-3 mb-4 shrink-0">
@@ -1224,156 +1224,185 @@ export function LobbyView() {
 
                 {/* 4. GUIDE MODAL */}
                 {activeModal === 'guide' && (
-                  <div className="space-y-4 text-white">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4 text-white">
                     {/* Section 1: Scan & Collect */}
-                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
-                          <Crosshair className="w-4 h-4 text-white" />
+                    <div className="rpg-inner-box p-3.5 sm:p-4.5 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2.5 pb-1 border-b border-black/10">
+                          <div className="w-8 h-8 rounded-xl bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border-2 border-white shadow-[2px_2px_0_0_var(--theme-shadow)]">
+                            <Crosshair className="w-4 h-4 text-white" />
+                          </div>
+                          <h4 className="font-fredoka font-black text-sm sm:text-base text-[var(--theme-text-dark)] uppercase tracking-wide">
+                            Scan & Collect
+                          </h4>
                         </div>
-                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Scan & Collect</h4>
+                        <ul className="space-y-2 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold leading-relaxed">
+                          <li>
+                            Point camera at any <strong>1D retail barcode</strong> (EAN-13, UPC-A, etc.) on food & drink packaging.
+                          </li>
+                          <li>
+                            Scanning consumable products adds <strong>1 food item</strong> directly to your Food Bag.
+                          </li>
+                          <li>
+                            <strong>Daily First Scan Bonus</strong>: Earn <strong>+20 XP</strong> on your very first scan each day (WIB)!
+                          </li>
+                          <li>
+                            <strong>Global Discovery Bonus</strong>: Discover and register a brand new barcode for <strong>+40 bonus XP</strong>!
+                          </li>
+                          <li>
+                            Scan daily to build your <strong>Daily Streak</strong> and unlock up to <strong>2.5x XP Multiplier</strong> when feeding!
+                          </li>
+                        </ul>
                       </div>
-                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="block leading-relaxed">
-                          Point your camera at any <strong>1D retail barcode</strong> (EAN-13, UPC-A, etc.) on food & drink packaging.
-                        </li>
-                        <li className="block leading-relaxed">
-                          Scanning consumable products adds <strong>1 food item</strong> to your Food Bag.
-                        </li>
-                        <li className="block leading-relaxed">
-                          <strong>Daily First Scan Bonus</strong>: Earn <strong>+20 XP</strong> on your very first scan of each day (WIB)!
-                        </li>
-                        <li className="block leading-relaxed">
-                          <strong>Global Discovery Bonus</strong>: Discover a brand new barcode never scanned before for <strong>+40 bonus XP</strong>!
-                        </li>
-                        <li className="block leading-relaxed">
-                          Scan daily to build your <strong>Daily Streak</strong> and unlock up to <strong>2.5x XP Multiplier</strong> when feeding!
-                        </li>
-                      </ul>
                     </div>
 
                     {/* Section 2: Hunger & Feeding */}
-                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
-                          <Utensils className="w-4 h-4 text-white" />
-                        </div>
-                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Hunger & Feeding</h4>
-                      </div>
-                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="block leading-relaxed">
-                          Feed your pet from the <strong>Food Bag</strong> using items you scanned.
-                        </li>
-                        <li className="block leading-relaxed">
-                          Feeding grants <strong>XP multiplied by your Daily Streak</strong>:
-                          <div className="flex flex-wrap gap-1.5 pt-2">
-                            <span className="font-pixel text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300 font-bold whitespace-nowrap">
-                              Dairy: 15 XP · +20 Hunger
-                            </span>
-                            <span className="font-pixel text-[9px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md border border-orange-300 font-bold whitespace-nowrap">
-                              Instant: 15 XP · +25 Hunger
-                            </span>
-                            <span className="font-pixel text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-300 font-bold whitespace-nowrap">
-                              Snack/Biscuit: 12 XP · +15 Hunger
-                            </span>
-                            <span className="font-pixel text-[9px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md border border-sky-300 font-bold whitespace-nowrap">
-                              Drink/Other: 10 XP · +12 Hunger
-                            </span>
+                    <div className="rpg-inner-box p-3.5 sm:p-4.5 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2.5 pb-1 border-b border-black/10">
+                          <div className="w-8 h-8 rounded-xl bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border-2 border-white shadow-[2px_2px_0_0_var(--theme-shadow)]">
+                            <Utensils className="w-4 h-4 text-white" />
                           </div>
-                        </li>
-                        <li className="block leading-relaxed">
-                          Snack treats grant <strong>+10 Affection</strong>, other foods grant <strong>+3 Affection</strong>.
-                        </li>
-                        <li className="block leading-relaxed">
-                          Feeding a <strong>new food type</strong> grants a <strong>+5 variety bonus</strong>!
-                        </li>
-                        <li className="block leading-relaxed">
-                          Scan-chan caps at <strong>100% Hunger</strong> (cannot overfeed). Hunger decays at <strong>1 pt / 10 mins</strong> (6 pts/hour).
-                        </li>
-                        <li className="block leading-relaxed">
-                          At <strong>0% hunger</strong> your pet faints. Feed delicious snacks to revive!
-                        </li>
-                      </ul>
+                          <h4 className="font-fredoka font-black text-sm sm:text-base text-[var(--theme-text-dark)] uppercase tracking-wide">
+                            Hunger & Feeding
+                          </h4>
+                        </div>
+                        <ul className="space-y-2 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold leading-relaxed">
+                          <li>
+                            Feed your companion from the <strong>Food Bag</strong> using items you scanned.
+                          </li>
+                          <li>
+                            Base XP scales with your <strong>Daily Streak Multiplier</strong>:
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2">
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-emerald-50 text-emerald-900 px-2 py-1.5 rounded-lg border border-emerald-300 font-bold">
+                                <span>🥛 Dairy / Milk</span>
+                                <span className="text-emerald-700">15 XP · +20 🍖</span>
+                              </div>
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-orange-50 text-orange-900 px-2 py-1.5 rounded-lg border border-orange-300 font-bold">
+                                <span>🍜 Instant Noodle</span>
+                                <span className="text-orange-700">15 XP · +25 🍖</span>
+                              </div>
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-amber-50 text-amber-900 px-2 py-1.5 rounded-lg border border-amber-300 font-bold">
+                                <span>🍪 Snack / Biscuit</span>
+                                <span className="text-amber-700">12 XP · +15 🍖</span>
+                              </div>
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-sky-50 text-sky-900 px-2 py-1.5 rounded-lg border border-sky-300 font-bold">
+                                <span>🧃 Drink / Other</span>
+                                <span className="text-sky-700">10 XP · +12 🍖</span>
+                              </div>
+                            </div>
+                          </li>
+                          <li>
+                            Snacks grant <strong>+10 Affection</strong>, other foods <strong>+3 Affection</strong>. New food types give <strong>+5 variety bonus</strong>!
+                          </li>
+                          <li>
+                            Hunger caps at <strong>100%</strong>. Decays at <strong>1 pt / 10 mins</strong> (6 pts/hr). If hunger drops to <strong>0%</strong>, feed to revive!
+                          </li>
+                        </ul>
+                      </div>
                     </div>
 
                     {/* Section 3: Happiness & Petting */}
-                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
-                          <Heart className="w-4 h-4 text-white" />
-                        </div>
-                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Happiness & Petting</h4>
-                      </div>
-                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="block leading-relaxed">
-                          Tap your pet for <strong>+5 Happiness</strong> (up to <strong>3 times/day</strong>, 10s cooldown).
-                        </li>
-                        <li className="block leading-relaxed">
-                          Happiness decays slowly over time — pet and feed regularly to keep it high.
-                        </li>
-                        <li className="block leading-relaxed">
-                          You can tap your pet anytime for fun animations and sounds, even after reaching the daily bonus limit.
-                        </li>
-                      </ul>
-                    </div>
-
-                    {/* Section 4: Evolution & Stats */}
-                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
-                          <TrendingUp className="w-4 h-4 text-white" />
-                        </div>
-                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Evolution & Stats</h4>
-                      </div>
-                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="block leading-relaxed">
-                          Earn <strong>XP</strong> from feeding treats and discovering new barcodes to level up your companion!
-                        </li>
-                        <li className="block leading-relaxed">
-                          Evolution Stages:
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2">
-                            <span className="font-pixel text-[9px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md border border-slate-300 font-bold whitespace-nowrap">
-                              🍼 Kitten: Level 1 – 4
-                            </span>
-                            <span className="font-pixel text-[9px] bg-lime-100 text-lime-800 px-2 py-0.5 rounded-md border border-lime-300 font-bold whitespace-nowrap">
-                              🐾 Young Cat: Level 5 – 9
-                            </span>
-                            <span className="font-pixel text-[9px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md border border-blue-300 font-bold whitespace-nowrap">
-                              ⚡ Adult Cat: Level 10 – 19
-                            </span>
-                            <span className="font-pixel text-[9px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md border border-purple-300 font-bold whitespace-nowrap">
-                              🔮 Wise Cat: Level 20 – 29
-                            </span>
-                            <span className="font-pixel text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-300 font-bold whitespace-nowrap sm:col-span-2">
-                              👑 Legendary Cat: Level 30+
-                            </span>
+                    <div className="rpg-inner-box p-3.5 sm:p-4.5 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2.5 pb-1 border-b border-black/10">
+                          <div className="w-8 h-8 rounded-xl bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border-2 border-white shadow-[2px_2px_0_0_var(--theme-shadow)]">
+                            <Heart className="w-4 h-4 text-white" />
                           </div>
-                        </li>
-                        <li className="block leading-relaxed">
-                          Rename your companion anytime directly from the partner card in the lobby!
-                        </li>
-                      </ul>
+                          <h4 className="font-fredoka font-black text-sm sm:text-base text-[var(--theme-text-dark)] uppercase tracking-wide">
+                            Happiness & Petting
+                          </h4>
+                        </div>
+                        <ul className="space-y-2 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold leading-relaxed">
+                          <li>
+                            Tap your pet for <strong>+5 Happiness</strong> (up to <strong>3 times/day</strong>, 10s cooldown).
+                          </li>
+                          <li>
+                            Happiness decays slowly over time — pet and feed regularly to keep Scan-chan cheerful and energized.
+                          </li>
+                          <li>
+                            You can tap and interact with your pet anytime to hear cute meows and see custom pixel animations, even after hitting the daily bonus limit.
+                          </li>
+                        </ul>
+                      </div>
                     </div>
 
-                    {/* Section 5: Hunter vs Guest Mode */}
-                    <div className="rpg-inner-box p-3.5 sm:p-4 space-y-2.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border border-white">
+                    {/* Section 4: Evolution & Progression */}
+                    <div className="rpg-inner-box p-3.5 sm:p-4.5 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-2.5 pb-1 border-b border-black/10">
+                          <div className="w-8 h-8 rounded-xl bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border-2 border-white shadow-[2px_2px_0_0_var(--theme-shadow)]">
+                            <TrendingUp className="w-4 h-4 text-white" />
+                          </div>
+                          <h4 className="font-fredoka font-black text-sm sm:text-base text-[var(--theme-text-dark)] uppercase tracking-wide">
+                            Evolution & Stages
+                          </h4>
+                        </div>
+                        <ul className="space-y-2 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold leading-relaxed">
+                          <li>
+                            Earn <strong>XP</strong> from scans and feeding to unlock new evolution stages and dynamic pixel cat avatars:
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2">
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-slate-50 text-slate-800 px-2 py-1.5 rounded-lg border border-slate-300 font-bold">
+                                <span>🍼 Kitten</span>
+                                <span className="text-[8px] bg-slate-200/80 px-1.5 py-0.5 rounded">Lv 1 – 4</span>
+                              </div>
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-lime-50 text-lime-800 px-2 py-1.5 rounded-lg border border-lime-300 font-bold">
+                                <span>🐾 Young Cat</span>
+                                <span className="text-[8px] bg-lime-200/80 px-1.5 py-0.5 rounded">Lv 5 – 9</span>
+                              </div>
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-blue-50 text-blue-800 px-2 py-1.5 rounded-lg border border-blue-300 font-bold">
+                                <span>⚡ Adult Cat</span>
+                                <span className="text-[8px] bg-blue-200/80 px-1.5 py-0.5 rounded">Lv 10 – 19</span>
+                              </div>
+                              <div className="flex items-center justify-between font-pixel text-[9px] bg-purple-50 text-purple-800 px-2 py-1.5 rounded-lg border border-purple-300 font-bold">
+                                <span>🔮 Wise Cat</span>
+                                <span className="text-[8px] bg-purple-200/80 px-1.5 py-0.5 rounded">Lv 20 – 29</span>
+                              </div>
+                              <div className="sm:col-span-2 flex items-center justify-between font-pixel text-[9px] bg-amber-50 text-amber-900 px-2 py-1.5 rounded-lg border border-amber-300 font-bold">
+                                <span>👑 Legendary Cat</span>
+                                <span className="text-[8px] bg-amber-200/80 px-1.5 py-0.5 rounded">Level 30+</span>
+                              </div>
+                            </div>
+                          </li>
+                          <li>
+                            Rename your companion anytime directly from the partner card in the lobby!
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Section 5: Hunter vs Guest Mode (Full Width) */}
+                    <div className="rpg-inner-box p-3.5 sm:p-4.5 space-y-3 md:col-span-2">
+                      <div className="flex items-center gap-2.5 pb-1 border-b border-black/10">
+                        <div className="w-8 h-8 rounded-xl bg-[var(--theme-primary)] flex items-center justify-center shrink-0 border-2 border-white shadow-[2px_2px_0_0_var(--theme-shadow)]">
                           <Cloud className="w-4 h-4 text-white" />
                         </div>
-                        <h4 className="font-fredoka font-black text-sm text-[var(--theme-text-dark)]">Hunter vs Guest Mode</h4>
+                        <h4 className="font-fredoka font-black text-sm sm:text-base text-[var(--theme-text-dark)] uppercase tracking-wide">
+                          Hunter Mode vs Guest Mode
+                        </h4>
                       </div>
-                      <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
-                        <li className="block leading-relaxed">
-                          <strong>Hunter Mode</strong> (Google login): progress and registered products are saved to the cloud, accessible on any device.
-                        </li>
-                        <li className="block leading-relaxed">
-                          <strong>Guest Mode</strong>: progress is stored in browser only — clearing browser cache means losing local data.
-                        </li>
-                        <li className="block leading-relaxed">
-                          Switch modes from the landing page anytime (exit first safely via Settings).
-                        </li>
-                      </ul>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200 text-[var(--theme-text-dark)] space-y-1.5">
+                          <span className="font-fredoka font-bold text-xs sm:text-sm text-amber-900 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                            Hunter Mode (Cloud Account)
+                          </span>
+                          <p className="font-nunito text-xs text-amber-950/85 leading-relaxed font-semibold">
+                            Sign in with Google. All scans, registered products, streaks, and cat evolution stages are securely synced to the cloud and accessible across any smartphone or PC.
+                          </p>
+                        </div>
+
+                        <div className="p-3 rounded-xl bg-slate-50/90 border border-slate-200 text-[var(--theme-text-dark)] space-y-1.5">
+                          <span className="font-fredoka font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
+                            <Cloud className="w-4 h-4 text-slate-500 shrink-0" />
+                            Guest Mode (Local Browser Only)
+                          </span>
+                          <p className="font-nunito text-xs text-slate-950/85 leading-relaxed font-semibold">
+                            Progress is stored strictly in your local browser memory. Clearing browser cookies or cache will erase local progress. Switch to Hunter mode anytime from Settings.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}

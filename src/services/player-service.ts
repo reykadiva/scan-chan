@@ -589,19 +589,50 @@ export async function executeFeedAction(userId: string, barcode: string, categor
   const now = Date.now();
 
   return await prisma.$transaction(async (tx) => {
-    const userInventory = await tx.inventory.findUnique({
+    let userInventory = await tx.inventory.findUnique({
       where: { userId },
       include: { items: true },
     });
 
-    const foodItem = userInventory?.items.find(
+    if (!userInventory) {
+      userInventory = await tx.inventory.create({
+        data: { userId },
+        include: { items: true },
+      });
+    }
+
+    let foodItem = userInventory.items.find(
       (item) => item.type === 'FOOD' && item.itemKey === cleanBarcode
     );
 
     if (!foodItem || foodItem.quantity <= 0) {
-      const err = new Error('Food item is not available in inventory');
-      (err as any).statusCode = 400;
-      throw err;
+      // Safe reconciliation: check if user legitimately scanned this consumable product previously
+      const userScanned = await tx.scanHistory.findFirst({
+        where: { userId, barcodeNumber: cleanBarcode },
+      });
+
+      if (userScanned && isConsumableCategory(category)) {
+        foodItem = await tx.inventoryItem.upsert({
+          where: {
+            inventoryId_type_itemKey: {
+              inventoryId: userInventory.id,
+              type: 'FOOD',
+              itemKey: cleanBarcode,
+            },
+          },
+          create: {
+            inventoryId: userInventory.id,
+            type: 'FOOD',
+            itemKey: cleanBarcode,
+            quantity: 1,
+          },
+          update: {},
+        });
+      } else {
+        const err = new Error('Food item is not available in your cloud inventory');
+        (err as any).statusCode = 400;
+        throw err;
+      }
     }
 
     // Decrement item

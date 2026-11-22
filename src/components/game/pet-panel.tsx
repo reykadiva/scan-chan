@@ -246,7 +246,7 @@ export function PetPanel() {
     }, 1800);
   };
 
-  const catVariant = (avatar as CatVariantId) || STAGE_AVATARS[petStage] || 'calico';
+  const catVariant = STAGE_AVATARS[petStage] || (avatar as CatVariantId) || 'calico';
 
   const getIdleAction = (): CatActionId => {
     if (catAction !== 'none') return catAction;

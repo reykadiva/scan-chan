@@ -24,7 +24,7 @@
 
 # local data store
 /data/
-data/
+!src/data/
 *.local.json
 local-store.json
 

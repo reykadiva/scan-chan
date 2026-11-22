@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Product } from '@/types';
+import { usePlayerStore } from '@/stores/player-store';
+import { GameMode } from '@/lib/game-config';
 
 export interface ProductStoreState {
   products: Record<string, Product>;
@@ -195,11 +197,17 @@ export const useProductStore = create<ProductStore>()(
     {
       name: 'scan-chan-product-registry',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        products: state.products,
-        pendingSyncBarcodes: state.pendingSyncBarcodes,
-        lastSyncedAt: state.lastSyncedAt,
-      }),
+      partialize: (state) => {
+        // Ephemeral in RAM: Guest Mode products must NEVER persist to localStorage
+        if (usePlayerStore.getState().mode === GameMode.GUEST) {
+          return {} as any;
+        }
+        return {
+          products: state.products,
+          pendingSyncBarcodes: state.pendingSyncBarcodes,
+          lastSyncedAt: state.lastSyncedAt,
+        };
+      },
     }
   )
 );

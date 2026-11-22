@@ -369,7 +369,7 @@ export function ScannerView({ onClose }: ScannerViewProps) {
                   Searching catalog...
                 </span>
                 <span className="font-nunito text-xs text-white/70">
-                  Checking database & OpenFoodFacts
+                  Checking database catalog...
                 </span>
               </div>
             </motion.div>

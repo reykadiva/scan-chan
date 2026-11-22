@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     const result = await processBarcodeScan(
       parsed.data.barcodeNumber,
       userId,
-      parsed.data.deviceType
+      parsed.data.deviceType,
+      { skipLog: !userId }
     );
 
     return NextResponse.json({

@@ -124,7 +124,7 @@ export function TitleScreenView() {
         setMode(GameMode.ARASHU);
         const store = usePlayerStore.getState();
         if (!store.isProfileLoaded || store.loadedUserId !== data.user.id) {
-          loadProfile(data.user.id).catch(() => {});
+          await loadProfile(data.user.id);
         }
         setActiveView('LOBBY');
       } else if (mode === GameMode.GUEST) {

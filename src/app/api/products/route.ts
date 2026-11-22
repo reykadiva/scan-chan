@@ -61,6 +61,16 @@ export async function POST(request: NextRequest) {
       userId = null;
     }
 
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Guest registrations are stored in local RAM only. Please sign in as Hunter to contribute to the global catalog.',
+        },
+        { status: 401 }
+      );
+    }
+
     const created = await createProduct(parsed.data, userId);
 
     return NextResponse.json({

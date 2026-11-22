@@ -1,15 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { X, Package, Upload, Loader2, ScanLine, Camera, ChevronDown, Flashlight, FlashlightOff } from 'lucide-react';
+import {
+  X,
+  Package,
+  Upload,
+  Loader2,
+  ScanLine,
+  Camera,
+  ChevronDown,
+  Flashlight,
+  FlashlightOff,
+  Search,
+  Check,
+  Sparkles,
+} from 'lucide-react';
 import { CATEGORIES } from '@/types';
 import { useBarcodeScanner, isValidRetailBarcode } from '@/hooks/use-barcode-scanner';
 import { playScannerBeep } from '@/lib/sound-effects';
 import { toast } from 'sonner';
 import { WebcamCapture } from '@/components/game/webcam-capture';
 import { useProductStore } from '@/stores/product-store';
+import { getMergedBrands } from '@/data/brands';
 
 function compressImageToDataUrl(
   file: File,
@@ -135,15 +149,73 @@ export function RegisterProductModal({
   const [form, setForm] = useState({
     barcodeNumber: initialBarcode,
     productName: '',
-    brand: '',
     category: '',
     description: '',
   });
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [brandSearchQuery, setBrandSearchQuery] = useState<string>('');
+  const [isBrandDropdownOpen, setIsBrandDropdownOpen] = useState(false);
+  const [customBrandText, setCustomBrandText] = useState<string>('');
+  const brandDropdownRef = useRef<HTMLDivElement>(null);
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanningBarcode, setIsScanningBarcode] = useState(false);
   const [isCapturingPhoto, setIsCapturingPhoto] = useState(false);
+
+  // Dynamic merged brands from curated database + custom brands already in productStore
+  const storeBrands = useMemo(() => {
+    const prods = useProductStore.getState().products;
+    return Object.values(prods)
+      .map((p) => p.brand)
+      .filter((b): b is string => Boolean(b && b.trim()));
+  }, []);
+  const allBrands = useMemo(() => getMergedBrands(storeBrands), [storeBrands]);
+
+  // Click outside listener for brand combobox
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (brandDropdownRef.current && !brandDropdownRef.current.contains(event.target as Node)) {
+        setIsBrandDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredBrands = useMemo(() => {
+    const q = brandSearchQuery.trim().toLowerCase();
+    if (!q) return allBrands.slice(0, 50);
+    return allBrands.filter((b) => b.toLowerCase().includes(q)).slice(0, 50);
+  }, [allBrands, brandSearchQuery]);
+
+  const effectiveBrand = selectedBrand === 'others'
+    ? customBrandText.trim()
+    : (selectedBrand || brandSearchQuery.trim());
+
+  const isFormValid =
+    form.barcodeNumber.trim().length > 0 &&
+    form.productName.trim().length > 0 &&
+    effectiveBrand.length > 0 &&
+    form.category.trim().length > 0;
+
+  const handleSelectBrand = (brandName: string) => {
+    setSelectedBrand(brandName);
+    setBrandSearchQuery(brandName);
+    setIsBrandDropdownOpen(false);
+  };
+
+  const handleSelectOthers = () => {
+    setSelectedBrand('others');
+    setIsBrandDropdownOpen(false);
+  };
+
+  const handleClearBrand = () => {
+    setSelectedBrand('');
+    setBrandSearchQuery('');
+    setCustomBrandText('');
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -154,7 +226,7 @@ export function RegisterProductModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || !isFormValid) return;
     setIsSubmitting(true);
 
     try {
@@ -171,12 +243,16 @@ export function RegisterProductModal({
       }
 
       const cleanBarcode = form.barcodeNumber.trim();
+      const cleanProductName = form.productName.trim();
+      const cleanBrand = effectiveBrand;
+      const cleanCategory = form.category.trim();
+
       const localProduct = {
         id: cleanBarcode,
         barcodeNumber: cleanBarcode,
-        productName: form.productName.trim(),
-        brand: form.brand?.trim() || null,
-        category: form.category || null,
+        productName: cleanProductName,
+        brand: cleanBrand,
+        category: cleanCategory,
         description: form.description?.trim() || null,
         imageUrl,
         creatorId: creatorId || null,
@@ -187,16 +263,15 @@ export function RegisterProductModal({
       // Always save to local store immediately to prevent any data loss
       useProductStore.getState().upsertProduct(localProduct, true);
 
-      let isSynced = false;
       try {
         const res = await fetch('/api/products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             barcodeNumber: cleanBarcode,
-            productName: form.productName.trim(),
-            brand: form.brand?.trim() || null,
-            category: form.category || null,
+            productName: cleanProductName,
+            brand: cleanBrand,
+            category: cleanCategory,
             description: form.description?.trim() || null,
             imageUrl,
             creatorId,
@@ -206,13 +281,12 @@ export function RegisterProductModal({
         const data = await res.json();
         if (data.success && data.data) {
           useProductStore.getState().upsertProduct(data.data, false);
-          isSynced = true;
         }
       } catch {
         // Server fetch failed, but local copy is already saved safely in productStore
       }
 
-      onSuccess(cleanBarcode, form.category, form.productName.trim());
+      onSuccess(cleanBarcode, cleanCategory, cleanProductName);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -289,33 +363,173 @@ export function RegisterProductModal({
             />
           </div>
 
-          {/* Brand + Category */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-fredoka font-bold text-white text-xs mb-1.5 uppercase tracking-wide drop-shadow-[1px_1px_0_var(--theme-dark)]">Brand</label>
-              <input
-                type="text"
-                maxLength={255}
-                value={form.brand}
-                onChange={(e) => setForm({ ...form, brand: e.target.value })}
-                placeholder="e.g. Indofood"
-                className="w-full px-4 py-2.5 rounded-xl border-2 border-[var(--theme-border)] bg-white text-[var(--theme-text-dark)] font-nunito font-bold text-sm placeholder-[var(--theme-text-dark)]/40 focus:outline-none focus:ring-2 focus:ring-white shadow-[2px_2px_0_0_var(--theme-shadow)]"
-              />
+          {/* Brand & Category */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Brand Combobox */}
+            <div className="relative" ref={brandDropdownRef}>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block font-fredoka font-bold text-white text-xs uppercase tracking-wide drop-shadow-[1px_1px_0_var(--theme-dark)]">
+                  Brand <span className="text-white">*</span>
+                </label>
+                {selectedBrand === 'others' && (
+                  <button
+                    type="button"
+                    onClick={handleClearBrand}
+                    className="text-[10px] font-fredoka font-bold text-white/90 hover:text-white underline cursor-pointer"
+                  >
+                    Select from list
+                  </button>
+                )}
+              </div>
+
+              {selectedBrand === 'others' ? (
+                <div className="space-y-1">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      maxLength={100}
+                      value={customBrandText}
+                      onChange={(e) => setCustomBrandText(e.target.value)}
+                      placeholder="Type custom brand..."
+                      className="w-full pl-3.5 pr-8 py-2.5 rounded-xl border-2 border-[var(--theme-border)] bg-white text-[var(--theme-text-dark)] font-nunito font-bold text-sm placeholder-[var(--theme-text-dark)]/40 focus:outline-none focus:ring-2 focus:ring-white shadow-[2px_2px_0_0_var(--theme-shadow)]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleClearBrand}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <span className="text-[10px] text-white/70 font-nunito block truncate">
+                    Custom brand will be registered
+                  </span>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <input
+                      type="text"
+                      required
+                      maxLength={100}
+                      value={brandSearchQuery}
+                      onFocus={() => setIsBrandDropdownOpen(true)}
+                      onChange={(e) => {
+                        setBrandSearchQuery(e.target.value);
+                        setSelectedBrand('');
+                        setIsBrandDropdownOpen(true);
+                      }}
+                      placeholder="Search 1,000+ brands..."
+                      className="w-full pl-8.5 pr-8 py-2.5 rounded-xl border-2 border-[var(--theme-border)] bg-white text-[var(--theme-text-dark)] font-nunito font-bold text-sm placeholder-[var(--theme-text-dark)]/40 focus:outline-none focus:ring-2 focus:ring-white shadow-[2px_2px_0_0_var(--theme-shadow)]"
+                    />
+                    {brandSearchQuery ? (
+                      <button
+                        type="button"
+                        onClick={handleClearBrand}
+                        className="absolute right-2.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsBrandDropdownOpen(!isBrandDropdownOpen)}
+                        className="absolute right-2.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown Menu */}
+                  {isBrandDropdownOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-30 max-h-52 overflow-y-auto bg-white rounded-xl border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] py-1 text-[var(--theme-text-dark)]">
+                      {/* Option: Others (Custom Brand) */}
+                      <button
+                        type="button"
+                        onClick={handleSelectOthers}
+                        className="w-full text-left px-3 py-2 hover:bg-amber-50 flex items-center justify-between text-xs font-nunito font-black text-amber-900 border-b border-gray-100 cursor-pointer"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                          Others (Custom Brand)
+                        </span>
+                        <span className="text-[9px] bg-amber-200/70 text-amber-900 px-1.5 py-0.5 rounded font-pixel font-bold">
+                          Manual
+                        </span>
+                      </button>
+
+                      {/* If user typed a custom query that isn't exact match */}
+                      {brandSearchQuery.trim() && !filteredBrands.some((b) => b.toLowerCase() === brandSearchQuery.trim().toLowerCase()) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedBrand('others');
+                            setCustomBrandText(brandSearchQuery.trim());
+                            setIsBrandDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between text-xs font-nunito font-bold text-blue-900 border-b border-gray-100 cursor-pointer"
+                        >
+                          <span className="truncate">Use &ldquo;{brandSearchQuery.trim()}&rdquo;</span>
+                          <span className="text-[9px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded font-bold shrink-0 ml-1">
+                            New
+                          </span>
+                        </button>
+                      )}
+
+                      {/* Filtered Brands List */}
+                      <div className="py-0.5">
+                        {filteredBrands.length === 0 ? (
+                          <div className="px-3 py-2 text-xs font-nunito text-gray-500 text-center">
+                            No matching brands
+                          </div>
+                        ) : (
+                          filteredBrands.map((brand) => {
+                            const isSelected = selectedBrand === brand || brandSearchQuery.trim().toLowerCase() === brand.toLowerCase();
+                            return (
+                              <button
+                                key={brand}
+                                type="button"
+                                onClick={() => handleSelectBrand(brand)}
+                                className={`w-full text-left px-3 py-1.5 text-xs font-nunito font-bold flex items-center justify-between cursor-pointer transition-colors ${
+                                  isSelected
+                                    ? 'bg-[var(--theme-surface-inner)] text-[var(--theme-primary)] font-black'
+                                    : 'hover:bg-gray-100 text-[var(--theme-text-dark)]'
+                                }`}
+                              >
+                                <span className="truncate">{brand}</span>
+                                {isSelected && <Check className="w-3.5 h-3.5 text-[var(--theme-primary)] shrink-0 ml-2" />}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* Category Select */}
             <div>
-              <label className="block font-fredoka font-bold text-white text-xs mb-1.5 uppercase tracking-wide drop-shadow-[1px_1px_0_var(--theme-dark)]">Category</label>
+              <label className="block font-fredoka font-bold text-white text-xs mb-1.5 uppercase tracking-wide drop-shadow-[1px_1px_0_var(--theme-dark)]">
+                Category <span className="text-white">*</span>
+              </label>
               <div className="relative">
                 <select
+                  required
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="appearance-none w-full pl-4 pr-10 py-2.5 rounded-xl border-2 border-[var(--theme-border)] bg-white text-[var(--theme-text-dark)] font-nunito font-bold text-sm focus:outline-none focus:ring-2 focus:ring-white shadow-[2px_2px_0_0_var(--theme-shadow)]"
+                  className="appearance-none w-full pl-3.5 pr-9 py-2.5 rounded-xl border-2 border-[var(--theme-border)] bg-white text-[var(--theme-text-dark)] font-nunito font-bold text-sm focus:outline-none focus:ring-2 focus:ring-white shadow-[2px_2px_0_0_var(--theme-shadow)] cursor-pointer"
                 >
-                  <option value="">Select...</option>
+                  <option value="" disabled>Select category...</option>
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-dark)]" strokeWidth={2.5} />
+                <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--theme-text-dark)]" strokeWidth={2.5} />
               </div>
             </div>
           </div>
@@ -369,8 +583,8 @@ export function RegisterProductModal({
           {/* Submit */}
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-[var(--theme-surface-inner)] text-[var(--theme-primary)] font-fredoka font-black text-sm uppercase tracking-wider border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            disabled={!isFormValid || isSubmitting}
+            className="w-full py-3.5 px-4 rounded-xl bg-white hover:bg-[var(--theme-surface-inner)] text-[var(--theme-primary)] font-fredoka font-black text-sm uppercase tracking-wider border-2 border-[var(--theme-border)] shadow-[4px_4px_0_0_var(--theme-shadow)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:translate-y-0"
           >
             {isSubmitting ? (
               <><Loader2 className="w-5 h-5 animate-spin text-[var(--theme-primary)]" /> Registering...</>

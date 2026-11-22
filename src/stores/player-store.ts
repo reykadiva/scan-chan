@@ -583,6 +583,12 @@ export const usePlayerStore = create<PlayerStore>()(
           })
             .then(async (res) => {
               if (!res.ok) {
+                const errJson = await res.json().catch(() => null);
+                const errMsg = errJson?.error || 'Failed to feed pet';
+                if (typeof window !== 'undefined') {
+                  const { toast } = await import('sonner');
+                  toast.error(errMsg);
+                }
                 // Rollback on server refusal only if no other feeds are queued
                 if (_pendingFeedCount <= 1) {
                   set(previousSnapshot);
@@ -912,7 +918,12 @@ export const usePlayerStore = create<PlayerStore>()(
           }
         }
 
-        set({ isLoading: true, error: null });
+        const isSwitchingUser = Boolean(targetUserId && currentState.loadedUserId && currentState.loadedUserId !== targetUserId);
+        set({
+          isLoading: true,
+          error: null,
+          ...(isSwitchingUser && { isProfileLoaded: false, loadedUserId: null }),
+        });
         try {
           let res: Response | null = null;
           let fetchErr: any = null;
@@ -1055,7 +1066,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
             // Cross-device authoritative XP, deterministic Level & Stage calculation
             const serverXp = typeof d.xp === 'number' ? d.xp : 0;
-            const finalXp = serverXp;
+            const finalXp = protectLocalVitals ? Math.max(serverXp, afterFetchState.xp) : serverXp;
             const finalLevel = levelFromXp(finalXp);
             const finalStage = getPetStageFromLevel(finalLevel);
 
@@ -1191,39 +1202,44 @@ export const usePlayerStore = create<PlayerStore>()(
           ...persistedState,
         };
       },
-      // Persist only essential offline state for guest mode
-      partialize: (state) => ({
-        mode: state.mode,
-        loadedUserId: state.loadedUserId,
-        nickname: state.nickname,
-        avatar: state.avatar,
-        creatorId: state.creatorId,
-        xp: state.xp,
-        level: state.level,
-        streak: state.streak,
-        lastActiveDate: state.lastActiveDate,
-        registeredBarcodes: state.registeredBarcodes,
-        scanHistory: state.scanHistory,
-        petName: state.petName,
-        petStage: state.petStage,
-        petHunger: state.petHunger,
-        petAffection: state.petAffection,
-        foodInventory: state.foodInventory,
-        lastPetTime: state.lastPetTime,
-        dailyPetCount: state.dailyPetCount,
-        lastPetDate: state.lastPetDate,
-        lastFedBarcode: state.lastFedBarcode,
-        lastFedAt: state.lastFedAt,
-        lastHungerDecayAt: state.lastHungerDecayAt,
-        lastAffectionDecayAt: state.lastAffectionDecayAt,
-        selectedBorder: state.selectedBorder,
-        selectedTheme: state.selectedTheme,
-        selectedAccessory: state.selectedAccessory,
-        selectedTitle: state.selectedTitle,
-        selectedRoom: state.selectedRoom,
-        lastCelebratedLevel: state.lastCelebratedLevel,
-        lastLocalMutationAt: state.lastLocalMutationAt,
-      }),
+      // Persist only essential offline state for hunter mode; Guest mode is strictly ephemeral in RAM
+      partialize: (state) => {
+        if (state.mode === GameMode.GUEST) {
+          return {} as any;
+        }
+        return {
+          mode: state.mode,
+          loadedUserId: state.loadedUserId,
+          nickname: state.nickname,
+          avatar: state.avatar,
+          creatorId: state.creatorId,
+          xp: state.xp,
+          level: state.level,
+          streak: state.streak,
+          lastActiveDate: state.lastActiveDate,
+          registeredBarcodes: state.registeredBarcodes,
+          scanHistory: state.scanHistory,
+          petName: state.petName,
+          petStage: state.petStage,
+          petHunger: state.petHunger,
+          petAffection: state.petAffection,
+          foodInventory: state.foodInventory,
+          lastPetTime: state.lastPetTime,
+          dailyPetCount: state.dailyPetCount,
+          lastPetDate: state.lastPetDate,
+          lastFedBarcode: state.lastFedBarcode,
+          lastFedAt: state.lastFedAt,
+          lastHungerDecayAt: state.lastHungerDecayAt,
+          lastAffectionDecayAt: state.lastAffectionDecayAt,
+          selectedBorder: state.selectedBorder,
+          selectedTheme: state.selectedTheme,
+          selectedAccessory: state.selectedAccessory,
+          selectedTitle: state.selectedTitle,
+          selectedRoom: state.selectedRoom,
+          lastCelebratedLevel: state.lastCelebratedLevel,
+          lastLocalMutationAt: state.lastLocalMutationAt,
+        };
+      },
     }
   )
 );
