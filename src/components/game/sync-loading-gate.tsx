@@ -21,9 +21,10 @@ export function SyncLoadingGate({
   const [showTimeoutFallback, setShowTimeoutFallback] = useState(false);
 
   useEffect(() => {
+    // Tolerant 10s threshold for cold-starts without causing premature panic
     const timer = setTimeout(() => {
       setShowTimeoutFallback(true);
-    }, 6000);
+    }, 10000);
     return () => clearTimeout(timer);
   }, []);
 

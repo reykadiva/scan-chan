@@ -27,25 +27,18 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // Authenticate user securely on server
+  // Authenticate user securely on server via Supabase
   let user = null;
-  const sessionCookie = request.cookies.get('scan_session')?.value;
-  if (sessionCookie) {
-    try {
-      const parsed = JSON.parse(sessionCookie);
-      if (parsed.id) {
-        user = { id: parsed.id, email: parsed.email };
-      }
-    } catch {}
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    user = null;
   }
 
-  if (!user) {
-    try {
-      const { data } = await supabase.auth.getUser();
-      user = data.user;
-    } catch (err) {
-      user = null;
-    }
+  // SC-001: Clean up any legacy scan_session cookie
+  if (request.cookies.has('scan_session')) {
+    supabaseResponse.cookies.set('scan_session', '', { path: '/', maxAge: 0 });
   }
 
   const isGuest = request.cookies.get('scan_mode')?.value === 'guest';
