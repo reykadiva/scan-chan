@@ -139,13 +139,8 @@ export default function ScanPage() {
       playSuccessChime();
       haptics.success();
 
-      // Update state in store (works for both Guest Mode & Google OAuth Hunter Mode)
+      // Update state in store (handles optimistic update & server reconciliation in Hunter Mode)
       recordScan(barcode, isNew, product?.category ?? 'Other');
-
-      // Persist to cloud database if signed in with Google OAuth Hunter Mode
-      if (mode === GameMode.ARASHU) {
-        usePlayerStore.getState().saveProfileToServer().catch(() => {});
-      }
 
       setResult({ found, product, isNew });
       setPhase(found ? 'found' : 'not-found');

@@ -1,8 +1,10 @@
 import { prisma } from '@/lib/prisma';
 import { GAME_CONFIG } from '@/lib/game-config';
-import { calculateStreakMultiplier } from '@/lib/streak-multiplier';
+import { calculateStreakMultiplier, applyStreakMultiplier } from '@/lib/streak-multiplier';
+import { recordScanStreak, getWibDateKey } from '@/lib/streak-helpers';
 import { localDb, type LocalUser } from '@/lib/database/local-db';
-import type { ProfileUpdateInput } from '@/lib/validations/profile';
+import type { ProfileUpdateInput, ProfilePreferencesInput } from '@/lib/validations/profile';
+import { processBarcodeScan } from '@/services/scanner-service';
 
 export function xpForLevel(level: number): number {
   if (level <= 1) return 0;
@@ -395,118 +397,61 @@ export async function getPlayerProfile(userId: string) {
   }
 }
 
-export async function updatePlayerProfile(userId: string, input: ProfileUpdateInput) {
-  // Always update local store to stay in sync
+export async function updatePlayerPreferences(userId: string, input: ProfilePreferencesInput) {
+  // Update local DB for dev/fallback sync
   try {
-    updateLocalProfile(userId, input);
+    const localUser = localDb.getUser(userId);
+    if (localUser) {
+      if (input.petName) {
+        localUser.pet = localUser.pet || { name: input.petName, stage: 'KITTEN', stats: { hunger: 80, affection: 80 } };
+        localUser.pet.name = input.petName.trim().slice(0, 24);
+      }
+      localUser.settings = localUser.settings || { theme: 'default', sound: true, metadata: {} };
+      localUser.settings.theme = input.selectedTheme || localUser.settings.theme || 'default';
+      localUser.settings.metadata = {
+        ...(localUser.settings.metadata || {}),
+        ...(input.selectedBorder !== undefined && { selectedBorder: input.selectedBorder }),
+        ...(input.selectedAccessory !== undefined && { selectedAccessory: input.selectedAccessory }),
+        ...(input.selectedTitle !== undefined && { selectedTitle: input.selectedTitle }),
+        ...(input.selectedRoom !== undefined && { selectedRoom: input.selectedRoom }),
+      };
+      localDb.saveUser(localUser);
+    }
   } catch (e) {
-    console.warn('[updatePlayerProfile] Error updating local profile:', e);
+    console.warn('[updatePlayerPreferences] localDb update warning:', e);
   }
 
+  const cleanPetName = input.petName ? input.petName.trim().slice(0, 24) : undefined;
+
+  const currentSettings = await prisma.settings.findUnique({ where: { userId } }).catch(() => null);
+  const existingMeta = (currentSettings?.metadata as any) || {};
+
+  const updatedMeta = {
+    ...existingMeta,
+    ...(input.selectedBorder !== undefined && { selectedBorder: input.selectedBorder }),
+    ...(input.selectedAccessory !== undefined && { selectedAccessory: input.selectedAccessory }),
+    ...(input.selectedTitle !== undefined && { selectedTitle: input.selectedTitle }),
+    ...(input.selectedRoom !== undefined && { selectedRoom: input.selectedRoom }),
+  };
+
   try {
-    let xp = typeof input.xp === 'number' ? input.xp : undefined;
-    let level = xp !== undefined ? levelFromXp(xp) : undefined;
-    let streak = typeof input.streak === 'number' ? input.streak : undefined;
-
-    // Fetch current user settings & progress to merge metadata safely and prevent rollbacks
-    const [currentSettings, existingProgress] = await Promise.all([
-      prisma.settings.findUnique({ where: { userId } }),
-      prisma.progress.findUnique({ where: { userId } }).catch(() => null),
-    ]);
-
-    // Anti-rollback: never allow an unhydrated or stale client to decrease XP/Level
-    if (existingProgress && xp !== undefined && xp < existingProgress.xp) {
-      console.warn('[updatePlayerProfile] Anti-rollback blocked XP downgrade:', {
-        currentDbXp: existingProgress.xp,
-        incomingXp: xp,
-      });
-      xp = existingProgress.xp;
-      level = existingProgress.level;
-    }
-
-    const existingMeta = (currentSettings?.metadata as any) || {};
-
-    // Safely merge arrays so empty input never wipes existing cloud records
-    const mergedRegisteredBarcodes = Array.from(new Set([
-      ...(Array.isArray(existingMeta.registeredBarcodes) ? existingMeta.registeredBarcodes : []),
-      ...(Array.isArray(input.registeredBarcodes) ? input.registeredBarcodes : []),
-    ]));
-
-    const mergedScanHistory = Array.from(new Set([
-      ...(Array.isArray(input.scanHistory) ? input.scanHistory : []),
-      ...(Array.isArray(existingMeta.scanHistory) ? existingMeta.scanHistory : []),
-    ])).slice(0, 50);
-
-    const updatedMeta = {
-      ...existingMeta,
-      ...(input.selectedBorder !== undefined && { selectedBorder: input.selectedBorder }),
-      ...(input.selectedAccessory !== undefined && { selectedAccessory: input.selectedAccessory }),
-      ...(input.selectedTitle !== undefined && { selectedTitle: input.selectedTitle }),
-      ...(input.selectedRoom !== undefined && { selectedRoom: input.selectedRoom }),
-      ...(input.petName !== undefined && { petName: input.petName }),
-      registeredBarcodes: mergedRegisteredBarcodes,
-      scanHistory: mergedScanHistory,
-      ...(input.lastActiveDate !== undefined && { lastActiveDate: input.lastActiveDate }),
-      ...(input.lastFedBarcode !== undefined && { lastFedBarcode: input.lastFedBarcode }),
-      ...(input.dailyPetCount !== undefined && { dailyPetCount: input.dailyPetCount }),
-      ...(input.lastPetDate !== undefined && { lastPetDate: input.lastPetDate }),
-      ...(input.lastAffectionDecayAt !== undefined && { lastAffectionDecayAt: input.lastAffectionDecayAt }),
-      ...(input.lastFedAt !== undefined && { lastFedAt: input.lastFedAt }),
-      ...(input.lastHungerDecayAt !== undefined && { lastHungerDecayAt: input.lastHungerDecayAt }),
-    };
-
-    // Perform transactional or chained update
     await prisma.user.update({
       where: { id: userId },
       data: {
-        mode: 'ARASHU',
-        ...((xp !== undefined || streak !== undefined || input.lastActiveDate !== undefined) && {
-          progress: {
+        ...(cleanPetName && {
+          pet: {
             upsert: {
               create: {
-                xp: xp ?? 0,
-                level: level ?? 1,
-                streak: streak ?? 0,
-                ...(input.lastActiveDate ? { lastActiveDate: new Date(input.lastActiveDate) } : {}),
+                name: cleanPetName,
+                stage: 'KITTEN',
+                stats: { create: { hunger: 80, affection: 80 } },
               },
               update: {
-                ...(xp !== undefined && { xp, level: level ?? 1 }),
-                ...(streak !== undefined && { streak }),
-                ...(input.lastActiveDate ? { lastActiveDate: new Date(input.lastActiveDate) } : {}),
+                name: cleanPetName,
               },
             },
           },
         }),
-        pet: {
-          upsert: {
-            create: {
-              name: input.petName || 'Scan-chan Jr.',
-              stage: getPetStageFromLevel(level ?? 1),
-              stats: {
-                create: {
-                  hunger: input.petHunger ?? 80,
-                  affection: input.petAffection ?? 80,
-                },
-              },
-            },
-            update: {
-              ...(input.petName && { name: input.petName }),
-              stage: getPetStageFromLevel(level ?? 1),
-              stats: {
-                upsert: {
-                  create: {
-                    hunger: input.petHunger ?? 80,
-                    affection: input.petAffection ?? 80,
-                  },
-                  update: {
-                    ...(input.petHunger !== undefined && { hunger: input.petHunger }),
-                    ...(input.petAffection !== undefined && { affection: input.petAffection }),
-                  },
-                },
-              },
-            },
-          },
-        },
         settings: {
           upsert: {
             create: {
@@ -522,55 +467,380 @@ export async function updatePlayerProfile(userId: string, input: ProfileUpdateIn
         },
       },
     });
+  } catch (err) {
+    console.warn('[updatePlayerPreferences] Prisma error, handled gracefully:', err);
+  }
 
-    // Update inventory items if specified
-    if (input.foodInventory) {
-      const userInventory = await prisma.inventory.upsert({
-        where: { userId },
-        create: { userId },
-        update: {},
+  return { success: true };
+}
+
+/**
+ * SC-002: Strips progression authority from updatePlayerProfile.
+ * Only saves non-economic cosmetic preferences and sanitized petName.
+ */
+export async function updatePlayerProfile(userId: string, input: ProfileUpdateInput) {
+  return await updatePlayerPreferences(userId, input);
+}
+
+/**
+ * SC-002: Server-Authoritative Pet Cat Action (Elus Kucing)
+ * Validates daily quota (max 3/day in Asia/Jakarta WIB) and applies atomic affection boost.
+ */
+export async function executePetAction(userId: string) {
+  const todayWIB = getWibDateKey();
+  const now = Date.now();
+
+  return await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      include: {
+        pet: { include: { stats: true } },
+        settings: true,
+      },
+    });
+
+    if (!user) {
+      const err = new Error('User not found');
+      (err as any).statusCode = 404;
+      throw err;
+    }
+
+    const currentMeta = (user.settings?.metadata as any) || {};
+    const lastPetDate = currentMeta.lastPetDate || null;
+    const isNewDay = lastPetDate !== todayWIB;
+    const currentDailyCount = isNewDay ? 0 : (Number(currentMeta.dailyPetCount) || 0);
+
+    // Limit check: max 3 per day (WIB)
+    if (currentDailyCount >= 3) {
+      const err = new Error('Daily pet limit reached (max 3 per day)');
+      (err as any).statusCode = 429;
+      throw err;
+    }
+
+    // Cooldown check: 10 seconds between pet actions
+    const lastPetTime = Number(currentMeta.lastPetTime) || 0;
+    if (now - lastPetTime < 10000) {
+      const err = new Error('Please wait before petting again');
+      (err as any).statusCode = 429;
+      throw err;
+    }
+
+    const newDailyCount = currentDailyCount + 1;
+    const currentAffection = Math.max(0, Math.min(100, Number(user.pet?.stats?.affection ?? 80)));
+    const newAffection = Math.min(100, currentAffection + 5);
+
+    if (user.pet?.id) {
+      await tx.petStats.upsert({
+        where: { petId: user.pet.id },
+        create: {
+          petId: user.pet.id,
+          hunger: user.pet.stats?.hunger ?? 80,
+          affection: newAffection,
+        },
+        update: {
+          affection: newAffection,
+        },
       });
+    }
 
-      const validKeys = Object.entries(input.foodInventory)
-        .filter(([_, q]) => q > 0)
-        .map(([k]) => k);
+    const updatedMeta = {
+      ...currentMeta,
+      dailyPetCount: newDailyCount,
+      lastPetDate: todayWIB,
+      lastPetTime: now,
+      lastAffectionDecayAt: now,
+    };
 
-      // Delete items no longer in foodInventory or with qty <= 0
-      await prisma.inventoryItem.deleteMany({
-        where: {
-          inventoryId: userInventory.id,
-          type: 'FOOD',
-          itemKey: { notIn: validKeys },
+    await tx.settings.upsert({
+      where: { userId },
+      create: {
+        userId,
+        theme: 'default',
+        metadata: updatedMeta,
+      },
+      update: {
+        metadata: updatedMeta,
+      },
+    });
+
+    return {
+      petAffection: newAffection,
+      dailyPetCount: newDailyCount,
+      lastPetDate: todayWIB,
+      lastPetTime: now,
+      lastAffectionDecayAt: now,
+      isMaxedJustNow: newDailyCount === 3,
+    };
+  });
+}
+
+/**
+ * SC-002: Server-Authoritative Feed Action (Beri Makan)
+ * Validates stock in user inventory, decrements item, and applies deterministic gains.
+ */
+export async function executeFeedAction(userId: string, barcode: string, category?: string) {
+  const cleanBarcode = String(barcode || '').trim();
+  if (!cleanBarcode) {
+    const err = new Error('Invalid barcode');
+    (err as any).statusCode = 400;
+    throw err;
+  }
+  const now = Date.now();
+
+  return await prisma.$transaction(async (tx) => {
+    const userInventory = await tx.inventory.findUnique({
+      where: { userId },
+      include: { items: true },
+    });
+
+    const foodItem = userInventory?.items.find(
+      (item) => item.type === 'FOOD' && item.itemKey === cleanBarcode
+    );
+
+    if (!foodItem || foodItem.quantity <= 0) {
+      const err = new Error('Food item is not available in inventory');
+      (err as any).statusCode = 400;
+      throw err;
+    }
+
+    // Decrement item
+    if (foodItem.quantity <= 1) {
+      await tx.inventoryItem.delete({
+        where: { id: foodItem.id },
+      });
+    } else {
+      await tx.inventoryItem.update({
+        where: { id: foodItem.id },
+        data: { quantity: foodItem.quantity - 1 },
+      });
+    }
+
+    const [userPet, userProgress, userSettings] = await Promise.all([
+      tx.pet.findUnique({ where: { userId }, include: { stats: true } }),
+      tx.progress.findUnique({ where: { userId } }),
+      tx.settings.findUnique({ where: { userId } }),
+    ]);
+
+    const cat = (category || '').toLowerCase();
+    let hungerGain = 15;
+    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('cheese') || cat.includes('yogurt')) {
+      hungerGain = 20;
+    } else if (cat.includes('drink') || cat.includes('beverage') || cat.includes('juice') || cat.includes('water')) {
+      hungerGain = 12;
+    } else if (cat.includes('instant') || cat.includes('noodle') || cat.includes('ramen') || cat.includes('meal')) {
+      hungerGain = 25;
+    } else if (cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit') || cat.includes('cookie') || cat.includes('food')) {
+      hungerGain = 15;
+    }
+
+    const currentHunger = Math.max(0, Math.min(100, Number(userPet?.stats?.hunger ?? 80)));
+    const currentAffection = Math.max(0, Math.min(100, Number(userPet?.stats?.affection ?? 80)));
+    const currentTotalXp = Math.max(0, Number(userProgress?.xp ?? 0));
+
+    const wasDead = currentHunger === 0;
+    const isSpecialFood = cat.includes('snack') || cat.includes('candy') || cat.includes('biscuit')
+      || cat.includes('treat') || cat.includes('cookie') || cat.includes('cake') || cat.includes('dessert');
+    const baseAffection = isSpecialFood ? 10 : 3;
+
+    const currentMeta = (userSettings?.metadata as any) || {};
+    const varietyBonus = cleanBarcode !== currentMeta.lastFedBarcode ? 5 : 0;
+    const revivalBonus = wasDead ? 6 : 0;
+    const affectionGain = baseAffection + varietyBonus + revivalBonus;
+    const xpGain = 10;
+
+    const newHunger = Math.min(100, currentHunger + hungerGain);
+    const newAffection = Math.min(100, currentAffection + affectionGain);
+    const newTotalXp = currentTotalXp + xpGain;
+    const newLevel = levelFromXp(newTotalXp);
+    const newStage = getPetStageFromLevel(newLevel);
+
+    if (userPet?.id) {
+      await tx.pet.update({
+        where: { id: userPet.id },
+        data: {
+          stage: newStage,
+          stats: {
+            update: {
+              hunger: newHunger,
+              affection: newAffection,
+            },
+          },
+        },
+      });
+    }
+
+    await tx.progress.upsert({
+      where: { userId },
+      create: {
+        userId,
+        xp: newTotalXp,
+        level: newLevel,
+      },
+      update: {
+        xp: newTotalXp,
+        level: newLevel,
+      },
+    });
+
+    const updatedMeta = {
+      ...currentMeta,
+      lastFedBarcode: cleanBarcode,
+      lastFedAt: now,
+      lastHungerDecayAt: now,
+      lastAffectionDecayAt: now,
+    };
+
+    await tx.settings.upsert({
+      where: { userId },
+      create: { userId, theme: 'default', metadata: updatedMeta },
+      update: { metadata: updatedMeta },
+    });
+
+    const updatedItems = await tx.inventoryItem.findMany({
+      where: {
+        inventoryId: userInventory!.id,
+        type: 'FOOD',
+        quantity: { gt: 0 },
+      },
+    });
+
+    const updatedFoodInventory: Record<string, number> = {};
+    for (const item of updatedItems) {
+      updatedFoodInventory[item.itemKey] = item.quantity;
+    }
+
+    return {
+      petHunger: newHunger,
+      petAffection: newAffection,
+      petStage: newStage,
+      xp: newTotalXp,
+      level: newLevel,
+      foodInventory: updatedFoodInventory,
+      lastFedBarcode: cleanBarcode,
+      lastFedAt: now,
+      lastHungerDecayAt: now,
+      lastAffectionDecayAt: now,
+    };
+  });
+}
+
+/**
+ * SC-002: Server-Authoritative Barcode Scan Action (Klaim Scan)
+ * Validates product, prevents replay, updates streak (WIB), awards XP, and adds food item atomically.
+ */
+export async function executeScanAction(
+  userId: string,
+  barcodeNumber: string,
+  idempotencyKey?: string,
+  deviceType?: string
+) {
+  const cleanBarcode = String(barcodeNumber || '').trim();
+  if (!cleanBarcode) {
+    const err = new Error('Invalid barcode number');
+    (err as any).statusCode = 400;
+    throw err;
+  }
+  const now = Date.now();
+  const todayWIB = getWibDateKey();
+
+  // 1. Process barcode lookup & registration
+  const scanResult = await processBarcodeScan(cleanBarcode, userId, deviceType);
+  const { product, isNewProduct } = scanResult;
+
+  // 2. Perform atomic progress & inventory update in transaction
+  return await prisma.$transaction(async (tx) => {
+    // Replay protection: check recent scan for user within 15 seconds
+    const recentScan = await tx.scanHistory.findFirst({
+      where: {
+        userId,
+        barcodeNumber: cleanBarcode,
+        scannedAt: { gte: new Date(now - 15000) },
+      },
+      orderBy: { scannedAt: 'desc' },
+    });
+
+    let userProgress = await tx.progress.findUnique({
+      where: { userId },
+    });
+
+    if (!userProgress) {
+      userProgress = await tx.progress.create({
+        data: { userId, xp: 0, level: 1, streak: 0 },
+      });
+    }
+
+    let xpAwarded = 0;
+    let newStreak = userProgress.streak;
+    let newTotalXp = userProgress.xp;
+
+    if (!recentScan) {
+      const lastActiveDateWIB = userProgress.lastActiveDate
+        ? getWibDateKey(userProgress.lastActiveDate)
+        : null;
+
+      const streakCalc = recordScanStreak(userProgress.streak, lastActiveDateWIB, todayWIB);
+      newStreak = streakCalc.newStreak;
+
+      const baseXp = isNewProduct ? GAME_CONFIG.xp.scanNew : GAME_CONFIG.xp.scanExisting;
+      xpAwarded = applyStreakMultiplier(baseXp, newStreak);
+      newTotalXp = userProgress.xp + xpAwarded;
+
+      const newLevel = levelFromXp(newTotalXp);
+      const newStage = getPetStageFromLevel(newLevel);
+
+      await tx.progress.update({
+        where: { userId },
+        data: {
+          xp: newTotalXp,
+          level: newLevel,
+          streak: newStreak,
+          lastActiveDate: new Date(),
         },
       });
 
-      for (const [itemKey, quantity] of Object.entries(input.foodInventory)) {
-        if (quantity > 0) {
-          await prisma.inventoryItem.upsert({
-            where: {
-              inventoryId_type_itemKey: {
-                inventoryId: userInventory.id,
-                type: 'FOOD',
-                itemKey,
-              },
-            },
-            create: {
-              inventoryId: userInventory.id,
-              type: 'FOOD',
-              itemKey,
-              quantity,
-            },
-            update: {
-              quantity,
-            },
-          });
-        }
+      await tx.pet.updateMany({
+        where: { userId },
+        data: { stage: newStage },
+      });
+    }
+
+    // Fetch user inventory
+    const userInventory = await tx.inventory.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+      include: { items: true },
+    });
+
+    const foodInventory: Record<string, number> = {};
+    for (const item of userInventory.items) {
+      if (item.type === 'FOOD' && item.quantity > 0) {
+        foodInventory[item.itemKey] = item.quantity;
       }
     }
 
-    return { success: true };
-  } catch (error) {
-    console.warn('[updatePlayerProfile] Prisma error, handled via local fallback:', error);
-    return { success: true };
-  }
+    const recentLogs = await tx.scanHistory.findMany({
+      where: { userId },
+      orderBy: { scannedAt: 'desc' },
+      take: 50,
+      select: { barcodeNumber: true },
+    });
+
+    const scanHistory = Array.from(new Set(recentLogs.map((l) => l.barcodeNumber)));
+    const currentLevel = levelFromXp(newTotalXp);
+
+    return {
+      xp: newTotalXp,
+      level: currentLevel,
+      streak: newStreak,
+      petStage: getPetStageFromLevel(currentLevel),
+      pendingXpGain: xpAwarded,
+      foodInventory,
+      scanHistory,
+      lastActiveDate: todayWIB,
+      product: scanResult.product,
+      isNewProduct: scanResult.isNewProduct,
+      found: scanResult.found,
+    };
+  });
 }

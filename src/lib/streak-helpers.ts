@@ -107,6 +107,25 @@ export function getHoursUntilMidnight(): number {
 }
 
 /**
+ * Gets date string in YYYY-MM-DD format strictly in Asia/Jakarta (WIB) timezone
+ */
+export function getWibDateKey(date: Date = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(date);
+  } catch {
+    // Fallback if timezone not supported in environment
+    const wibOffsetMs = 7 * 60 * 60 * 1000;
+    const wibDate = new Date(date.getTime() + wibOffsetMs);
+    return wibDate.toISOString().split('T')[0];
+  }
+}
+
+/**
  * Gets today's date string in YYYY-MM-DD format (local timezone)
  */
 export function getLocalDateKey(): string {

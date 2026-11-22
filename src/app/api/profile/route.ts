@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/services/auth-service';
-import { getPlayerProfile, updatePlayerProfile } from '@/services/player-service';
-import { profileUpdateSchema } from '@/lib/validations/profile';
+import { getPlayerProfile, updatePlayerPreferences } from '@/services/player-service';
+import { profilePreferencesSchema } from '@/lib/validations/profile';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +31,10 @@ export async function GET() {
   }
 }
 
+/**
+ * SC-002: Stripped Profile Preferences Update.
+ * progression fields (xp, streak, hunger, affection, foodInventory) are IGNORED / REJECTED.
+ */
 export async function POST(request: NextRequest) {
   try {
     const session = await getCurrentUser();
@@ -41,26 +45,30 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const parsed = profileUpdateSchema.safeParse(body);
+    const parsed = profilePreferencesSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: parsed.error.issues[0]?.message || 'Invalid profile payload' },
+        { success: false, error: parsed.error.issues[0]?.message || 'Invalid preferences payload' },
         { status: 400 }
       );
     }
 
-    await updatePlayerProfile(user.id, parsed.data);
+    await updatePlayerPreferences(user.id, parsed.data);
 
     return NextResponse.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: 'Preferences updated successfully',
     });
   } catch (error: any) {
     console.error('[API POST /api/profile]', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to update profile' },
+      { success: false, error: 'Failed to update preferences' },
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(request: NextRequest) {
+  return POST(request);
 }

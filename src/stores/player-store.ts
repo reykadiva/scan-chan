@@ -284,8 +284,32 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
 
+        // Server-authoritative action & reconciliation in Hunter Mode
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
-          get().saveProfileToServer().catch(() => {});
+          fetch('/api/actions/scan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barcodeNumber: barcode }),
+          })
+            .then(async (res) => {
+              if (!res.ok) return;
+              const json = await res.json();
+              if (json.success && json.data) {
+                const d = json.data;
+                set({
+                  xp: d.xp,
+                  level: d.level,
+                  streak: d.streak,
+                  petStage: d.petStage,
+                  foodInventory: d.foodInventory || get().foodInventory,
+                  scanHistory: d.scanHistory || get().scanHistory,
+                  lastActiveDate: d.lastActiveDate || get().lastActiveDate,
+                });
+              }
+            })
+            .catch((err) => {
+              console.warn('[recordScan] Server reconciliation failed:', err);
+            });
         }
       },
 
@@ -410,12 +434,27 @@ export const usePlayerStore = create<PlayerStore>()(
         const cleanBarcode = String(barcode || '').trim();
         if (!cleanBarcode) return;
 
+        const prevState = get();
+        const rawQty = prevState.foodInventory[cleanBarcode];
+        const currentQty = typeof rawQty === 'number' ? rawQty : Number(rawQty) || 0;
+        if (currentQty <= 0) return;
+
+        // Snapshot for rollback if server rejects action
+        const previousSnapshot = {
+          foodInventory: { ...prevState.foodInventory },
+          petHunger: prevState.petHunger,
+          petAffection: prevState.petAffection,
+          petStage: prevState.petStage,
+          xp: prevState.xp,
+          level: prevState.level,
+          lastFedBarcode: prevState.lastFedBarcode,
+          lastFedAt: prevState.lastFedAt,
+          lastHungerDecayAt: prevState.lastHungerDecayAt,
+          lastAffectionDecayAt: prevState.lastAffectionDecayAt,
+        };
+
         const now = Date.now();
         set((state) => {
-          const rawQty = state.foodInventory[cleanBarcode];
-          const currentQty = typeof rawQty === 'number' ? rawQty : Number(rawQty) || 0;
-          if (currentQty <= 0) return {};
-
           const updatedFoodInventory = { ...state.foodInventory };
           const newQty = currentQty - 1;
           if (newQty <= 0) {
@@ -470,9 +509,40 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
 
-        // Instant cloud sync for Hunter Mode (anti-rollback)
+        // Server-authoritative action & reconciliation in Hunter Mode
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
-          get().saveProfileToServer().catch(() => {});
+          fetch('/api/actions/feed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ barcode: cleanBarcode, category }),
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                // Rollback on server refusal
+                set(previousSnapshot);
+                return;
+              }
+              const json = await res.json();
+              if (json.success && json.data) {
+                const d = json.data;
+                set({
+                  petHunger: d.petHunger,
+                  petAffection: d.petAffection,
+                  petStage: d.petStage,
+                  xp: d.xp,
+                  level: d.level,
+                  foodInventory: d.foodInventory,
+                  lastFedBarcode: d.lastFedBarcode,
+                  lastFedAt: d.lastFedAt,
+                  lastHungerDecayAt: d.lastHungerDecayAt,
+                  lastAffectionDecayAt: d.lastAffectionDecayAt,
+                });
+              }
+            })
+            .catch((err) => {
+              console.warn('[feedPet] Action error, rolling back:', err);
+              set(previousSnapshot);
+            });
         }
       },
 
@@ -620,6 +690,15 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         }
 
+        const previousSnapshot = {
+          petAffection: state.petAffection,
+          petStage: state.petStage,
+          lastPetTime: state.lastPetTime,
+          dailyPetCount: state.dailyPetCount,
+          lastPetDate: state.lastPetDate,
+          lastAffectionDecayAt: state.lastAffectionDecayAt,
+        };
+
         const newDailyPets = currentDailyPets + 1;
         const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
         const newAffection = Math.min(100, currentAffection + 5);
@@ -636,8 +715,34 @@ export const usePlayerStore = create<PlayerStore>()(
           lastLocalMutationAt: now,
         });
 
+        // Server-authoritative action & reconciliation in Hunter Mode
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
-          get().saveProfileToServer().catch(() => {});
+          fetch('/api/actions/pet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          })
+            .then(async (res) => {
+              if (!res.ok) {
+                // Rollback on server refusal / limit reached
+                set(previousSnapshot);
+                return;
+              }
+              const json = await res.json();
+              if (json.success && json.data) {
+                const d = json.data;
+                set({
+                  petAffection: d.petAffection,
+                  dailyPetCount: d.dailyPetCount,
+                  lastPetDate: d.lastPetDate,
+                  lastPetTime: d.lastPetTime,
+                  lastAffectionDecayAt: d.lastAffectionDecayAt,
+                });
+              }
+            })
+            .catch((err) => {
+              console.warn('[petCat] Action failed, rolling back:', err);
+              set(previousSnapshot);
+            });
         }
 
         return {
@@ -878,38 +983,23 @@ export const usePlayerStore = create<PlayerStore>()(
         try {
           while (true) {
             _hasPendingProfileSave = false;
-            // Always snapshot from get() right before sending so we capture the latest mutations
+            // SC-002: Stripped payload. ONLY cosmetic preferences and sanitized petName are sent!
             const snap = get();
             try {
               await fetch('/api/profile', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  xp: snap.xp,
-                  streak: snap.streak,
-                  lastActiveDate: snap.lastActiveDate,
                   petName: snap.petName,
-                  petStage: snap.petStage,
-                  petHunger: snap.petHunger,
-                  petAffection: snap.petAffection,
-                  foodInventory: snap.foodInventory,
-                  lastFedBarcode: snap.lastFedBarcode,
-                  lastFedAt: snap.lastFedAt,
-                  lastHungerDecayAt: snap.lastHungerDecayAt,
-                  dailyPetCount: snap.dailyPetCount,
-                  lastPetDate: snap.lastPetDate,
-                  lastAffectionDecayAt: snap.lastAffectionDecayAt,
                   selectedTheme: snap.selectedTheme,
                   selectedBorder: snap.selectedBorder,
                   selectedAccessory: snap.selectedAccessory,
                   selectedTitle: snap.selectedTitle,
                   selectedRoom: snap.selectedRoom,
-                  registeredBarcodes: snap.registeredBarcodes,
-                  scanHistory: snap.scanHistory,
                 }),
               });
             } catch (err) {
-              console.error('Failed to sync profile to server:', err);
+              console.error('Failed to sync profile preferences to server:', err);
             }
 
             // If no new mutations arrived while saving, queue is drained!
