@@ -16,7 +16,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-describe('🔌 Supabase Cloud Database & Auth Integration Suite', () => {
+describe.skipIf(process.env.ALLOW_INTEGRATION_TEST !== 'true')('🔌 Supabase Cloud Database & Auth Integration Suite', () => {
   const isSupabaseConfigured =
     supabaseUrl.startsWith('https://') &&
     !supabaseUrl.includes('example') &&

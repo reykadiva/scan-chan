@@ -25,7 +25,7 @@ export async function GET() {
   } catch (error: any) {
     console.error('[API GET /api/profile]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch profile' },
+      { success: false, error: 'Failed to fetch profile' },
       { status: 500 }
     );
   }
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[API POST /api/profile]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update profile' },
+      { success: false, error: 'Failed to update profile' },
       { status: 500 }
     );
   }

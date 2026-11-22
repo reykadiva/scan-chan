@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[API GET /api/products]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
+      { success: false, error: 'Failed to fetch products' },
       { status: 500 }
     );
   }
@@ -69,10 +69,13 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
   } catch (error: any) {
     console.error('[API POST /api/products]', error);
-    const status = error.message?.includes('already exists') ? 409 : 500;
+    const isConflict = error.message?.includes('already exists') || error.code === 'P2002';
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
-      { status }
+      {
+        success: false,
+        error: isConflict ? 'Product with this barcode already exists' : 'Failed to create product',
+      },
+      { status: isConflict ? 409 : 500 }
     );
   }
 }

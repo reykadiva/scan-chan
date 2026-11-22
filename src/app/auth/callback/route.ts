@@ -21,19 +21,11 @@ export async function GET(request: NextRequest) {
     if (!error && data?.user) {
       const syncResult = await syncOAuthUser(data.user);
 
-      const sessionData = {
-        id: data.user.id,
-        email: data.user.email || '',
-        nickname: syncResult.dbUser?.nickname || data.user.user_metadata?.full_name || 'Hunter',
-        avatar: syncResult.dbUser?.avatar || 'calico',
-        mode: 'ARASHU',
-      };
-
-      response.cookies.set('scan_session', JSON.stringify(sessionData), {
+      // SC-001: Do not issue unverified custom scan_session cookie.
+      // Delete legacy scan_session cookie if present in browser.
+      response.cookies.set('scan_session', '', {
         path: '/',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-        httpOnly: false,
-        sameSite: 'lax',
+        maxAge: 0,
       });
 
       response.cookies.set('scan_mode', 'hunter', {

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[API /api/scan]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to process barcode scan' },
+      { success: false, error: 'Failed to process barcode scan' },
       { status: 500 }
     );
   }

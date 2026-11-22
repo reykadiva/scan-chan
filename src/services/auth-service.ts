@@ -14,12 +14,14 @@ export interface UserSessionData {
 export async function setSessionCookie(user: UserSessionData) {
   try {
     const cookieStore = await cookies();
-    cookieStore.set('scan_session', JSON.stringify(user), {
+    // SC-001 Hardening: Legacy scan_session is no longer an identity authority.
+    // Expire and remove any existing scan_session cookie from the browser.
+    cookieStore.delete('scan_session');
+    cookieStore.set('scan_session', '', {
       path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      httpOnly: false,
-      sameSite: 'lax',
+      maxAge: 0,
     });
+    // Set non-sensitive UI mode preference
     cookieStore.set('scan_mode', 'hunter', {
       path: '/',
       maxAge: 60 * 60 * 24 * 30,
@@ -36,48 +38,60 @@ export async function clearSessionCookie() {
     const cookieStore = await cookies();
     cookieStore.delete('scan_session');
     cookieStore.delete('scan_mode');
+    cookieStore.set('scan_session', '', { path: '/', maxAge: 0 });
+    cookieStore.set('scan_mode', '', { path: '/', maxAge: 0 });
   } catch {
     // Ignore outside of Next.js server request context
   }
 }
 
+/**
+ * SC-001: Verified identity lookup using Supabase server client as the sole authority.
+ * Never trusts unverified client cookies (scan_session).
+ */
 export async function getCurrentUser() {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('scan_session')?.value;
-
-  if (sessionCookie) {
-    try {
-      const parsed = JSON.parse(sessionCookie) as UserSessionData;
-      let dbUser: any = localDb.getUser(parsed.id) || localDb.findUserByEmail(parsed.email);
-      if (!dbUser) {
-        try {
-          dbUser = await prisma.user.findUnique({ where: { id: parsed.id } });
-        } catch {}
-      }
-      return {
-        authUser: { id: parsed.id, email: parsed.email },
-        dbUser: dbUser || { nickname: parsed.nickname, avatar: parsed.avatar },
-      };
-    } catch {}
-  }
-
-  // Fallback to Supabase auth check
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const dbUser = localDb.getUser(user.id) || localDb.findUserByEmail(user.email || '');
-      return {
-        authUser: user,
-        dbUser: dbUser || {
-          nickname: user.email?.split('@')[0] || 'Hunter',
-          avatar: '🐱',
-        },
-      };
-    }
-  } catch {}
+    const { data: { user }, error } = await supabase.auth.getUser();
 
-  return null;
+    if (error || !user) {
+      return null;
+    }
+
+    let dbUser: any = null;
+    try {
+      dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { progress: true, pet: true },
+      });
+    } catch (prismaErr) {
+      console.warn('[getCurrentUser] Prisma user lookup notice:', prismaErr);
+    }
+
+    if (!dbUser) {
+      dbUser = localDb.getUser(user.id) || localDb.findUserByEmail(user.email || '');
+    }
+
+    const nickname =
+      dbUser?.nickname ||
+      user.user_metadata?.full_name ||
+      user.user_metadata?.name ||
+      user.email?.split('@')[0] ||
+      'Hunter';
+
+    const avatar = dbUser?.avatar || user.user_metadata?.avatar || 'calico';
+
+    return {
+      authUser: user,
+      dbUser: dbUser || {
+        nickname,
+        avatar,
+      },
+    };
+  } catch (err) {
+    console.error('[getCurrentUser] Error verifying Supabase auth session:', err);
+    return null;
+  }
 }
 
 export async function logoutUser() {

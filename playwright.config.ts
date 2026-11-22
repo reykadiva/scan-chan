@@ -1,5 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// SC-003: Safety Guard - Refuse running tests against live production
+const targetBaseUrl = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000';
+if (targetBaseUrl.includes('scanchan.vercel.app')) {
+  throw new Error('SECURITY VIOLATION: Playwright tests are blocked from running against production (scanchan.vercel.app)!');
+}
+
 export default defineConfig({
   testDir: './tests',
   testMatch: '**/*.spec.ts', // Only run .spec.ts files (not .test.ts)
@@ -9,7 +15,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: targetBaseUrl,
     trace: 'on-first-retry',
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',

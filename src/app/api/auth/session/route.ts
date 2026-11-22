@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[API /api/auth/session]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to get session' },
+      { success: false, error: 'Failed to retrieve session' },
       { status: 500 }
     );
   }

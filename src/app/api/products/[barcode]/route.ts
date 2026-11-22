@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
   } catch (error: any) {
     console.error('[API GET /api/products/[barcode]]', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
+      { success: false, error: 'Failed to fetch product' },
       { status: 500 }
     );
   }
@@ -52,9 +52,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true, data: updated });
   } catch (error: any) {
     console.error('[API PUT /api/products/[barcode]]', error);
-    const status = error.message?.includes('Unauthorized') ? 403 : error.message?.includes('not found') ? 404 : 500;
+    const isUnauthorized = error.message?.includes('Unauthorized');
+    const isNotFound = error.message?.includes('not found');
+    const status = isUnauthorized ? 403 : isNotFound ? 404 : 500;
+    const errorMessage = isUnauthorized
+      ? 'Unauthorized to update product'
+      : isNotFound
+      ? 'Product not found'
+      : 'Failed to update product';
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
+      { success: false, error: errorMessage },
       { status }
     );
   }
@@ -77,9 +84,16 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true, message: 'Product deleted' });
   } catch (error: any) {
     console.error('[API DELETE /api/products/[barcode]]', error);
-    const status = error.message?.includes('Unauthorized') ? 403 : error.message?.includes('not found') ? 404 : 500;
+    const isUnauthorized = error.message?.includes('Unauthorized');
+    const isNotFound = error.message?.includes('not found');
+    const status = isUnauthorized ? 403 : isNotFound ? 404 : 500;
+    const errorMessage = isUnauthorized
+      ? 'Unauthorized to delete product'
+      : isNotFound
+      ? 'Product not found'
+      : 'Failed to delete product';
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal server error' },
+      { success: false, error: errorMessage },
       { status }
     );
   }
