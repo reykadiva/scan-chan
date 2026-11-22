@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ScanLine,
-  Plus,
   Flame,
   History,
   Package,
@@ -375,11 +374,6 @@ export default function GameHubPage() {
 
   const handleRegisterParam = useCallback((barcode: string) => {
     setRegisterInitialBarcode(barcode);
-    setShowRegisterModal(true);
-  }, []);
-
-  const handleOpenRegisterModal = useCallback(() => {
-    setRegisterInitialBarcode('');
     setShowRegisterModal(true);
   }, []);
 
@@ -952,15 +946,6 @@ export default function GameHubPage() {
             <ScanLine className="w-6 h-6 stroke-[2.5]" />
             <span>SCAN BARCODE</span>
           </Link>
-
-          {/* Quick Manual Entry */}
-          <button
-            onClick={handleOpenRegisterModal}
-            className="w-full py-2 px-4 rounded-xl bg-[var(--theme-surface-inner)] hover:bg-white border-2 border-[var(--theme-border)] text-[var(--theme-text-dark)] font-fredoka font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer shadow-[3px_3px_0_0_var(--theme-shadow)] active:translate-y-0.5 active:shadow-[1px_1px_0_0_var(--theme-shadow)]"
-          >
-            <Plus className="w-4 h-4 text-[var(--theme-primary)]" />
-            <span>Manual Barcode Entry / Add Item</span>
-          </button>
         </section>
 
         {/* ─── 3. LOBBY NAVIGATION (3-COLUMN ROW) ───────────────────────── */}

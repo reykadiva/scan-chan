@@ -802,9 +802,41 @@ export async function executeScanAction(
         where: { userId },
         data: { stage: newStage },
       });
+
+      // Atomically add food item to inventory if eligible
+      const cat = (product?.category || '').toLowerCase();
+      const isFood = ['snack', 'drink', 'candy', 'biscuit', 'dairy', 'instant', 'food'].some((c) =>
+        cat.includes(c)
+      );
+      if (isFood) {
+        const inv = await tx.inventory.upsert({
+          where: { userId },
+          create: { userId },
+          update: {},
+        });
+
+        await tx.inventoryItem.upsert({
+          where: {
+            inventoryId_type_itemKey: {
+              inventoryId: inv.id,
+              type: 'FOOD',
+              itemKey: cleanBarcode,
+            },
+          },
+          create: {
+            inventoryId: inv.id,
+            type: 'FOOD',
+            itemKey: cleanBarcode,
+            quantity: 1,
+          },
+          update: {
+            quantity: { increment: 1 },
+          },
+        });
+      }
     }
 
-    // Fetch user inventory
+    // Fetch updated user inventory
     const userInventory = await tx.inventory.upsert({
       where: { userId },
       create: { userId },
@@ -831,9 +863,14 @@ export async function executeScanAction(
 
     return {
       xp: newTotalXp,
+      newXp: newTotalXp,
       level: currentLevel,
+      newLevel: currentLevel,
       streak: newStreak,
+      newStreak: newStreak,
       petStage: getPetStageFromLevel(currentLevel),
+      xpAwarded,
+      xpGained: xpAwarded,
       pendingXpGain: xpAwarded,
       foodInventory,
       scanHistory,

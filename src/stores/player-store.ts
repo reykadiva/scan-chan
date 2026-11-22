@@ -8,6 +8,8 @@ import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, 
 let _isSavingProfile = false;
 let _hasPendingProfileSave = false;
 let _loadedUserId: string | null = null;
+let _pendingFeedCount = 0;
+let _pendingPetCount = 0;
 
 /**
  * Hard gate: Blocks any mutation or server push when profile is loading or unhydrated in cloud mode
@@ -509,8 +511,9 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
 
-        // Server-authoritative action & reconciliation in Hunter Mode
+        // Server-authoritative action & anti-out-of-order reconciliation in Hunter Mode
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
+          _pendingFeedCount++;
           fetch('/api/actions/feed', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -518,30 +521,48 @@ export const usePlayerStore = create<PlayerStore>()(
           })
             .then(async (res) => {
               if (!res.ok) {
-                // Rollback on server refusal
-                set(previousSnapshot);
+                // Rollback on server refusal only if no other feeds are queued
+                if (_pendingFeedCount <= 1) {
+                  set(previousSnapshot);
+                }
                 return;
               }
               const json = await res.json();
               if (json.success && json.data) {
                 const d = json.data;
-                set({
-                  petHunger: d.petHunger,
-                  petAffection: d.petAffection,
-                  petStage: d.petStage,
-                  xp: d.xp,
-                  level: d.level,
-                  foodInventory: d.foodInventory,
-                  lastFedBarcode: d.lastFedBarcode,
-                  lastFedAt: d.lastFedAt,
-                  lastHungerDecayAt: d.lastHungerDecayAt,
-                  lastAffectionDecayAt: d.lastAffectionDecayAt,
-                });
+                // Anti-flicker: Only reconcile full foodInventory when all pending feed requests have settled
+                if (_pendingFeedCount <= 1) {
+                  set({
+                    petHunger: d.petHunger,
+                    petAffection: d.petAffection,
+                    petStage: d.petStage,
+                    xp: d.xp,
+                    level: d.level,
+                    foodInventory: d.foodInventory,
+                    lastFedBarcode: d.lastFedBarcode,
+                    lastFedAt: d.lastFedAt,
+                    lastHungerDecayAt: d.lastHungerDecayAt,
+                    lastAffectionDecayAt: d.lastAffectionDecayAt,
+                  });
+                } else {
+                  // Keep optimistic local foodInventory to prevent flickering, update pet vitals
+                  set({
+                    petHunger: Math.max(get().petHunger, d.petHunger),
+                    petAffection: Math.max(get().petAffection, d.petAffection),
+                    lastFedBarcode: d.lastFedBarcode,
+                    lastFedAt: d.lastFedAt,
+                  });
+                }
               }
             })
             .catch((err) => {
-              console.warn('[feedPet] Action error, rolling back:', err);
-              set(previousSnapshot);
+              console.warn('[feedPet] Action error:', err);
+              if (_pendingFeedCount <= 1) {
+                set(previousSnapshot);
+              }
+            })
+            .finally(() => {
+              _pendingFeedCount = Math.max(0, _pendingFeedCount - 1);
             });
         }
       },
@@ -717,31 +738,46 @@ export const usePlayerStore = create<PlayerStore>()(
 
         // Server-authoritative action & reconciliation in Hunter Mode
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
+          _pendingPetCount++;
           fetch('/api/actions/pet', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
           })
             .then(async (res) => {
               if (!res.ok) {
-                // Rollback on server refusal / limit reached
-                set(previousSnapshot);
+                // Rollback on server refusal / limit reached only if no pending pets
+                if (_pendingPetCount <= 1) {
+                  set(previousSnapshot);
+                }
                 return;
               }
               const json = await res.json();
               if (json.success && json.data) {
                 const d = json.data;
-                set({
-                  petAffection: d.petAffection,
-                  dailyPetCount: d.dailyPetCount,
-                  lastPetDate: d.lastPetDate,
-                  lastPetTime: d.lastPetTime,
-                  lastAffectionDecayAt: d.lastAffectionDecayAt,
-                });
+                if (_pendingPetCount <= 1) {
+                  set({
+                    petAffection: d.petAffection,
+                    dailyPetCount: d.dailyPetCount,
+                    lastPetDate: d.lastPetDate,
+                    lastPetTime: d.lastPetTime,
+                    lastAffectionDecayAt: d.lastAffectionDecayAt,
+                  });
+                } else {
+                  set({
+                    petAffection: Math.max(get().petAffection, d.petAffection),
+                    lastAffectionDecayAt: d.lastAffectionDecayAt,
+                  });
+                }
               }
             })
             .catch((err) => {
               console.warn('[petCat] Action failed, rolling back:', err);
-              set(previousSnapshot);
+              if (_pendingPetCount <= 1) {
+                set(previousSnapshot);
+              }
+            })
+            .finally(() => {
+              _pendingPetCount = Math.max(0, _pendingPetCount - 1);
             });
         }
 

@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Flashlight, FlashlightOff, Keyboard, X, Search, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Flashlight, FlashlightOff, X, RefreshCw } from 'lucide-react';
 import { PixelCat } from '@/components/game/pixel-cat';
 import { usePlayerStore } from '@/stores/player-store';
 import { XpPopup } from '@/components/game/xp-popup';
@@ -41,9 +41,7 @@ export default function ScanPage() {
   const [phase, setPhase] = useState<ScanPhase>('scanning');
   const [result, setResult] = useState<ScanResultData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
-  const [showManualInput, setShowManualInput] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [manualBarcode, setManualBarcode] = useState('');
   const [paused, setPaused] = useState(false);
   const [lastBarcode, setLastBarcode] = useState('');
   const lastDecodedRef = useRef('');
@@ -115,35 +113,74 @@ export default function ScanPage() {
     haptics.medium();
 
     try {
-      const res = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcodeNumber: barcode, deviceType: getDeviceType() }),
-      });
+      if (mode === GameMode.ARASHU) {
+        // SC-002: Server-authoritative single scan execution path for Hunter Mode
+        const res = await fetch('/api/actions/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ barcodeNumber: barcode, deviceType: getDeviceType() }),
+        });
 
-      const json = await res.json();
+        const json = await res.json();
 
-      if (!json.success) {
-        playErrorBuzz();
-        haptics.error();
-        setPhase('error');
-        setErrorMsg(json.error || 'Scan failed');
-        return;
+        if (!json.success || !json.data) {
+          playErrorBuzz();
+          haptics.error();
+          setPhase('error');
+          setErrorMsg(json.error || 'Scan failed');
+          return;
+        }
+
+        const d = json.data;
+        playSuccessChime();
+        haptics.success();
+
+        // Exact server reconciliation for XP & inventory
+        usePlayerStore.setState({
+          xp: d.xp,
+          level: d.level,
+          streak: d.streak,
+          petStage: d.petStage,
+          pendingXpGain: d.pendingXpGain,
+          foodInventory: d.foodInventory || usePlayerStore.getState().foodInventory,
+          scanHistory: d.scanHistory || usePlayerStore.getState().scanHistory,
+          lastActiveDate: d.lastActiveDate || usePlayerStore.getState().lastActiveDate,
+          lastScanTime: { ...usePlayerStore.getState().lastScanTime, [barcode]: Date.now() },
+          lastLocalMutationAt: Date.now(),
+        });
+
+        setResult({ found: d.found, product: d.product, isNew: d.isNewProduct });
+        setPhase(d.found ? 'found' : 'not-found');
+      } else {
+        // Guest Mode: lookup product details, then record scan locally
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ barcodeNumber: barcode, deviceType: getDeviceType() }),
+        });
+
+        const json = await res.json();
+
+        if (!json.success || !json.data) {
+          playErrorBuzz();
+          haptics.error();
+          setPhase('error');
+          setErrorMsg(json.error || 'Scan failed');
+          return;
+        }
+
+        const { found, product } = json.data;
+        const scanHistory = usePlayerStore.getState().scanHistory;
+        const isNew = !scanHistory.includes(barcode);
+
+        playSuccessChime();
+        haptics.success();
+
+        recordScan(barcode, isNew, product?.category ?? 'Other');
+
+        setResult({ found, product, isNew });
+        setPhase(found ? 'found' : 'not-found');
       }
-
-      const { found, product } = json.data;
-      const scanHistory = usePlayerStore.getState().scanHistory;
-      const isNew = !scanHistory.includes(barcode);
-
-      // Play success chime and haptics
-      playSuccessChime();
-      haptics.success();
-
-      // Update state in store (handles optimistic update & server reconciliation in Hunter Mode)
-      recordScan(barcode, isNew, product?.category ?? 'Other');
-
-      setResult({ found, product, isNew });
-      setPhase(found ? 'found' : 'not-found');
     } catch {
       playErrorBuzz();
       haptics.error();
@@ -157,14 +194,6 @@ export default function ScanPage() {
     scanIntervalMs: 120,
     onScan: handleBarcode,
   });
-
-  const handleManualSubmit = () => {
-    const trimmed = manualBarcode.trim();
-    if (trimmed.length >= 4) {
-      setShowManualInput(false);
-      handleBarcode(trimmed);
-    }
-  };
 
   const resetScanner = () => {
     setPhase('scanning');
@@ -215,13 +244,6 @@ export default function ScanPage() {
               {torch.isOn ? <FlashlightOff className="w-5 h-5" /> : <Flashlight className="w-5 h-5" />}
             </button>
           )}
-          <button
-            onClick={() => setShowManualInput(true)}
-            className="min-w-[44px] min-h-[44px] bg-white border-2 border-[var(--theme-border)] rounded-xl flex items-center justify-center text-[var(--theme-text-dark)] hover:bg-[var(--theme-surface-inner)] shadow-[2px_2px_0_0_var(--theme-shadow)] transition-colors cursor-pointer shrink-0"
-            aria-label="Manual barcode input"
-          >
-            <Keyboard className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
@@ -249,12 +271,6 @@ export default function ScanPage() {
               >
                 <RefreshCw className="w-4 h-4" />
                 Retry Camera
-              </button>
-              <button
-                onClick={() => setShowManualInput(true)}
-                className="btn-arcade-primary text-xs px-4 py-2.5 cursor-pointer text-white"
-              >
-                Input Code
               </button>
             </div>
           </div>
@@ -335,53 +351,7 @@ export default function ScanPage() {
         )}
       </AnimatePresence>
 
-      {/* Manual input modal */}
       <AnimatePresence>
-        {showManualInput && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4"
-          >
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: 20, opacity: 0 }}
-              transition={{ type: 'spring', damping: 25 }}
-              className="w-[94vw] max-w-md max-h-[85dvh] overflow-y-auto bg-[var(--theme-primary)] border-4 border-white shadow-[6px_6px_0_0_var(--theme-shadow)] rounded-2xl p-4 sm:p-6 space-y-4 text-white"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-press-start font-bold text-xs sm:text-sm text-white drop-shadow-[1.5px_1.5px_0_var(--theme-dark)]">Enter Barcode</h3>
-                <button
-                  onClick={() => setShowManualInput(false)}
-                  className="min-w-[44px] min-h-[44px] rounded-xl bg-white border-2 border-[var(--theme-border)] text-[var(--theme-text-dark)] flex items-center justify-center hover:bg-[var(--theme-surface-inner)] shadow-[2px_2px_0_0_var(--theme-shadow)] cursor-pointer shrink-0"
-                  aria-label="Close"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="e.g. 8992761136109"
-                value={manualBarcode}
-                onChange={(e) => setManualBarcode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualSubmit()}
-                autoFocus
-                className="w-full px-4 py-3 rounded-xl border-2 border-[var(--theme-border)] bg-white font-mono text-lg text-center text-[var(--theme-text-dark)] focus:outline-none focus:ring-2 focus:ring-white shadow-[2px_2px_0_0_var(--theme-shadow)]"
-              />
-              <button
-                onClick={handleManualSubmit}
-                disabled={manualBarcode.trim().length < 4}
-                className="btn-arcade w-full py-3 text-xs font-press-start flex items-center justify-center gap-2 disabled:opacity-50 text-[var(--theme-primary)] cursor-pointer"
-              >
-                <Search className="w-4 h-4" />
-                Lookup
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
         {showRegisterModal && (
           <RegisterProductModal
             initialBarcode={lastBarcode}

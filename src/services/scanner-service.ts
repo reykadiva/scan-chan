@@ -133,49 +133,10 @@ export async function processBarcodeScan(barcodeNumber: string, userId?: string 
     });
   }
 
-  // 4. If food-eligible item and user exists, add to user's food inventory
-  let foodAdded = false;
-  if (userId && product) {
-    const cat = product.category || 'Other';
-    const isFood = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy', 'Instant'].includes(cat);
-    if (isFood) {
-      try {
-        const userInventory = await prisma.inventory.upsert({
-          where: { userId },
-          create: { userId },
-          update: {},
-        });
-
-        await prisma.inventoryItem.upsert({
-          where: {
-            inventoryId_type_itemKey: {
-              inventoryId: userInventory.id,
-              type: 'FOOD',
-              itemKey: barcodeNumber,
-            },
-          },
-          create: {
-            inventoryId: userInventory.id,
-            type: 'FOOD',
-            itemKey: barcodeNumber,
-            quantity: 1,
-          },
-          update: {
-            quantity: { increment: 1 },
-          },
-        });
-        foodAdded = true;
-      } catch {
-        const user = localDb.getUser(userId);
-        if (user) {
-          user.foodInventory = user.foodInventory || {};
-          user.foodInventory[barcodeNumber] = (user.foodInventory[barcodeNumber] || 0) + 1;
-          localDb.saveUser(user);
-          foodAdded = true;
-        }
-      }
-    }
-  }
+  // Note: Inventory & progression mutation is handled authoritatively by executeScanAction.
+  // processBarcodeScan serves strictly for product lookup, registration, and raw log.
+  const cat = product?.category || 'Other';
+  const foodEligible = ['Snack', 'Drink', 'Candy', 'Biscuit', 'Dairy', 'Instant'].includes(cat);
 
   return {
     found: !!product,
@@ -183,6 +144,6 @@ export async function processBarcodeScan(barcodeNumber: string, userId?: string 
     isNewProduct,
     xpAwarded,
     multiplier,
-    foodAdded,
+    foodAdded: foodEligible,
   };
 }
