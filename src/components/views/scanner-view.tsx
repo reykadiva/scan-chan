@@ -168,6 +168,25 @@ export function ScannerView({ onClose }: ScannerViewProps) {
             useProductStore.getState().upsertProduct(d.product);
           }
 
+          if (d.xpGained > 0) {
+            const bonuses: string[] = [];
+            if (d.bonusBreakdown?.dailyFirstScan > 0) {
+              bonuses.push(`+${d.bonusBreakdown.dailyFirstScan} Daily First Scan`);
+            }
+            if (d.bonusBreakdown?.firstDiscovery > 0) {
+              bonuses.push(`+${d.bonusBreakdown.firstDiscovery} Global Discovery`);
+            }
+            const bonusText = bonuses.length > 0 ? ` (${bonuses.join(', ')})` : '';
+            toast.success(`Scan recorded! +${d.xpGained} XP${bonusText} ✨`);
+          } else if (d.found) {
+            const isConsumable = isConsumableCategory(d.product?.category);
+            toast.success(
+              isConsumable
+                ? `Scanned ${d.product?.productName || 'snack'}! Added to Food Bag 🍖`
+                : `Scanned ${d.product?.productName || 'product'}! 📋`
+            );
+          }
+
           setResult({
             found: d.found,
             product: d.product || (cachedProduct as any) || null,

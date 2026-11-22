@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GameMode, GAME_CONFIG } from '@/lib/game-config';
 import { applyStreakMultiplier } from '@/lib/streak-multiplier';
-import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
+import { getStreakStatus, calculateNewStreak, recordScanStreak, getTodayString, getLocalDateKey, hasScannedToday } from '@/lib/streak-helpers';
 import { isConsumableCategory, isFoodCategory, CONSUMABLE_CATEGORIES } from '@/types';
 
 // ─── Save queue (module-level, in-flight lock + pending dirty flag) ──────────
@@ -274,8 +274,15 @@ export const usePlayerStore = create<PlayerStore>()(
           const todayStr = getLocalDateKey();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
-          // GAME LOOP CLEANUP: XP ONLY FROM FEEDING!
-          // Scans advance daily streak & logs, and grant treats to bag only if food/drink.
+          // Anti-Spam XP Sources: Daily First Scan (+20 XP) & First Discovery (+40 XP)
+          const dailyXp = !hasScannedToday(state.lastActiveDate, todayStr) ? 20 : 0;
+          const discoveryXp = isNewProduct ? 40 : 0;
+          const xpAwarded = dailyXp + discoveryXp;
+          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
+          const newTotalXp = currentTotalXp + xpAwarded;
+          const newLevel = levelFromXp(newTotalXp);
+          const newStage = getPetStageFromLevel(newLevel);
+
           const isFood = isFoodCategory(category);
           const updatedFoodInventory = isFood
             ? { ...state.foodInventory, [barcode]: (state.foodInventory[barcode] || 0) + 1 }
@@ -286,7 +293,10 @@ export const usePlayerStore = create<PlayerStore>()(
             lastScanTime: { ...state.lastScanTime, [barcode]: now },
             streak: newStreak,
             lastActiveDate: todayStr,
-            pendingXpGain: 0,
+            xp: newTotalXp,
+            level: newLevel,
+            petStage: newStage,
+            pendingXpGain: xpAwarded,
             foodInventory: updatedFoodInventory,
             lastLocalMutationAt: now,
           };
@@ -336,8 +346,15 @@ export const usePlayerStore = create<PlayerStore>()(
           const todayStr = getLocalDateKey();
           const { newStreak } = recordScanStreak(state.streak, state.lastActiveDate, todayStr);
 
-          // GAME LOOP CLEANUP: XP ONLY FROM FEEDING!
-          // Catalog registration discovers items and grants food if food/drink category.
+          // Anti-Spam XP Sources: Daily First Scan (+20 XP) & First Discovery (+40 XP)
+          const dailyXp = !hasScannedToday(state.lastActiveDate, todayStr) ? 20 : 0;
+          const discoveryXp = 40;
+          const xpAwarded = dailyXp + discoveryXp;
+          const currentTotalXp = Math.max(0, Number(state.xp) || 0);
+          const newTotalXp = currentTotalXp + xpAwarded;
+          const newLevel = levelFromXp(newTotalXp);
+          const newStage = getPetStageFromLevel(newLevel);
+
           const isFood = isFoodCategory(category);
           const updatedFoodInventory = isFood
             ? { ...state.foodInventory, [cleanBarcode]: (state.foodInventory[cleanBarcode] || 0) + 1 }
@@ -354,7 +371,10 @@ export const usePlayerStore = create<PlayerStore>()(
             lastRegisterTime: now,
             streak: newStreak,
             lastActiveDate: todayStr,
-            pendingXpGain: 0,
+            xp: newTotalXp,
+            level: newLevel,
+            petStage: newStage,
+            pendingXpGain: xpAwarded,
             foodInventory: updatedFoodInventory,
             lastLocalMutationAt: now,
           };
@@ -460,6 +480,8 @@ export const usePlayerStore = create<PlayerStore>()(
         if (!cleanBarcode) return;
 
         const prevState = get();
+        if (Number(prevState.petHunger || 0) >= 100) return;
+
         const rawQty = prevState.foodInventory[cleanBarcode];
         const currentQty = typeof rawQty === 'number' ? rawQty : Number(rawQty) || 0;
         if (currentQty <= 0) return;
@@ -501,6 +523,8 @@ export const usePlayerStore = create<PlayerStore>()(
           }
 
           const currentHunger = Math.max(0, Math.min(100, Number(state.petHunger) || 0));
+          if (currentHunger >= 100) return state;
+
           const currentAffection = Math.max(0, Math.min(100, Number(state.petAffection) || 0));
           const currentTotalXp = Math.max(0, Number(state.xp) || 0);
 
@@ -511,7 +535,22 @@ export const usePlayerStore = create<PlayerStore>()(
           const varietyBonus = cleanBarcode !== state.lastFedBarcode ? 5 : 0;
           const revivalBonus = wasDead ? 6 : 0;
           const affectionGain = baseAffection + varietyBonus + revivalBonus;
-          const xpGain = 10;
+
+          let baseXp = 10;
+          if (
+            cat.includes('dairy') || cat.includes('milk') || cat.includes('susu') || cat.includes('cheese') || cat.includes('yogurt') ||
+            cat.includes('instant') || cat.includes('noodle') || cat.includes('ramen') || cat.includes('mie')
+          ) {
+            baseXp = 15;
+          } else if (
+            cat.includes('snack') || cat.includes('biscuit') || cat.includes('cookie') || cat.includes('camilan') ||
+            cat.includes('frozen') || cat.includes('ice cream') || cat.includes('es krim')
+          ) {
+            baseXp = 12;
+          } else {
+            baseXp = 10;
+          }
+          const xpGain = applyStreakMultiplier(baseXp, state.streak || 0);
 
           const newHunger = Math.min(100, currentHunger + hungerGain);
           const newAffection = Math.min(100, currentAffection + affectionGain);
@@ -610,8 +649,8 @@ export const usePlayerStore = create<PlayerStore>()(
         const elapsedMs = now - lastDecay;
         if (elapsedMs <= 0) return;
 
-        // Proportional hunger decay: 1 point every 15 minutes (= 4 points / hour, ~25 hours from 100 to 0)
-        const intervalMs = 15 * 60 * 1000;
+        // Proportional hunger decay: 1 point every 10 minutes (= 6 points / hour, ~16.6 hours from 100 to 0)
+        const intervalMs = 10 * 60 * 1000;
         const decayPerInterval = 1;
 
         const intervalsPassed = Math.floor(elapsedMs / intervalMs);

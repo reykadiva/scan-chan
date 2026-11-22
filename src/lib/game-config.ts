@@ -33,14 +33,8 @@ export const GAME_CONFIG = {
     collectionPageSize: 12,
   },
   levelFormula: (level: number): number => {
-    // Balanced formula for level 1-50 (reach level 50 in ~2 months)
-    // Target: 60 days with 25 scans/day = 15,000 XP total for level 50
+    // Balanced progressive formula: fast early game (Lv 1-5), prestigious late game (Lv 20-30)
     if (level <= 1) return 0;
-    
-    // Progressive formula that totals ~15,000 XP at level 50
-    // Early levels: faster, Late levels: slower but steady
-    const baseXP = 100;
-    const levelMultiplier = Math.pow(level, 1.6); // Gentle exponential curve
-    return Math.floor(baseXP + levelMultiplier * 3);
+    return Math.floor(80 + 5 * Math.pow(level, 1.85));
   },
 };

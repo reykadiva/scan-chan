@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { GAME_CONFIG } from '@/lib/game-config';
 import { calculateStreakMultiplier, applyStreakMultiplier } from '@/lib/streak-multiplier';
-import { recordScanStreak, getWibDateKey } from '@/lib/streak-helpers';
+import { recordScanStreak, getWibDateKey, hasScannedToday } from '@/lib/streak-helpers';
 import { localDb, type LocalUser } from '@/lib/database/local-db';
 import type { ProfileUpdateInput, ProfilePreferencesInput } from '@/lib/validations/profile';
 import { processBarcodeScan } from '@/services/scanner-service';
@@ -637,6 +637,11 @@ export async function executeFeedAction(userId: string, barcode: string, categor
     }
 
     const currentHunger = Math.max(0, Math.min(100, Number(userPet?.stats?.hunger ?? 80)));
+    if (currentHunger >= 100) {
+      const err = new Error('Scan-chan is already full! 😸');
+      (err as any).statusCode = 400;
+      throw err;
+    }
     const currentAffection = Math.max(0, Math.min(100, Number(userPet?.stats?.affection ?? 80)));
     const currentTotalXp = Math.max(0, Number(userProgress?.xp ?? 0));
 
@@ -650,7 +655,26 @@ export async function executeFeedAction(userId: string, barcode: string, categor
     const varietyBonus = cleanBarcode !== currentMeta.lastFedBarcode ? 5 : 0;
     const revivalBonus = wasDead ? 6 : 0;
     const affectionGain = baseAffection + varietyBonus + revivalBonus;
-    const xpGain = 10;
+
+    // Base XP by food category: Dairy & Instant = 15 XP, Snack & Frozen = 12 XP, Drink & Candy = 10 XP
+    let baseXp = 10;
+    if (
+      cat.includes('dairy') || cat.includes('milk') || cat.includes('susu') || cat.includes('cheese') || cat.includes('yogurt') ||
+      cat.includes('instant') || cat.includes('noodle') || cat.includes('ramen') || cat.includes('mie')
+    ) {
+      baseXp = 15;
+    } else if (
+      cat.includes('snack') || cat.includes('biscuit') || cat.includes('cookie') || cat.includes('camilan') ||
+      cat.includes('frozen') || cat.includes('ice cream') || cat.includes('es krim')
+    ) {
+      baseXp = 12;
+    } else {
+      baseXp = 10;
+    }
+
+    const currentStreak = typeof userProgress?.streak === 'number' ? userProgress.streak : 0;
+    const streakMultiplier = calculateStreakMultiplier(currentStreak);
+    const xpGain = Math.floor(baseXp * streakMultiplier);
 
     const newHunger = Math.min(100, currentHunger + hungerGain);
     const newAffection = Math.min(100, currentAffection + affectionGain);
@@ -719,6 +743,9 @@ export async function executeFeedAction(userId: string, barcode: string, categor
       petStage: newStage,
       xp: newTotalXp,
       level: newLevel,
+      xpGained: xpGain,
+      baseXp,
+      streakMultiplier,
       foodInventory: updatedFoodInventory,
       lastFedBarcode: cleanBarcode,
       lastFedAt: now,
@@ -774,10 +801,33 @@ export async function executeScanAction(
     }
 
     let xpAwarded = 0;
+    let dailyFirstScanXp = 0;
+    let discoveryXp = 0;
     let newStreak = userProgress.streak;
     let newTotalXp = userProgress.xp;
 
     if (!recentScan) {
+      const lastActiveDateWIB = userProgress.lastActiveDate
+        ? getWibDateKey(userProgress.lastActiveDate)
+        : null;
+
+      const streakCalc = recordScanStreak(userProgress.streak, lastActiveDateWIB, todayWIB);
+      newStreak = streakCalc.newStreak;
+
+      // Anti-Spam XP Source 1: Daily First Scan Bonus (+20 XP)
+      const isDailyFirstScan = !hasScannedToday(lastActiveDateWIB, todayWIB);
+      dailyFirstScanXp = isDailyFirstScan ? 20 : 0;
+
+      // Anti-Spam XP Source 2: First Global Discovery Bonus (+40 XP)
+      const priorGlobalScans = await tx.scanHistory.count({
+        where: { barcodeNumber: cleanBarcode },
+      });
+      const isGlobalDiscovery = Boolean(isNewProduct) || priorGlobalScans === 0;
+      discoveryXp = isGlobalDiscovery ? 40 : 0;
+
+      xpAwarded = dailyFirstScanXp + discoveryXp;
+      newTotalXp = userProgress.xp + xpAwarded;
+
       // 1. Record scan history atomically inside transaction
       try {
         await tx.scanHistory.create({
@@ -786,25 +836,13 @@ export async function executeScanAction(
             productId: product?.id ?? null,
             deviceType: deviceType ?? 'webcam',
             userId: userId ?? null,
-            xpAwarded: 0,
+            xpAwarded: xpAwarded,
             scannedAt: new Date(now),
           },
         });
       } catch (e) {
         console.warn('[executeScanAction] Scan log write error:', e);
       }
-
-      const lastActiveDateWIB = userProgress.lastActiveDate
-        ? getWibDateKey(userProgress.lastActiveDate)
-        : null;
-
-      const streakCalc = recordScanStreak(userProgress.streak, lastActiveDateWIB, todayWIB);
-      newStreak = streakCalc.newStreak;
-
-      // GAME LOOP CLEANUP: XP ONLY FROM FEEDING PET!
-      // Scan advances streak, records scan logs, and yields food for pet feeding.
-      xpAwarded = 0;
-      newTotalXp = userProgress.xp;
 
       const newLevel = levelFromXp(newTotalXp);
       const newStage = getPetStageFromLevel(newLevel);
@@ -891,6 +929,10 @@ export async function executeScanAction(
       xpAwarded,
       xpGained: xpAwarded,
       pendingXpGain: xpAwarded,
+      bonusBreakdown: {
+        dailyFirstScan: dailyFirstScanXp,
+        firstDiscovery: discoveryXp,
+      },
       foodInventory,
       scanHistory,
       lastActiveDate: todayWIB,

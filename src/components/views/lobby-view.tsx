@@ -35,6 +35,7 @@ import { ScanHistory } from '@/components/game/scan-history';
 import { XpPopup } from '@/components/game/xp-popup';
 import { CategoryIcon } from '@/components/ui/category-badge';
 import { hasScannedToday, getTodayString, getLocalDateKey } from '@/lib/streak-helpers';
+import { calculateStreakMultiplier } from '@/lib/streak-multiplier';
 import type { Product } from '@/types';
 import { useProductStore } from '@/stores/product-store';
 import { SyncLoadingGate } from '@/components/game/sync-loading-gate';
@@ -554,6 +555,24 @@ export function LobbyView() {
     const wasDead = currentHunger === 0;
     feedPet(barcode, category || 'Snack');
 
+    const currentStreak = streak || 0;
+    const streakMult = calculateStreakMultiplier(currentStreak);
+    const catLower = (category || '').toLowerCase();
+    let baseXp = 10;
+    if (
+      catLower.includes('dairy') || catLower.includes('milk') || catLower.includes('susu') || catLower.includes('cheese') || catLower.includes('yogurt') ||
+      catLower.includes('instant') || catLower.includes('noodle') || catLower.includes('ramen') || catLower.includes('mie')
+    ) {
+      baseXp = 15;
+    } else if (
+      catLower.includes('snack') || catLower.includes('biscuit') || catLower.includes('cookie') || catLower.includes('camilan') ||
+      catLower.includes('frozen') || catLower.includes('ice cream') || catLower.includes('es krim')
+    ) {
+      baseXp = 12;
+    }
+    const xpGained = Math.floor(baseXp * streakMult);
+    const streakBonusText = streakMult > 1 ? ` (${streakMult.toFixed(1)}x Streak Bonus)` : '';
+
     if (wasDead) {
       setCatAction('excited');
       setSpeechBubble('Nyaaa~! Revived! Thank you for the treats! ✨💖');
@@ -563,11 +582,11 @@ export function LobbyView() {
         setSpeechBubble(null);
         bubbleTimerRef.current = null;
       }, 3000);
-      toast.success(`Revived ${petName || 'Partner'}! He is back to life! 🌟`);
+      toast.success(`Revived ${petName || 'Partner'}! +${xpGained} XP${streakBonusText} 🌟`);
     } else {
       setCatAction('rewards');
       setTimeout(() => setCatAction('none'), 1800);
-      toast.success(`Fed ${petName || 'Partner'} ${productName || 'snack'}! (+Hunger, +XP) 🍖`);
+      toast.success(`Fed ${petName || 'Partner'} ${productName || 'snack'}! +${xpGained} XP${streakBonusText} 🍖`);
     }
   };
 
@@ -924,10 +943,15 @@ export function LobbyView() {
                         {/* Baris bawah: Tombol Feed selebar kartu */}
                         <button
                           type="button"
+                          disabled={petHunger >= 100}
                           onClick={() => handleFeedItem(food.barcodeNumber, food.category || 'Snack', food.productName)}
-                          className="w-full py-1.5 rounded-lg bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white font-fredoka font-bold text-xs cursor-pointer shadow-[2px_2px_0_0_var(--theme-shadow)] border border-white transition-all flex items-center justify-center gap-1"
+                          className={`w-full py-1.5 rounded-lg font-fredoka font-bold text-xs border border-white transition-all flex items-center justify-center gap-1 ${
+                            petHunger >= 100
+                              ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60 shadow-none'
+                              : 'bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white cursor-pointer shadow-[2px_2px_0_0_var(--theme-shadow)]'
+                          }`}
                         >
-                          Feed 🍖
+                          {petHunger >= 100 ? 'Full 😸' : 'Feed 🍖'}
                         </button>
                       </div>
                     );
@@ -1161,12 +1185,17 @@ export function LobbyView() {
                                 </span>
                               </div>
                               <button
+                                disabled={petHunger >= 100}
                                 onClick={() =>
                                   handleFeedItem(food.barcodeNumber, food.category || 'Snack', food.productName)
                                 }
-                                className="px-3 py-1.5 rounded-lg bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white font-fredoka font-bold text-xs cursor-pointer border border-white shadow-[2px_2px_0_0_var(--theme-shadow)] shrink-0"
+                                className={`px-3 py-1.5 rounded-lg font-fredoka font-bold text-xs border border-white shrink-0 transition-all ${
+                                  petHunger >= 100
+                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60 shadow-none'
+                                    : 'bg-[var(--theme-primary)] hover:brightness-110 active:scale-95 text-white cursor-pointer shadow-[2px_2px_0_0_var(--theme-shadow)]'
+                                }`}
                               >
-                                Feed 🍖
+                                {petHunger >= 100 ? 'Full 😸' : 'Feed 🍖'}
                               </button>
                             </div>
                           );
@@ -1206,16 +1235,19 @@ export function LobbyView() {
                       </div>
                       <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
                         <li className="block leading-relaxed">
-                          Point your camera at any <strong>1D barcode</strong> (EAN-13, UPC-A, etc.) on snack/drink packaging.
+                          Point your camera at any <strong>1D retail barcode</strong> (EAN-13, UPC-A, etc.) on food & drink packaging.
                         </li>
                         <li className="block leading-relaxed">
-                          Each unique scan gives <strong>+10 XP</strong> and adds <strong>1 food item</strong> to your bag.
+                          Scanning consumable products adds <strong>1 food item</strong> to your Food Bag.
                         </li>
                         <li className="block leading-relaxed">
-                          Register new products for <strong>+50 bonus XP</strong> as first discoverer.
+                          <strong>Daily First Scan Bonus</strong>: Earn <strong>+20 XP</strong> on your very first scan of each day (WIB)!
                         </li>
                         <li className="block leading-relaxed">
-                          Scan daily to maintain your <strong>streak</strong> (shown in the top bar).
+                          <strong>Global Discovery Bonus</strong>: Discover a brand new barcode never scanned before for <strong>+40 bonus XP</strong>!
+                        </li>
+                        <li className="block leading-relaxed">
+                          Scan daily to build your <strong>Daily Streak</strong> and unlock up to <strong>2.5x XP Multiplier</strong> when feeding!
                         </li>
                       </ul>
                     </div>
@@ -1233,30 +1265,33 @@ export function LobbyView() {
                           Feed your pet from the <strong>Food Bag</strong> using items you scanned.
                         </li>
                         <li className="block leading-relaxed">
-                          Different categories restore different hunger values:
+                          Feeding grants <strong>XP multiplied by your Daily Streak</strong>:
                           <div className="flex flex-wrap gap-1.5 pt-2">
                             <span className="font-pixel text-[9px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-300 font-bold whitespace-nowrap">
-                              Dairy +20
+                              Dairy: 15 XP · +20 Hunger
                             </span>
                             <span className="font-pixel text-[9px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-md border border-orange-300 font-bold whitespace-nowrap">
-                              Instant +15
+                              Instant: 15 XP · +25 Hunger
                             </span>
                             <span className="font-pixel text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-300 font-bold whitespace-nowrap">
-                              Snack +10
-                            </span>
-                            <span className="font-pixel text-[9px] bg-pink-100 text-pink-800 px-2 py-0.5 rounded-md border border-pink-300 font-bold whitespace-nowrap">
-                              Candy +8
+                              Snack/Biscuit: 12 XP · +15 Hunger
                             </span>
                             <span className="font-pixel text-[9px] bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md border border-sky-300 font-bold whitespace-nowrap">
-                              Drink +5
+                              Drink/Other: 10 XP · +12 Hunger
                             </span>
                           </div>
                         </li>
                         <li className="block leading-relaxed">
-                          Feeding a <strong>new food type</strong> gives <strong>+5 bonus happiness</strong>.
+                          Snack treats grant <strong>+10 Affection</strong>, other foods grant <strong>+3 Affection</strong>.
                         </li>
                         <li className="block leading-relaxed">
-                          At <strong>0% hunger</strong> your pet faints. Feed to revive!
+                          Feeding a <strong>new food type</strong> grants a <strong>+5 variety bonus</strong>!
+                        </li>
+                        <li className="block leading-relaxed">
+                          Scan-chan caps at <strong>100% Hunger</strong> (cannot overfeed). Hunger decays at <strong>1 pt / 10 mins</strong> (6 pts/hour).
+                        </li>
+                        <li className="block leading-relaxed">
+                          At <strong>0% hunger</strong> your pet faints. Feed delicious snacks to revive!
                         </li>
                       </ul>
                     </div>
@@ -1274,13 +1309,10 @@ export function LobbyView() {
                           Tap your pet for <strong>+5 Happiness</strong> (up to <strong>3 times/day</strong>, 10s cooldown).
                         </li>
                         <li className="block leading-relaxed">
-                          Feeding <strong>different food</strong> gives <strong>+5 variety bonus</strong>, snack categories give <strong>+10 bonus</strong>.
+                          Happiness decays slowly over time — pet and feed regularly to keep it high.
                         </li>
                         <li className="block leading-relaxed">
-                          Happiness decays over time — pet and feed regularly to keep it high.
-                        </li>
-                        <li className="block leading-relaxed">
-                          You can tap your pet anytime for fun animations and sounds, even after the daily bonus limit.
+                          You can tap your pet anytime for fun animations and sounds, even after reaching the daily bonus limit.
                         </li>
                       </ul>
                     </div>
@@ -1295,16 +1327,30 @@ export function LobbyView() {
                       </div>
                       <ul className="space-y-2.5 list-disc list-outside pl-4 text-xs sm:text-sm font-nunito text-[var(--theme-text-dark)] font-semibold">
                         <li className="block leading-relaxed">
-                          <strong>XP</strong> from scans and feeding levels up your companion partner.
+                          Earn <strong>XP</strong> from feeding treats and discovering new barcodes to level up your companion!
                         </li>
                         <li className="block leading-relaxed">
-                          Evolution stages: <strong>Kitten → Young Cat → Adult Cat → Wise Cat → Legendary Cat</strong>.
+                          Evolution Stages:
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2">
+                            <span className="font-pixel text-[9px] bg-slate-100 text-slate-800 px-2 py-0.5 rounded-md border border-slate-300 font-bold whitespace-nowrap">
+                              🍼 Kitten: Level 1 – 4
+                            </span>
+                            <span className="font-pixel text-[9px] bg-lime-100 text-lime-800 px-2 py-0.5 rounded-md border border-lime-300 font-bold whitespace-nowrap">
+                              🐾 Young Cat: Level 5 – 9
+                            </span>
+                            <span className="font-pixel text-[9px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md border border-blue-300 font-bold whitespace-nowrap">
+                              ⚡ Adult Cat: Level 10 – 19
+                            </span>
+                            <span className="font-pixel text-[9px] bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md border border-purple-300 font-bold whitespace-nowrap">
+                              🔮 Wise Cat: Level 20 – 29
+                            </span>
+                            <span className="font-pixel text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md border border-amber-300 font-bold whitespace-nowrap sm:col-span-2">
+                              👑 Legendary Cat: Level 30+
+                            </span>
+                          </div>
                         </li>
                         <li className="block leading-relaxed">
-                          High happiness unlocks better evolution outcomes and unique dialogs.
-                        </li>
-                        <li className="block leading-relaxed">
-                          Rename your companion anytime directly from the partner card.
+                          Rename your companion anytime directly from the partner card in the lobby!
                         </li>
                       </ul>
                     </div>

@@ -432,10 +432,15 @@ export function PetPanel() {
                   </div>
                   <button
                     onClick={() => handleFeed(item)}
-                    className="btn-bubbly bg-brand-pink text-white w-full py-2 text-xs flex items-center justify-center gap-1.5"
+                    disabled={petHunger >= 100}
+                    className={`btn-bubbly w-full py-2 text-xs flex items-center justify-center gap-1.5 transition-all ${
+                      petHunger >= 100
+                        ? 'bg-slate-300 text-slate-500 cursor-not-allowed opacity-60 shadow-none'
+                        : 'bg-brand-pink text-white'
+                    }`}
                   >
-                    <ActionCatIcons.Bowl size={16} color="white" />
-                    Feed {petName}
+                    <ActionCatIcons.Bowl size={16} color={petHunger >= 100 ? 'silver' : 'white'} />
+                    {petHunger >= 100 ? `${petName} is Full! 😸` : `Feed ${petName}`}
                   </button>
                 </motion.div>
               );
