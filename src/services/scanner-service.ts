@@ -110,6 +110,15 @@ function mapOpenFoodFactsCategory(categoriesStr = ''): string {
   return 'Other';
 }
 
+// In-memory negative cache for barcodes verified absent (404/not found) on OpenFoodFacts
+// TTL: 10 minutes (600,000 ms)
+const negativeCache = new Map<string, number>();
+const NEGATIVE_CACHE_TTL_MS = 10 * 60 * 1000;
+
+export function clearBarcodeNegativeCache(barcodeNumber: string) {
+  negativeCache.delete(barcodeNumber.trim());
+}
+
 export async function lookupOrRegisterProduct(barcodeNumber: string) {
   let product: any = null;
   let isNewProduct = false;
@@ -129,10 +138,16 @@ export async function lookupOrRegisterProduct(barcodeNumber: string) {
 
   // 2. Fallback to Open Food Facts API if missing
   if (!product) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+    // Fast-path: check negative cache to respond in <5ms without querying external API repeatedly
+    const cachedNotFoundTime = negativeCache.get(barcodeNumber);
+    if (cachedNotFoundTime && Date.now() - cachedNotFoundTime < NEGATIVE_CACHE_TTL_MS) {
+      return { product: null, isNewProduct: false };
+    }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // Strict 2000ms timeout
+
+    try {
       const offRes = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeNumber}.json`, {
         headers: { 'User-Agent': 'ScanChan - WebApp - 1.0' },
         signal: controller.signal,
@@ -141,6 +156,7 @@ export async function lookupOrRegisterProduct(barcodeNumber: string) {
 
       const offJson = await offRes.json();
       if (offJson.status === 1 && offJson.product) {
+        negativeCache.delete(barcodeNumber);
         const p = offJson.product;
         const name = p.product_name || p.product_name_en || p.product_name_id || `Product ${barcodeNumber}`;
         const brand = p.brands ? p.brands.split(',')[0].trim() : null;
@@ -174,10 +190,23 @@ export async function lookupOrRegisterProduct(barcodeNumber: string) {
           });
         }
         isNewProduct = true;
+      } else {
+        // Not found on OpenFoodFacts: save to negative cache
+        negativeCache.set(barcodeNumber, Date.now());
       }
-    } catch (e) {
-      console.warn('Open Food Facts API lookup offline or timed out:', e);
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      // Timeout or offline: cache negatively to protect user from subsequent delays
+      negativeCache.set(barcodeNumber, Date.now());
+      if (e?.name === 'AbortError') {
+        console.warn(`[OpenFoodFacts] Aborted after 2000ms timeout for barcode ${barcodeNumber}`);
+      } else {
+        console.warn('Open Food Facts API lookup offline or error:', e);
+      }
     }
+  } else {
+    // Product exists in database: ensure negative cache is clear
+    negativeCache.delete(barcodeNumber);
   }
 
   return { product, isNewProduct };

@@ -1128,14 +1128,8 @@ export function LobbyView() {
                 {/* 1. BAG MODAL */}
                 {activeModal === 'bag' && (
                   <div className="space-y-4 text-white">
-                    <div className="flex items-center justify-between text-xs text-white drop-shadow-[1px_1px_0_var(--theme-dark)]">
+                    <div className="flex items-center text-xs text-white drop-shadow-[1px_1px_0_var(--theme-dark)]">
                       <span>Total Items Collected: {totalFoodCount}</span>
-                      <Link
-                        href="/scan"
-                        className="text-white font-bold underline hover:brightness-110"
-                      >
-                        + Scan More Food
-                      </Link>
                     </div>
 
                     {foodItems.length === 0 ? (
@@ -1145,12 +1139,6 @@ export function LobbyView() {
                           Point your webcam at barcode snacks, drinks, or groceries to collect food
                           for Scan-chan!
                         </p>
-                        <Link
-                          href="/scan"
-                          className="btn-arcade-primary inline-flex text-xs py-2 px-4 mt-2"
-                        >
-                          Launch Barcode Scanner
-                        </Link>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

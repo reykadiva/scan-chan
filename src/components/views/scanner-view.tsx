@@ -102,11 +102,25 @@ export function ScannerView({ onClose }: ScannerViewProps) {
       lastDecodedRef.current = barcode;
       setLastBarcode(barcode);
       setPaused(true);
-      setPhase('loading');
 
       // Immediate tactile & audible feedback upon barcode capture
       playScannerBeep();
       haptics.medium();
+
+      // Client-Side Product Cache & Instant Feedback (0ms):
+      // Check if product was already loaded in catalog/Zustand store to display optimistically
+      const cachedProduct = useProductStore.getState().products[barcode];
+      if (cachedProduct) {
+        const isNew = !usePlayerStore.getState().scanHistory.includes(barcode);
+        setResult({
+          found: true,
+          product: cachedProduct as any,
+          isNew,
+        });
+        setPhase('found');
+      } else {
+        setPhase('loading');
+      }
 
       try {
         if (mode === GameMode.ARASHU) {
@@ -150,7 +164,15 @@ export function ScannerView({ onClose }: ScannerViewProps) {
             lastLocalMutationAt: Date.now(),
           });
 
-          setResult({ found: d.found, product: d.product, isNew: d.isNewProduct });
+          if (d.product) {
+            useProductStore.getState().upsertProduct(d.product);
+          }
+
+          setResult({
+            found: d.found,
+            product: d.product || (cachedProduct as any) || null,
+            isNew: d.isNewProduct,
+          });
           setPhase(d.found ? 'found' : 'not-found');
         } else {
           // Guest Mode: lookup product details, then record scan locally
@@ -179,10 +201,18 @@ export function ScannerView({ onClose }: ScannerViewProps) {
           playSuccessChime();
           haptics.success();
 
-          recordScan(barcode, isNew, product?.category ?? 'Other');
+          if (product) {
+            useProductStore.getState().upsertProduct(product);
+          }
 
-          setResult({ found, product, isNew });
-          setPhase(found ? 'found' : 'not-found');
+          recordScan(barcode, isNew, product?.category ?? cachedProduct?.category ?? 'Other');
+
+          setResult({
+            found: found || !!cachedProduct,
+            product: product || (cachedProduct as any) || null,
+            isNew,
+          });
+          setPhase(found || !!cachedProduct ? 'found' : 'not-found');
         }
       } catch {
         playErrorBuzz();
@@ -316,8 +346,11 @@ export function ScannerView({ onClose }: ScannerViewProps) {
                   transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
                   className="w-12 h-12 rounded-full border-4 border-[var(--theme-primary)] border-t-transparent"
                 />
-                <span className="font-press-start font-semibold text-white text-xs">
-                  Looking up product...
+                <span className="font-press-start font-semibold text-white text-xs text-center px-4">
+                  Searching catalog...
+                </span>
+                <span className="font-nunito text-xs text-white/70">
+                  Checking database & OpenFoodFacts
                 </span>
               </div>
             </motion.div>

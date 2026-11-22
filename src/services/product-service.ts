@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { localDb } from '@/lib/database/local-db';
 import { serializeProduct } from '@/lib/utils';
 import type { ProductCreateInput, ProductUpdateInput } from '@/lib/validations/product';
+import { clearBarcodeNegativeCache } from '@/services/scanner-service';
 
 export async function getProducts(options: {
   search?: string;
@@ -126,6 +127,9 @@ export async function createProduct(input: ProductCreateInput, creatorId?: strin
       });
     } catch {}
 
+    // Clear from negative cache since product is now registered
+    clearBarcodeNegativeCache(input.barcodeNumber);
+
     return serializeProduct(product);
   } catch (err: any) {
     if (err.message?.includes('already exists')) {
@@ -180,6 +184,9 @@ export async function updateProduct(barcode: string, input: ProductUpdateInput, 
           localDb.saveProduct({ ...local, ...input });
         }
       } catch {}
+
+      // Clear from negative cache since product is now updated
+      clearBarcodeNegativeCache(barcode);
 
       return serializeProduct(product);
     }
