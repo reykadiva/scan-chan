@@ -589,17 +589,18 @@ export async function executeFeedAction(userId: string, barcode: string, categor
   const now = Date.now();
 
   return await prisma.$transaction(async (tx) => {
-    let userInventory = await tx.inventory.findUnique({
-      where: { userId },
-      include: { items: true },
-    });
-
-    if (!userInventory) {
-      userInventory = await tx.inventory.create({
-        data: { userId },
+    // Parallel initial reads to minimize database transaction latency
+    const [userInventory, userPet, userProgress, userSettings] = await Promise.all([
+      tx.inventory.upsert({
+        where: { userId },
+        create: { userId },
+        update: {},
         include: { items: true },
-      });
-    }
+      }),
+      tx.pet.findUnique({ where: { userId }, include: { stats: true } }),
+      tx.progress.findUnique({ where: { userId } }),
+      tx.settings.findUnique({ where: { userId } }),
+    ]);
 
     let foodItem = userInventory.items.find(
       (item) => item.type === 'FOOD' && item.itemKey === cleanBarcode
@@ -635,23 +636,20 @@ export async function executeFeedAction(userId: string, barcode: string, categor
       }
     }
 
-    // Decrement item
+    // Decrement item atomically
+    let remainingQuantity = 0;
     if (foodItem.quantity <= 1) {
       await tx.inventoryItem.delete({
         where: { id: foodItem.id },
       });
+      remainingQuantity = 0;
     } else {
-      await tx.inventoryItem.update({
+      const updatedItem = await tx.inventoryItem.update({
         where: { id: foodItem.id },
         data: { quantity: foodItem.quantity - 1 },
       });
+      remainingQuantity = updatedItem.quantity;
     }
-
-    const [userPet, userProgress, userSettings] = await Promise.all([
-      tx.pet.findUnique({ where: { userId }, include: { stats: true } }),
-      tx.progress.findUnique({ where: { userId } }),
-      tx.settings.findUnique({ where: { userId } }),
-    ]);
 
     const cat = (category || '').toLowerCase();
     let hungerGain = 15;
@@ -769,6 +767,7 @@ export async function executeFeedAction(userId: string, barcode: string, categor
     }
 
     return {
+      remainingQuantity,
       petHunger: newHunger,
       petAffection: newAffection,
       petStage: newStage,
@@ -794,7 +793,8 @@ export async function executeScanAction(
   userId: string,
   barcodeNumber: string,
   idempotencyKey?: string,
-  deviceType?: string
+  deviceType?: string,
+  isPostRegistration?: boolean
 ) {
   const cleanBarcode = String(barcodeNumber || '').trim();
   if (!cleanBarcode) {
@@ -837,7 +837,10 @@ export async function executeScanAction(
     let newStreak = userProgress.streak;
     let newTotalXp = userProgress.xp;
 
-    if (!recentScan) {
+    // Allow post-registration scan recovery if recent scan occurred before product was registered
+    const isPostRegRecovery = Boolean(isPostRegistration && recentScan && !recentScan.productId);
+
+    if (!recentScan || isPostRegRecovery) {
       const lastActiveDateWIB = userProgress.lastActiveDate
         ? getWibDateKey(userProgress.lastActiveDate)
         : null;
@@ -853,7 +856,7 @@ export async function executeScanAction(
       const priorGlobalScans = await tx.scanHistory.count({
         where: { barcodeNumber: cleanBarcode },
       });
-      const isGlobalDiscovery = Boolean(isNewProduct) || priorGlobalScans === 0;
+      const isGlobalDiscovery = Boolean(isNewProduct) || priorGlobalScans === 0 || isPostRegRecovery;
       discoveryXp = isGlobalDiscovery ? 40 : 0;
 
       xpAwarded = dailyFirstScanXp + discoveryXp;
@@ -861,16 +864,28 @@ export async function executeScanAction(
 
       // 1. Record scan history atomically inside transaction
       try {
-        await tx.scanHistory.create({
-          data: {
-            barcodeNumber: cleanBarcode,
-            productId: product?.id ?? null,
-            deviceType: deviceType ?? 'webcam',
-            userId: userId ?? null,
-            xpAwarded: xpAwarded,
-            scannedAt: new Date(now),
-          },
-        });
+        if (isPostRegRecovery && recentScan) {
+          if (product?.id) {
+            await tx.scanHistory.update({
+              where: { id: recentScan.id },
+              data: {
+                productId: product.id,
+                xpAwarded: Math.max(recentScan.xpAwarded || 0, xpAwarded),
+              },
+            });
+          }
+        } else {
+          await tx.scanHistory.create({
+            data: {
+              barcodeNumber: cleanBarcode,
+              productId: product?.id ?? null,
+              deviceType: deviceType ?? 'webcam',
+              userId: userId ?? null,
+              xpAwarded: xpAwarded,
+              scannedAt: new Date(now),
+            },
+          });
+        }
       } catch (e) {
         console.warn('[executeScanAction] Scan log write error:', e);
       }

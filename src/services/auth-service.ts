@@ -46,6 +46,22 @@ export async function clearSessionCookie() {
 }
 
 /**
+ * Lightweight helper to retrieve authenticated Supabase User ID without extra DB lookups
+ */
+export async function getAuthUserId(): Promise<string | null> {
+  try {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+      return null;
+    }
+    return user.id;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * SC-001: Verified identity lookup using Supabase server client as the sole authority.
  * Never trusts unverified client cookies (scan_session).
  */

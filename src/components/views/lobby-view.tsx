@@ -278,64 +278,73 @@ export function LobbyView() {
       });
   }, [mounted, mode, nickname, setMode, loadProfile, resetPlayer, setActiveView]);
 
-  // Load food inventory products
+  // Zero-flicker instant food loading from local store cache
   useEffect(() => {
     async function loadFood() {
       const barcodes = Object.keys(foodInventory).filter((b) => (foodInventory[b] || 0) > 0);
       if (barcodes.length === 0) {
         setFoodItems([]);
+        setLoadingFood(false);
         return;
       }
-      setLoadingFood(true);
-      try {
-        const dbBarcodes = barcodes.filter((b) => !b.startsWith('login-reward-'));
-        let dbProducts: Product[] = [];
-        if (dbBarcodes.length > 0) {
-          const res = await fetch(`/api/products?limit=50&barcodes=${dbBarcodes.join(',')}`);
+
+      const localMap = useProductStore.getState().products;
+      const initialItems: Product[] = [];
+      const missingBarcodes: string[] = [];
+
+      for (const barcode of barcodes) {
+        if (barcode.startsWith('login-reward-')) {
+          initialItems.push({
+            id: barcode,
+            barcodeNumber: barcode,
+            productName: '🍱 Delicious Bento Box',
+            category: 'Snack',
+            brand: 'Scan-chan Bakery',
+            description: 'A special treat reward from daily login!',
+          } as any);
+        } else if (localMap[barcode]) {
+          initialItems.push(localMap[barcode]);
+        } else {
+          missingBarcodes.push(barcode);
+        }
+      }
+
+      // If we already have items from cache, show them IMMEDIATELY (0ms, zero flicker)
+      if (initialItems.length > 0) {
+        setFoodItems(initialItems);
+        setLoadingFood(false);
+      } else {
+        setLoadingFood(true);
+      }
+
+      // Fetch only barcodes missing from local store
+      if (missingBarcodes.length > 0) {
+        try {
+          const res = await fetch(`/api/products?limit=50&barcodes=${missingBarcodes.join(',')}`);
           const data = await res.json();
           if (data.success && Array.isArray(data.data)) {
-            dbProducts = data.data;
-          }
-        }
-
-        // Add login rewards
-        const allItems: any[] = [...dbProducts];
-        for (const barcode of barcodes) {
-          if (barcode.startsWith('login-reward-')) {
-            allItems.push({
-              id: barcode,
-              barcodeNumber: barcode,
-              productName: '🍱 Delicious Bento Box',
-              category: 'Snack',
-              brand: 'Scan-chan Bakery',
-              description: 'A special treat reward from daily login!',
+            for (const p of data.data) {
+              useProductStore.getState().upsertProduct(p);
+            }
+            setFoodItems((prev) => {
+              const prevBarcodes = new Set(prev.map((i) => i.barcodeNumber));
+              const newlyFetched = (data.data as Product[]).filter((p) => !prevBarcodes.has(p.barcodeNumber));
+              return [...prev, ...newlyFetched];
             });
           }
+        } catch {
+          const fallbacks = missingBarcodes.map((b) => ({
+            id: b,
+            barcodeNumber: b,
+            productName: `Snack Item (${b.slice(-4)})`,
+            category: 'Snack',
+            brand: 'Pantry Snack',
+          }));
+          setFoodItems((prev) => [...prev, ...(fallbacks as any)]);
+        } finally {
+          setLoadingFood(false);
         }
-
-        // Merge with locally cached products in useProductStore
-        const localProductMap = useProductStore.getState().products;
-        const foundBarcodes = new Set(allItems.map((p) => p.barcodeNumber));
-        for (const barcode of barcodes) {
-          if (!foundBarcodes.has(barcode) && localProductMap[barcode]) {
-            allItems.push(localProductMap[barcode]);
-            foundBarcodes.add(barcode);
-          }
-        }
-
-        setFoodItems(allItems);
-      } catch {
-        // Fallback to local store first, then placeholder items for food
-        const localProductMap = useProductStore.getState().products;
-        const fallbacks = barcodes.map((b) => localProductMap[b] || ({
-          id: b,
-          barcodeNumber: b,
-          productName: `Snack Item (${b.slice(-4)})`,
-          category: 'Snack',
-          brand: 'Pantry Snack',
-        }));
-        setFoodItems(fallbacks as any);
-      } finally {
+      } else {
         setLoadingFood(false);
       }
     }

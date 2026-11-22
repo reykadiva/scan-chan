@@ -11,6 +11,7 @@ let _hasPendingProfileSave = false;
 let _loadedUserId: string | null = null;
 let _pendingFeedCount = 0;
 let _pendingPetCount = 0;
+let _feedPromiseChain: Promise<void> = Promise.resolve();
 
 /**
  * Hard gate: Blocks any mutation or server push when profile is loading or unhydrated in cloud mode
@@ -384,7 +385,7 @@ export const usePlayerStore = create<PlayerStore>()(
           fetch('/api/actions/scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ barcodeNumber: cleanBarcode }),
+            body: JSON.stringify({ barcodeNumber: cleanBarcode, isPostRegistration: true }),
           })
             .then(async (res) => {
               if (!res.ok) return;
@@ -393,12 +394,18 @@ export const usePlayerStore = create<PlayerStore>()(
                 const d = json.data;
                 const computedLevel = levelFromXp(d.xp);
                 const computedStage = getPetStageFromLevel(computedLevel);
+                // Safe merge: preserve local foodInventory items while taking authoritative server quantities
+                const serverInv = d.foodInventory || {};
+                const mergedInv = { ...get().foodInventory };
+                for (const [k, v] of Object.entries(serverInv)) {
+                  mergedInv[k] = Math.max(mergedInv[k] || 0, Number(v) || 0);
+                }
                 set({
                   xp: d.xp,
                   level: computedLevel,
                   streak: typeof d.streak === 'number' ? d.streak : 0,
                   petStage: computedStage,
-                  foodInventory: d.foodInventory || get().foodInventory,
+                  foodInventory: mergedInv,
                   scanHistory: d.scanHistory || get().scanHistory,
                   lastActiveDate: d.lastActiveDate || get().lastActiveDate,
                 });
@@ -573,15 +580,17 @@ export const usePlayerStore = create<PlayerStore>()(
           };
         });
 
-        // Server-authoritative action & anti-out-of-order reconciliation in Hunter Mode
+        // Server-authoritative action via FIFO Serial Promise Queue
         if (get().mode === GameMode.ARASHU && get().isProfileLoaded) {
           _pendingFeedCount++;
-          fetch('/api/actions/feed', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ barcode: cleanBarcode, category }),
-          })
-            .then(async (res) => {
+          _feedPromiseChain = _feedPromiseChain.then(async () => {
+            try {
+              const res = await fetch('/api/actions/feed', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ barcode: cleanBarcode, category }),
+              });
+
               if (!res.ok) {
                 const errJson = await res.json().catch(() => null);
                 const errMsg = errJson?.error || 'Failed to feed pet';
@@ -589,51 +598,65 @@ export const usePlayerStore = create<PlayerStore>()(
                   const { toast } = await import('sonner');
                   toast.error(errMsg);
                 }
-                // Rollback on server refusal only if no other feeds are queued
-                if (_pendingFeedCount <= 1) {
-                  set(previousSnapshot);
-                }
+                // Targeted rollback: restore this 1 item to foodInventory without wiping other state
+                set((s) => ({
+                  foodInventory: {
+                    ...s.foodInventory,
+                    [cleanBarcode]: (s.foodInventory[cleanBarcode] || 0) + 1,
+                  },
+                }));
                 return;
               }
+
               const json = await res.json();
               if (json.success && json.data) {
                 const d = json.data;
-                const computedLevel = levelFromXp(d.xp);
-                const computedStage = getPetStageFromLevel(computedLevel);
-                // Anti-flicker: Only reconcile full foodInventory when all pending feed requests have settled
-                if (_pendingFeedCount <= 1) {
-                  set({
-                    petHunger: d.petHunger,
-                    petAffection: d.petAffection,
-                    petStage: computedStage,
-                    xp: d.xp,
-                    level: computedLevel,
-                    foodInventory: d.foodInventory,
-                    lastFedBarcode: d.lastFedBarcode,
-                    lastFedAt: d.lastFedAt,
-                    lastHungerDecayAt: d.lastHungerDecayAt,
-                    lastAffectionDecayAt: d.lastAffectionDecayAt,
-                  });
-                } else {
-                  // Keep optimistic local foodInventory to prevent flickering, update pet vitals
-                  set({
-                    petHunger: Math.max(get().petHunger, d.petHunger),
-                    petAffection: Math.max(get().petAffection, d.petAffection),
-                    lastFedBarcode: d.lastFedBarcode,
-                    lastFedAt: d.lastFedAt,
-                  });
-                }
+                // DELTA UPDATE: Update only the consumed barcode & merge vitals safely
+                set((state) => {
+                  const updatedFoodInventory = { ...state.foodInventory };
+                  const remainingQty = typeof d.remainingQuantity === 'number'
+                    ? d.remainingQuantity
+                    : (d.foodInventory?.[cleanBarcode] ?? 0);
+
+                  if (remainingQty <= 0) {
+                    delete updatedFoodInventory[cleanBarcode];
+                  } else {
+                    updatedFoodInventory[cleanBarcode] = remainingQty;
+                  }
+
+                  const finalHunger = Math.max(state.petHunger, d.petHunger);
+                  const finalAffection = Math.max(state.petAffection, d.petAffection);
+                  const finalXp = Math.max(state.xp, d.xp);
+                  const finalLevel = levelFromXp(finalXp);
+                  const finalStage = getPetStageFromLevel(finalLevel);
+
+                  return {
+                    foodInventory: updatedFoodInventory,
+                    petHunger: finalHunger,
+                    petAffection: finalAffection,
+                    xp: finalXp,
+                    level: finalLevel,
+                    petStage: finalStage,
+                    lastFedBarcode: d.lastFedBarcode || cleanBarcode,
+                    lastFedAt: d.lastFedAt || now,
+                    lastHungerDecayAt: d.lastHungerDecayAt || state.lastHungerDecayAt,
+                    lastAffectionDecayAt: d.lastAffectionDecayAt || state.lastAffectionDecayAt,
+                  };
+                });
               }
-            })
-            .catch((err) => {
-              console.warn('[feedPet] Action error:', err);
-              if (_pendingFeedCount <= 1) {
-                set(previousSnapshot);
-              }
-            })
-            .finally(() => {
+            } catch (err) {
+              console.warn('[feedPet] Network/queue error:', err);
+              // Targeted rollback on network failure
+              set((s) => ({
+                foodInventory: {
+                  ...s.foodInventory,
+                  [cleanBarcode]: (s.foodInventory[cleanBarcode] || 0) + 1,
+                },
+              }));
+            } finally {
               _pendingFeedCount = Math.max(0, _pendingFeedCount - 1);
-            });
+            }
+          });
         }
       },
 
@@ -903,8 +926,8 @@ export const usePlayerStore = create<PlayerStore>()(
       },
 
       loadProfile: async (targetUserId?: string) => {
-        // BLOCK if save is in-flight or pending — stale GET would overwrite fresh local state
-        if (_isSavingProfile || _hasPendingProfileSave || get().isSaving) {
+        // BLOCK if save or feed queue is in-flight or pending — stale GET would overwrite fresh local state
+        if (_isSavingProfile || _hasPendingProfileSave || get().isSaving || _pendingFeedCount > 0) {
           return;
         }
 
@@ -978,8 +1001,8 @@ export const usePlayerStore = create<PlayerStore>()(
             throw new Error(`Failed to load profile ${statusMsg}`);
           }
 
-          // Re-check after await: jika save sedang in-flight atau pending, batalkan load agar tidak menimpa state klien
-          if (_isSavingProfile || _hasPendingProfileSave || get().isSaving) {
+          // Re-check after await: jika save atau feed queue sedang aktif, batalkan load agar tidak menimpa state klien
+          if (_isSavingProfile || _hasPendingProfileSave || get().isSaving || _pendingFeedCount > 0) {
             set({ isLoading: false });
             return;
           }
@@ -1141,8 +1164,8 @@ export const usePlayerStore = create<PlayerStore>()(
 
       saveProfileToServer: async () => {
         const state = get();
-        // CRITICAL HARD GUARD: Never save if in loading/syncing phase, not in Hunter Mode, or unhydrated
-        if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded || state.isLoading) {
+        // CRITICAL HARD GUARD: Never save if in loading/syncing phase, not in Hunter Mode, unhydrated, or feed queue is active
+        if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded || state.isLoading || _pendingFeedCount > 0) {
           return;
         }
 
@@ -1249,7 +1272,7 @@ export const usePlayerStore = create<PlayerStore>()(
 if (typeof window !== 'undefined') {
   let saveTimeout: any = null;
   usePlayerStore.subscribe((state, prevState) => {
-    if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded || state.isLoading) return;
+    if (state.mode !== GameMode.ARASHU || !state.isProfileLoaded || state.isLoading || _pendingFeedCount > 0) return;
     // Only trigger on actual data mutations, not on isSaving/isLoading flag changes
     if (state.lastLocalMutationAt === prevState.lastLocalMutationAt) return;
     if (saveTimeout) clearTimeout(saveTimeout);

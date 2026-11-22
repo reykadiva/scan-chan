@@ -14,10 +14,12 @@ export interface ProductStoreState {
 export interface ProductStoreActions {
   upsertProduct: (product: Product, isPendingSync?: boolean) => void;
   upsertMultipleProducts: (products: Product[]) => void;
-  mergeServerProducts: (serverProducts: Product[]) => void;
+  mergeServerProducts: (serverProducts: Product[], isFullOverwrite?: boolean) => void;
   removeProduct: (barcodeNumber: string) => void;
+  clearCatalog: () => void;
   syncPendingToServer: () => Promise<void>;
-  fetchAndMergeCatalog: (options?: { search?: string; category?: string }) => Promise<Product[]>;
+  fetchProducts: (options?: { search?: string; category?: string; page?: number; limit?: number }) => Promise<Product[]>;
+  fetchAndMergeCatalog: (options?: { search?: string; category?: string; limit?: number }) => Promise<Product[]>;
   getAllProductsList: () => Product[];
 }
 
@@ -67,30 +69,50 @@ export const useProductStore = create<ProductStore>()(
         });
       },
 
-      mergeServerProducts: (serverProducts: Product[]) => {
+      mergeServerProducts: (serverProducts: Product[], isFullOverwrite = false) => {
         set((state) => {
-          const updated = { ...state.products };
           const pendingSet = new Set(state.pendingSyncBarcodes);
+          const newMap: Record<string, Product> = {};
 
           for (const sp of serverProducts) {
             if (!sp?.barcodeNumber) continue;
-            const barcode = sp.barcodeNumber;
-            // Merge with local product, keeping any local richer fields if server is null
-            const local = updated[barcode];
-            updated[barcode] = {
-              ...local,
-              ...sp,
-              brand: sp.brand || local?.brand || null,
-              category: sp.category || local?.category || null,
-              description: sp.description || local?.description || null,
-              imageUrl: sp.imageUrl || local?.imageUrl || null,
+            newMap[sp.barcodeNumber] = sp;
+            pendingSet.delete(sp.barcodeNumber);
+          }
+
+          // If catalog is empty from server OR isFullOverwrite is true:
+          // Overwrite completely, preserving only items currently pending sync
+          if (isFullOverwrite || serverProducts.length === 0) {
+            for (const pendingBarcode of Array.from(pendingSet)) {
+              if (state.products[pendingBarcode]) {
+                newMap[pendingBarcode] = state.products[pendingBarcode];
+              }
+            }
+
+            if (Object.keys(newMap).length === 0 && typeof window !== 'undefined') {
+              try {
+                localStorage.removeItem('scan-chan-products-storage');
+                localStorage.removeItem('scan-chan-product-registry');
+              } catch (e) {
+                console.warn('[ProductStore] Failed to remove empty localStorage keys:', e);
+              }
+            }
+
+            return {
+              products: newMap,
+              pendingSyncBarcodes: Array.from(pendingSet),
+              lastSyncedAt: Date.now(),
             };
-            // Since server has it, it's no longer pending
-            pendingSet.delete(barcode);
+          }
+
+          // If partial search/category filter, merge matching items without deleting unrelated products
+          const merged = { ...state.products };
+          for (const [b, p] of Object.entries(newMap)) {
+            merged[b] = p;
           }
 
           return {
-            products: updated,
+            products: merged,
             pendingSyncBarcodes: Array.from(pendingSet),
             lastSyncedAt: Date.now(),
           };
@@ -101,10 +123,33 @@ export const useProductStore = create<ProductStore>()(
         set((state) => {
           const next = { ...state.products };
           delete next[barcodeNumber];
+          const remainingPending = state.pendingSyncBarcodes.filter((b) => b !== barcodeNumber);
+
+          if (Object.keys(next).length === 0 && typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('scan-chan-products-storage');
+              localStorage.removeItem('scan-chan-product-registry');
+            } catch {}
+          }
+
           return {
             products: next,
-            pendingSyncBarcodes: state.pendingSyncBarcodes.filter((b) => b !== barcodeNumber),
+            pendingSyncBarcodes: remainingPending,
           };
+        });
+      },
+
+      clearCatalog: () => {
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem('scan-chan-products-storage');
+            localStorage.removeItem('scan-chan-product-registry');
+          } catch {}
+        }
+        set({
+          products: {},
+          pendingSyncBarcodes: [],
+          lastSyncedAt: Date.now(),
         });
       },
 
@@ -161,10 +206,12 @@ export const useProductStore = create<ProductStore>()(
         }
       },
 
-      fetchAndMergeCatalog: async (options) => {
+      fetchProducts: async (options) => {
+        const isFiltered = Boolean(options?.search || options?.category);
         try {
           const params = new URLSearchParams({
-            limit: '50',
+            limit: options?.limit ? String(options.limit) : '50',
+            ...(options?.page && { page: String(options.page) }),
             ...(options?.search && { search: options.search }),
             ...(options?.category && { category: options.category }),
           });
@@ -173,7 +220,7 @@ export const useProductStore = create<ProductStore>()(
           const data = await res.json();
 
           if (data.success && Array.isArray(data.data)) {
-            get().mergeServerProducts(data.data);
+            get().mergeServerProducts(data.data, !isFiltered);
           }
         } catch (err) {
           console.warn('[ProductStore] Failed to fetch server products, using local cache:', err);
@@ -183,6 +230,10 @@ export const useProductStore = create<ProductStore>()(
         get().syncPendingToServer().catch(() => {});
 
         return get().getAllProductsList();
+      },
+
+      fetchAndMergeCatalog: async (options) => {
+        return get().fetchProducts(options);
       },
 
       getAllProductsList: () => {
@@ -197,6 +248,17 @@ export const useProductStore = create<ProductStore>()(
     {
       name: 'scan-chan-product-registry',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        if (typeof window !== 'undefined') {
+          try {
+            // Clean legacy storage key if empty or stale
+            const legacy = localStorage.getItem('scan-chan-products-storage');
+            if (legacy && (!state?.products || Object.keys(state.products).length === 0)) {
+              localStorage.removeItem('scan-chan-products-storage');
+            }
+          } catch {}
+        }
+      },
       partialize: (state) => {
         // Ephemeral in RAM: Guest Mode products must NEVER persist to localStorage
         if (usePlayerStore.getState().mode === GameMode.GUEST) {

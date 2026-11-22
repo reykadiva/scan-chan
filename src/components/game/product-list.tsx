@@ -68,7 +68,8 @@ export function ProductList({ creatorId, onProductDeleted }: ProductListProps) {
         clearTimeout(timeoutId);
         const data = await res.json();
         if (data.success && Array.isArray(data.data) && active) {
-          mergeServerProducts(data.data);
+          const isFiltered = Boolean(debouncedSearch || category);
+          mergeServerProducts(data.data, !isFiltered);
           syncPendingToServer().catch(() => {});
         }
       } catch {

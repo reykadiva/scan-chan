@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getCurrentUser } from '@/services/auth-service';
+import { getAuthUserId } from '@/services/auth-service';
 import { executeFeedAction } from '@/services/player-service';
 
 export const dynamic = 'force-dynamic';
@@ -12,10 +12,9 @@ const feedActionSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getCurrentUser();
-    const user = session?.authUser;
+    const userId = await getAuthUserId();
 
-    if (!user) {
+    if (!userId) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await executeFeedAction(user.id, parsed.data.barcode, parsed.data.category);
+    const result = await executeFeedAction(userId, parsed.data.barcode, parsed.data.category);
 
     return NextResponse.json({
       success: true,

@@ -9,6 +9,7 @@ const scanActionSchema = z.object({
   barcodeNumber: z.string().trim().min(1, 'Barcode number is required'),
   idempotencyKey: z.string().optional(),
   deviceType: z.string().optional(),
+  isPostRegistration: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
       user.id,
       parsed.data.barcodeNumber,
       parsed.data.idempotencyKey,
-      parsed.data.deviceType
+      parsed.data.deviceType,
+      parsed.data.isPostRegistration
     );
 
     return NextResponse.json({

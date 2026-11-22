@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayerStore } from '@/stores/player-store';
+import { useProductStore } from '@/stores/product-store';
 import { PixelCat, type CatVariantId, type CatActionId } from '@/components/game/pixel-cat';
 import { Edit2, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -57,48 +58,77 @@ export function PetPanel() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationType, setCelebrationType] = useState<'levelup' | 'achievement' | 'milestone' | 'perfect'>('achievement');
 
-  // Fetch product details for food inventory to list available food
+  // Zero-flicker instant food loading from local store cache
   useEffect(() => {
     async function loadFood() {
-      const foodBarcodes = Object.keys(foodInventory);
+      const foodBarcodes = Object.keys(foodInventory).filter((b) => (foodInventory[b] || 0) > 0);
       if (foodBarcodes.length === 0) {
         setFoodItems([]);
         setLoadingFood(false);
         return;
       }
-      setLoadingFood(true);
-      try {
-        const dbBarcodes = foodBarcodes.filter((b) => !b.startsWith('login-reward-'));
-        let dbProducts: Product[] = [];
-        if (dbBarcodes.length > 0) {
-          const res = await fetch(`/api/products?limit=50&barcodes=${dbBarcodes.join(',')}`);
-          const data = await res.json();
-          if (data.success) {
-            dbProducts = data.data;
-          }
-        }
-        
-        // Append mocked products for login rewards
-        const allItems = [...dbProducts];
-        for (const barcode of foodBarcodes) {
-          if (barcode.startsWith('login-reward-')) {
-            allItems.push({
-              id: barcode,
-              barcodeNumber: barcode,
-              productName: '🍱 Delicious Login Bento',
-              category: 'Snack',
-              brand: 'Scan-chan Bakery',
-              description: 'A special tasty lunch box given to loyal players!',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
-            } as any);
-          }
-        }
 
-        setFoodItems(allItems);
-      } catch {
-        toast.error('Failed to load food inventory');
-      } finally {
+      const localMap = useProductStore.getState().products;
+      const initialItems: Product[] = [];
+      const missingBarcodes: string[] = [];
+
+      for (const barcode of foodBarcodes) {
+        if (barcode.startsWith('login-reward-')) {
+          initialItems.push({
+            id: barcode,
+            barcodeNumber: barcode,
+            productName: '🍱 Delicious Login Bento',
+            category: 'Snack',
+            brand: 'Scan-chan Bakery',
+            description: 'A special tasty lunch box given to loyal players!',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          } as any);
+        } else if (localMap[barcode]) {
+          initialItems.push(localMap[barcode]);
+        } else {
+          missingBarcodes.push(barcode);
+        }
+      }
+
+      // If we already have items from cache, show them IMMEDIATELY (0ms, zero flicker)
+      if (initialItems.length > 0) {
+        setFoodItems(initialItems);
+        setLoadingFood(false);
+      } else {
+        // Only show loading cat if we have NO items at all to display yet
+        setLoadingFood(true);
+      }
+
+      // Fetch only barcodes missing from local store
+      if (missingBarcodes.length > 0) {
+        try {
+          const res = await fetch(`/api/products?limit=50&barcodes=${missingBarcodes.join(',')}`);
+          const data = await res.json();
+          if (data.success && Array.isArray(data.data)) {
+            for (const p of data.data) {
+              useProductStore.getState().upsertProduct(p);
+            }
+            setFoodItems((prev) => {
+              const prevBarcodes = new Set(prev.map((i) => i.barcodeNumber));
+              const newlyFetched = (data.data as Product[]).filter((p) => !prevBarcodes.has(p.barcodeNumber));
+              return [...prev, ...newlyFetched];
+            });
+          }
+        } catch {
+          // If network fails, generate simple placeholders for missing items
+          const fallbacks = missingBarcodes.map((b) => ({
+            id: b,
+            barcodeNumber: b,
+            productName: `Snack Item (${b.slice(-4)})`,
+            category: 'Snack',
+            brand: 'Pantry Snack',
+          }));
+          setFoodItems((prev) => [...prev, ...(fallbacks as any)]);
+        } finally {
+          setLoadingFood(false);
+        }
+      } else {
         setLoadingFood(false);
       }
     }
